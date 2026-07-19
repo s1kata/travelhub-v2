@@ -1,0 +1,67 @@
+# База данных SQLite
+*.db
+*.db-shm
+*.db-wal
+backend/config/user_management.db
+backend/user_management.db
+user_management.db
+
+# Постоянная директория для базы данных (файл базы игнорируется, но директория сохраняется)
+data/user_management.db
+data/*.db
+data/*.db-shm
+data/*.db-wal
+!data/.gitkeep
+data/tourvisor_cache/
+data/cache/home_popular_destinations/
+
+# PHP
+*.log
+.php_cs.cache
+
+# Системные файлы
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Временные файлы
+*.tmp
+*.temp
+~*
+
+# Ngrok
+ngrok.exe
+ngrok.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node modules (если будут использоваться)
+node_modules/
+
+# Кэш YML-фидов (генерируется автоматически)
+export/promotions_yml_cache.xml
+
+# Логи
+logs/
+*.log
+
+# Бэкапы
+*.bak
+backup/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Remote database configuration
+backend/config/db_remote.php
+
+# Firebase service account (секретный ключ)
+config/firebase-service-account.json
+backend/config/firebase-service-account.json

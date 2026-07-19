@@ -1,0 +1,1 @@
+{"countries":[{"id":12,"name":"Турция","slug":"turkey","images":[]},{"id":13,"name":"Египет","slug":"egypt","images":[]},{"id":14,"name":"ОАЭ","slug":"uae","images":[]},{"id":15,"name":"Таиланд","slug":"thailand","images":[]},{"id":16,"name":"Мальдивы","slug":"maldives","images":[]}],"imageProxy":"http:\/\/127.0.0.1:8090\/backend\/api\/tourvisor-image-proxy.php"}

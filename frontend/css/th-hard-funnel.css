@@ -1,0 +1,83 @@
+/**
+ * Hard funnel UI — sticky results lead + demoted secondary CTAs.
+ */
+.th-results-sticky-lead {
+    /* На мобилке переопределяется в mobile-adult.css → position:fixed */
+    position: sticky;
+    bottom: 0;
+    z-index: 40;
+    display: none;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: #fff;
+    border-top: 1px solid rgba(26, 26, 64, 0.12);
+    box-shadow: 0 -6px 24px rgba(15, 23, 42, 0.08);
+}
+
+.th-results-sticky-lead.is-visible {
+    display: block;
+}
+
+.th-results-sticky-lead__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 50px;
+    border: none;
+    border-radius: 12px;
+    background: #FF6B6B;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(255, 107, 107, 0.35);
+}
+
+.th-results-sticky-lead__btn:hover {
+    background: #f65252;
+}
+
+/* tour-detail: primary CTA dominant, pay secondary */
+.th-detail__cta-wrap .th-detail__cta-btn {
+    width: 100%;
+}
+
+.th-detail__cta-btn--pay-secondary {
+    margin-top: 0.5rem !important;
+    background: transparent !important;
+    color: #64748b !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: none !important;
+    font-weight: 600 !important;
+    font-size: 0.875rem !important;
+    min-height: 42px !important;
+}
+
+.th-detail__cta-btn--pay-secondary:hover {
+    background: #f8fafc !important;
+    color: #1A1A40 !important;
+    border-color: #cbd5e1 !important;
+    transform: none !important;
+}
+
+.th-detail__cta-btn--pay-primary {
+    margin-top: 0.65rem !important;
+    background: linear-gradient(135deg, #0c4a6e 0%, #366360 45%, #5DA9A4 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 8px 22px rgba(93, 169, 164, 0.35) !important;
+    font-weight: 700 !important;
+    font-size: 0.95rem !important;
+    min-height: 50px !important;
+}
+
+.th-detail__cta-btn--pay-primary:hover {
+    background: linear-gradient(135deg, #0a3d5c 0%, #2d524f 45%, #4f9691 100%) !important;
+    color: #fff !important;
+    transform: none !important;
+}
+
+.th-detail__mobile-sticky-btn {
+    background: #FF6B6B !important;
+}
