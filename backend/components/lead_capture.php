@@ -20,6 +20,8 @@ $th_lead_sub = isset($th_lead_sub) ? (string) $th_lead_sub : 'Перезвони
 $th_lead_submit = isset($th_lead_submit) ? (string) $th_lead_submit : 'Отправить заявку';
 $th_lead_show_msg = !empty($th_lead_show_msg);
 $th_lead_compact = !empty($th_lead_compact);
+$th_lead_phone_only = !empty($th_lead_phone_only);
+$th_lead_social_proof = !isset($th_lead_social_proof) ? true : !empty($th_lead_social_proof);
 $th_lead_msg_id = $th_lead_id . '-msg';
 $name_id = $th_lead_id . '-name';
 $phone_id = $th_lead_id . '-phone';
@@ -32,16 +34,27 @@ $agree_id = $th_lead_id . '-agree';
     <?php if ($th_lead_sub !== ''): ?>
     <p class="th-lead-capture__sub"><?php echo htmlspecialchars($th_lead_sub, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
+    <?php if ($th_lead_social_proof): ?>
+    <ul class="th-lead-capture__proof" aria-label="Гарантии">
+        <li><i class="fas fa-clock" aria-hidden="true"></i> Ответ за 15 минут</li>
+        <li><i class="fas fa-shield-alt" aria-hidden="true"></i> Без спама</li>
+    </ul>
+    <?php endif; ?>
     <form id="<?php echo htmlspecialchars($th_lead_id, ENT_QUOTES, 'UTF-8'); ?>"
           class="th-lead-capture__form"
           data-th-lead
           data-th-lead-source="<?php echo htmlspecialchars($th_lead_source, ENT_QUOTES, 'UTF-8'); ?>"
-          data-th-lead-msg="<?php echo htmlspecialchars($th_lead_msg_id, ENT_QUOTES, 'UTF-8'); ?>">
+          data-th-lead-msg="<?php echo htmlspecialchars($th_lead_msg_id, ENT_QUOTES, 'UTF-8'); ?>"
+          <?php if ($th_lead_phone_only): ?>data-th-lead-phone-only="1"<?php endif; ?>>
+        <?php if (!$th_lead_phone_only): ?>
         <div class="th-lead-capture__row">
             <label class="th-lead-capture__lbl" for="<?php echo htmlspecialchars($name_id, ENT_QUOTES, 'UTF-8'); ?>">Имя</label>
             <input type="text" id="<?php echo htmlspecialchars($name_id, ENT_QUOTES, 'UTF-8'); ?>" name="name" required maxlength="100"
                    autocomplete="name" placeholder="Как к вам обращаться" class="th-lead-capture__input">
         </div>
+        <?php else: ?>
+        <input type="hidden" name="name" value="Клиент сайта">
+        <?php endif; ?>
         <div class="th-lead-capture__row">
             <label class="th-lead-capture__lbl" for="<?php echo htmlspecialchars($phone_id, ENT_QUOTES, 'UTF-8'); ?>">Телефон</label>
             <input type="tel" id="<?php echo htmlspecialchars($phone_id, ENT_QUOTES, 'UTF-8'); ?>" name="phone" required
@@ -94,5 +107,5 @@ $agree_id = $th_lead_id . '-agree';
 </style>
 <?php
 // Сброс опций, чтобы следующий include не унаследовал значения
-unset($th_lead_id, $th_lead_source, $th_lead_title, $th_lead_sub, $th_lead_submit, $th_lead_show_msg, $th_lead_compact);
+unset($th_lead_id, $th_lead_source, $th_lead_title, $th_lead_sub, $th_lead_submit, $th_lead_show_msg, $th_lead_compact, $th_lead_phone_only, $th_lead_social_proof);
 ?>

@@ -36,11 +36,46 @@
     }
 
     .th-promo-popup--collapsed {
+        position: static !important;
+        inset: auto !important;
+        width: 0 !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+        display: block !important;
+        opacity: 1 !important;
         pointer-events: none !important;
+        z-index: auto !important;
     }
 
     .th-promo-popup--collapsed .th-promo-popup__tab {
         pointer-events: auto !important;
+        position: fixed !important;
+        top: calc(var(--th-header-h, 56px) + var(--th-safe-top, 0px) + 6px) !important;
+        bottom: auto !important;
+        left: 12px !important;
+        right: 12px !important;
+        transform: none !important;
+        width: auto !important;
+        max-width: calc(100vw - 24px) !important;
+        height: auto !important;
+        min-height: 0 !important;
+        flex: none !important;
+        align-self: auto !important;
+        justify-content: center;
+        z-index: var(--th-z-promo-tab, 950) !important;
+        padding: 9px 14px !important;
+        font-size: 0.82rem !important;
+        box-sizing: border-box !important;
+    }
+
+    body.th-promo-tab-visible .home-hero-section {
+        padding-top: calc(var(--th-header-h, 56px) + var(--th-safe-top, 0px) + 52px) !important;
+    }
+
+    body.has-th-lead-bar.th-promo-tab-bottom .th-promo-popup--collapsed .th-promo-popup__tab {
+        top: calc(var(--th-header-h, 56px) + var(--th-safe-top, 0px) + 6px) !important;
+        bottom: auto !important;
     }
 
     /* Honeypot — не раздувает scrollWidth */
@@ -409,6 +444,12 @@
         padding: 10px 14px !important;
     }
 
+    .tv-filters-modal__select {
+        min-height: 48px !important;
+        pointer-events: auto !important;
+        touch-action: manipulation;
+    }
+
     /* ─── Промо-попап ─── */
     .th-promo-popup {
         z-index: 10200 !important;
@@ -465,20 +506,6 @@
         margin: 12px 0 !important;
     }
 
-    /* Свёрнутая плашка промо — под шапкой, не на wizard */
-    body.th-promo-tab-bottom.th-promo-tab-visible .th-promo-popup--collapsed .th-promo-popup__tab {
-        top: calc(var(--th-header-h, 56px) + var(--th-safe-top, 0px) + 6px) !important;
-        bottom: auto !important;
-        left: 12px !important;
-        right: 12px !important;
-        transform: none !important;
-        width: auto !important;
-        max-width: none !important;
-        justify-content: center;
-        z-index: var(--th-z-promo-tab, 950) !important;
-        padding: 9px 14px !important;
-        font-size: 0.82rem !important;
-    }
 
     /* ─── Cookie ─── */
     .cookie-consent-banner {

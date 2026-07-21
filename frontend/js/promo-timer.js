@@ -820,7 +820,12 @@
             adjustStatusBarPosition();
         });
         if (isFirstVisit && lsGet(LS_POPUP_SHOWN) !== '1') {
-            setTimeout(showPopup, 2500);
+            setTimeout(function () {
+                var wiz = document.getElementById('tour-search-section');
+                var step = wiz ? parseInt(wiz.getAttribute('data-step') || '1', 10) : 1;
+                if (step > 1) return;
+                showPopup();
+            }, 5000);
         } else if (promoUiShouldShow()) {
             setTimeout(function () {
                 if (!document.getElementById('th-promo-popup')) {

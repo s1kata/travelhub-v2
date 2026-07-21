@@ -6,9 +6,9 @@
     'use strict';
 
     var STEPS = [
-        { id: 1, key: 'departure', label: 'Откуда' },
-        { id: 2, key: 'country', label: 'Куда' },
-        { id: 3, key: 'when', label: 'Когда' },
+        { id: 1, key: 'when', label: 'Когда' },
+        { id: 2, key: 'departure', label: 'Откуда' },
+        { id: 3, key: 'country', label: 'Куда' },
         { id: 4, key: 'who', label: 'Кто' }
     ];
 
@@ -68,12 +68,20 @@
         });
 
         var adv = qs('#th-wizard-open-filters', this.root);
-        if (adv) {
-            adv.addEventListener('click', function () {
-                var openBtn = document.getElementById('tv-filters-modal-open');
-                if (openBtn) openBtn.click();
+        if (adv && !adv.dataset.thwFiltersBound) {
+            adv.dataset.thwFiltersBound = '1';
+            adv.addEventListener('click', function (e) {
+                e.preventDefault();
+                if (typeof window.openTvFiltersModal === 'function') {
+                    window.openTvFiltersModal();
+                } else {
+                    var openBtn = document.getElementById('tv-filters-modal-open');
+                    if (openBtn) openBtn.click();
+                }
             });
         }
+
+        this.bindSummaryChipClicks();
 
         ['change', 'input'].forEach(function (ev) {
             if (self.depSel) self.depSel.addEventListener(ev, function () { self.refreshSummary(); });
@@ -99,14 +107,14 @@
     };
 
     TourSearchWizard.prototype.validateCurrent = function () {
-        if (this.step === 1) {
+        if (this.step === 2) {
             var dep = this.depSel && String(this.depSel.value || '').trim();
             if (!dep) {
                 this.shake(this.depSel);
                 return false;
             }
         }
-        if (this.step === 2) {
+        if (this.step === 3) {
             var c = this.countrySel && String(this.countrySel.value || '').trim();
             if (!c) {
                 this.shake(this.countrySel);
@@ -149,39 +157,87 @@
         });
 
         this.refreshSummary();
+        try {
+            document.dispatchEvent(new CustomEvent('th:wizard-step', { detail: { step: step, key: STEPS[step - 1] ? STEPS[step - 1].key : '' } }));
+        } catch (eEv) {}
         if (!silent) {
             var active = qs('.th-wizard__panel.is-active .th-wizard__panel-title', this.root);
             if (active) active.focus && active.focus();
         }
     };
 
+    TourSearchWizard.prototype.bindSummaryChipClicks = function () {
+        var self = this;
+        if (!this.summaryEl || this.summaryEl.dataset.thwChipBound) return;
+        this.summaryEl.dataset.thwChipBound = '1';
+        this.summaryEl.addEventListener('click', function (e) {
+            var chip = e.target.closest('[data-thw-chip]');
+            if (!chip) return;
+            e.preventDefault();
+            var action = chip.getAttribute('data-thw-chip');
+            if (action === 'dates') {
+                self.go(1);
+                if (typeof window.__thWizardOpenDatePopup === 'function') {
+                    window.__thWizardOpenDatePopup();
+                } else {
+                    var datesBtn = document.getElementById('tv-sc-dates-summary');
+                    if (datesBtn) datesBtn.click();
+                }
+            } else if (action === 'nights') {
+                self.go(1);
+                if (typeof window.__thWizardOpenNightsPopup === 'function') {
+                    window.__thWizardOpenNightsPopup();
+                } else {
+                    var nightsBtn = document.getElementById('tv-nights-summary');
+                    if (nightsBtn) nightsBtn.click();
+                }
+            } else if (action === 'departure') {
+                self.go(2);
+                if (self.depSel) self.depSel.focus && self.depSel.focus();
+            } else if (action === 'country') {
+                self.go(3);
+                if (self.countrySel) self.countrySel.focus && self.countrySel.focus();
+            } else if (action === 'who') {
+                self.go(4);
+                if (typeof window.__thWizardOpenTouristsPopup === 'function') {
+                    window.__thWizardOpenTouristsPopup();
+                } else {
+                    var tr = document.getElementById('tv-tourists-trigger');
+                    if (tr) tr.click();
+                }
+            }
+        });
+    };
+
     TourSearchWizard.prototype.refreshSummary = function () {
         if (!this.summaryEl) return;
         var chips = [];
-        var dep = textOfSelect(this.depSel);
-        if (dep && this.depSel && this.depSel.value) {
-            chips.push({ icon: 'fa-plane-departure', text: dep });
-        }
-        var country = textOfSelect(this.countrySel);
-        if (country && this.countrySel && this.countrySel.value) {
-            chips.push({ icon: 'fa-globe', text: country });
-        }
         var dates = (this.datesDisplay && this.datesDisplay.textContent || '').trim();
         if (dates && dates !== 'Даты') {
-            chips.push({ icon: 'fa-calendar-alt', text: dates });
+            chips.push({ icon: 'fa-calendar-alt', text: dates, action: 'dates' });
         }
         var nights = (this.nightsText && this.nightsText.textContent || '').trim();
         if (nights) {
-            chips.push({ icon: 'fa-moon', text: nights });
+            chips.push({ icon: 'fa-moon', text: nights, action: 'nights' });
+        }
+        var dep = textOfSelect(this.depSel);
+        if (dep && this.depSel && this.depSel.value) {
+            chips.push({ icon: 'fa-plane-departure', text: dep, action: 'departure' });
+        }
+        var country = textOfSelect(this.countrySel);
+        if (country && this.countrySel && this.countrySel.value) {
+            chips.push({ icon: 'fa-globe', text: country, action: 'country' });
         }
         var who = (this.touristsText && this.touristsText.textContent || '').trim();
         if (who) {
-            chips.push({ icon: 'fa-users', text: who });
+            chips.push({ icon: 'fa-users', text: who, action: 'who' });
         }
 
         this.summaryEl.innerHTML = chips.map(function (c) {
-            return '<span class="th-wizard__chip"><i class="fas ' + c.icon + '" aria-hidden="true"></i>' +
-                '<span class="th-wizard__chip-text">' + escapeHtml(c.text) + '</span></span>';
+            return '<button type="button" class="th-wizard__chip" data-thw-chip="' + c.action + '"' +
+                ' aria-label="Изменить: ' + escapeHtml(c.text) + '">' +
+                '<i class="fas ' + c.icon + '" aria-hidden="true"></i>' +
+                '<span class="th-wizard__chip-text">' + escapeHtml(c.text) + '</span></button>';
         }).join('');
     };
 

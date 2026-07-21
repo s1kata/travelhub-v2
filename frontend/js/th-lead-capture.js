@@ -80,9 +80,23 @@
    * @param {string} [opts.email]
    * @returns {Promise<{success:boolean, message?:string, error?:string}>}
    */
+  function defaultSuccessMessage(source) {
+    var base = 'Заявка принята. Перезвоним в течение 15 минут.';
+    try {
+      var maxA = document.querySelector('.th-site-lead-bar__btn--max');
+      var maxHref = maxA && maxA.getAttribute('href') ? maxA.getAttribute('href') : '';
+      if (maxHref && (source === 'slow_search_lead' || source === 'abandon_sheet')) {
+        return base + ' Или напишите нам в MAX.';
+      }
+    } catch (e0) {}
+    return base;
+  }
+
   function submitLead(opts) {
     opts = opts || {};
+    var phoneOnly = !!opts.phoneOnly;
     var name = String(opts.name || '').trim();
+    if (!name && phoneOnly) name = 'Клиент сайта';
     var phone = String(opts.phone || '').trim();
     var agree = !!opts.agree;
     if (!name) return Promise.resolve({ success: false, error: 'Укажите имя' });
@@ -113,10 +127,14 @@
       .then(function (data) {
         if (data && data.success) {
           reachGoal('lead_ok');
-          try { global.document.dispatchEvent(new CustomEvent('th:lead_ok', { detail: { source: opts.source || 'site' } })); } catch (e3) {}
+          var src = String(opts.source || 'site');
+          if (src === 'slow_search_lead') reachGoal('slow_search_lead');
+          if (src === 'abandon_sheet') reachGoal('abandon_sheet_lead');
+          if (src.indexOf('empty') >= 0 || src === 'empty-state') reachGoal('empty_state_lead');
+          try { global.document.dispatchEvent(new CustomEvent('th:lead_ok', { detail: { source: src } })); } catch (e3) {}
           return {
             success: true,
-            message: data.message || 'Заявка принята. Перезвоним в течение 15 минут.'
+            message: data.message || defaultSuccessMessage(src)
           };
         }
         reachGoal('lead_err');
@@ -149,6 +167,8 @@
       var fd = new FormData(form);
       var name = String(fd.get('name') || (form.querySelector('[name="name"]') || {}).value || '').trim();
       var phone = String(fd.get('phone') || (phoneEl && phoneEl.value) || '').trim();
+      var phoneOnly = form.getAttribute('data-th-lead-phone-only') === '1';
+      if (!name && phoneOnly) name = 'Клиент сайта';
       var agreeEl = form.querySelector('[name="agree"], input[type="checkbox"][required], #lead-agree, #b-agree-contact, #th-tb-agree');
       var agree = agreeEl ? !!agreeEl.checked : !!fd.get('agree');
       var website = String(fd.get('website') || '');

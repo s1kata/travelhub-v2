@@ -372,6 +372,10 @@ $th_promo_page_config = [
                             class="mt-4 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 font-semibold text-white bg-orange-500 hover:bg-orange-600">
                         Обновить список
                     </button>
+                    <button type="button" class="mt-3 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 font-semibold text-white bg-[#FF6B6B] hover:opacity-95"
+                            data-th-site-feedback data-th-track="lead_bar">
+                        Перезвонить с подбором
+                    </button>
                 </div>
             </div>
         </div>

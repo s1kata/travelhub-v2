@@ -86,6 +86,15 @@ $thc = th_contacts();
 <?php include __DIR__ . '/site_lead_bar.php'; ?>
 <?php include __DIR__ . '/tour_link_scripts.php'; ?>
 <?php
+if (!defined('TH_CONVERSION_BOOST_INCLUDED')) {
+    define('TH_CONVERSION_BOOST_INCLUDED', true);
+    $_th_cb_css = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'frontend' . DIRECTORY_SEPARATOR . 'css' . DIRECTORY_SEPARATOR . 'th-conversion-boost.css';
+    $_th_cb_js = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'frontend' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'th-conversion-boost.js';
+    $_th_cb_css_v = is_file($_th_cb_css) ? (string) filemtime($_th_cb_css) : '1';
+    $_th_cb_js_v = is_file($_th_cb_js) ? (string) filemtime($_th_cb_js) : '1';
+    echo '<link rel="stylesheet" href="/frontend/css/th-conversion-boost.css?v=' . htmlspecialchars($_th_cb_css_v, ENT_QUOTES, 'UTF-8') . '">' . "\n";
+    echo '<script src="/frontend/js/th-conversion-boost.js?v=' . htmlspecialchars($_th_cb_js_v, ENT_QUOTES, 'UTF-8') . '" defer></script>' . "\n";
+}
 if (!defined('TH_PROMO_APPLY_INCLUDED')) {
     define('TH_PROMO_APPLY_INCLUDED', true);
     $_th_promo_apply_path = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'frontend' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'th-promo-apply.js';

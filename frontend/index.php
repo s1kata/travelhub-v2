@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // Сначала только кэш — без config и без сессии, чтобы при отдаче из кэша не тратить время
 require_once __DIR__ . '/../backend/components/page_cache.php';
 // Сессия только если есть cookie (чтобы проверить авторизацию для isAdminRequest)
@@ -135,18 +135,18 @@ $current_page = 'home';
     <link rel="stylesheet" href="/frontend/css/design-system.css?v=12">
     <link rel="stylesheet" href="/frontend/css/redesign.css?v=22">
     <link rel="stylesheet" href="/frontend/css/v2-theme.css?v=1">
-    <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=2">
+    <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=3">
     <link rel="stylesheet" href="/frontend/css/th-hard-funnel.css?v=4">
     <link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=7">
     <link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=5">
-    <link rel="stylesheet" href="/frontend/css/yandex-mobile.css?v=5">
+    <link rel="stylesheet" href="/frontend/css/yandex-mobile.css?v=6">
     <link rel="stylesheet" href="/frontend/css/pages/home.css?v=4">
     <link rel="stylesheet" href="/frontend/css/th-sheet.css?v=2">
     <?php include __DIR__ . '/../backend/components/mobile_site_head.php'; ?>
     <link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=2">
     <script>window.__TH_YM_ID=<?php echo json_encode((string)$th_ym_id, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
     <script src="/frontend/js/v2-theme.js?v=1" defer></script>
-    <script src="/frontend/js/tour-search-wizard.js?v=1" defer></script>
+    <script src="/frontend/js/tour-search-wizard.js?v=3" defer></script>
     <script src="/frontend/js/th-lead-capture.js?v=2" defer></script>
     <script src="/frontend/js/th-mobile.js?v=13" defer></script>
     <script src="/frontend/js/th-modal.js?v=2" defer></script>
@@ -172,10 +172,18 @@ $current_page = 'home';
                 <span id="tv-loader-percent" class="tv-search-loader-percent">0</span>
             </div>
             <p id="tv-loader-msg" class="tv-search-loader-msg">Подготовка поиска...</p>
-            <p id="tv-loader-sub" class="tv-search-loader-sub">Ищем лучшие предложения</p>
+            <p id="tv-loader-sub" class="tv-search-loader-sub tv-search-loader-sub--sla">Обычно 30–60 сек · ищем лучшие предложения</p>
+            <p id="tv-loader-instant" aria-live="polite"></p>
             <div id="tv-loader-slow" class="tv-search-loader-slow">
-                <p>Поиск занимает дольше обычного. Можно подождать ещё немного —<br>или менеджер подберёт тур за вас.</p>
-                <button type="button" data-open-lead-modal="slow-search"><i class="fas fa-headset" aria-hidden="true"></i>Подобрать тур с менеджером</button>
+                <p>Поиск занимает дольше обычного — можно подождать<br>или оставить телефон, менеджер подберёт тур.</p>
+                <form id="tv-loader-lead-form" class="tv-search-loader-slow__form">
+                    <input type="tel" name="phone" required class="tv-search-loader-slow__input" placeholder="+7 (___) ___-__-__" autocomplete="tel">
+                    <label class="tv-search-loader-slow__agree"><input type="checkbox" name="agree" checked required> Согласие на обработку данных</label>
+                    <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;height:0;width:0">
+                    <p id="tv-loader-lead-msg" class="tv-search-loader-slow__msg hidden"></p>
+                    <button type="submit" class="tv-search-loader-slow__submit"><i class="fas fa-headset" aria-hidden="true"></i>Подобрать за меня</button>
+                </form>
+                <button type="button" data-open-lead-modal="slow-search" style="margin-top:8px;background:transparent;border:none;color:rgba(255,255,255,0.75);font-size:0.8125rem;cursor:pointer;text-decoration:underline">Открыть форму с комментарием</button>
             </div>
         </div>
     </div>
@@ -213,7 +221,7 @@ $current_page = 'home';
                     Найдите тур за 4 простых шага
                 </h1>
                 <p class="text-[15px] sm:text-lg md:text-xl text-white/95 max-w-2xl mx-auto leading-relaxed drop-shadow-[0_1px_12px_rgba(0,0,0,0.35)]">
-                    Откуда → куда → когда → кто едет. Фильтры — уже в результатах.
+                    Когда → откуда → куда → кто едет. Фильтры — на шаге «Куда».
                 </p>
             </div>
 
@@ -234,15 +242,15 @@ $current_page = 'home';
                 <nav class="th-wizard__progress" aria-label="Шаги поиска">
                     <button type="button" class="th-wizard__dot is-active" data-thw-goto="1" aria-current="step">
                         <span class="th-wizard__dot-num">1</span>
-                        <span class="th-wizard__dot-label">Откуда</span>
+                        <span class="th-wizard__dot-label">Когда</span>
                     </button>
                     <button type="button" class="th-wizard__dot" data-thw-goto="2">
                         <span class="th-wizard__dot-num">2</span>
-                        <span class="th-wizard__dot-label">Куда</span>
+                        <span class="th-wizard__dot-label">Откуда</span>
                     </button>
                     <button type="button" class="th-wizard__dot" data-thw-goto="3">
                         <span class="th-wizard__dot-num">3</span>
-                        <span class="th-wizard__dot-label">Когда</span>
+                        <span class="th-wizard__dot-label">Куда</span>
                     </button>
                     <button type="button" class="th-wizard__dot" data-thw-goto="4">
                         <span class="th-wizard__dot-num">4</span>
@@ -253,42 +261,8 @@ $current_page = 'home';
                 <div class="th-wizard__summary" id="th-wizard-summary" aria-live="polite"></div>
 
                 <div class="th-wizard__panels">
-                    <!-- Шаг 1: откуда -->
+                    <!-- Шаг 1: когда -->
                     <div class="th-wizard__panel is-active" data-panel="1">
-                        <h3 class="th-wizard__panel-title" tabindex="-1">Откуда летим?</h3>
-                        <p class="th-wizard__panel-hint">Город вылета — начнём с него</p>
-                        <div class="tv-sc-field tv-sc-field--sel tv-sc-field--departure">
-                            <span class="tv-sc-field-label" aria-hidden="true">Город вылета</span>
-                            <i class="fas fa-plane-departure tv-sc-ico" aria-hidden="true"></i>
-                            <select id="tv-departure" name="departureId" class="tv-sc-select tv-select" aria-label="Город вылета">
-                                <option value="<?php echo (int) th_departure_default_id(); ?>"><?php echo htmlspecialchars(th_departure_default_name(), ENT_QUOTES, 'UTF-8'); ?></option>
-                            </select>
-                        </div>
-                        <div class="th-wizard__nav">
-                            <button type="button" class="th-wizard__back" data-thw-back hidden>Назад</button>
-                            <button type="button" class="th-wizard__next" data-thw-next>Далее <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
-                        </div>
-                    </div>
-
-                    <!-- Шаг 2: куда -->
-                    <div class="th-wizard__panel" data-panel="2" hidden>
-                        <h3 class="th-wizard__panel-title" tabindex="-1">Куда хотим?</h3>
-                        <p class="th-wizard__panel-hint">Выберите страну отдыха</p>
-                        <div class="tv-sc-field tv-sc-field--sel">
-                            <span class="tv-sc-field-label" aria-hidden="true">Страна</span>
-                            <i class="fas fa-globe tv-sc-ico" aria-hidden="true"></i>
-                            <select id="tv-country" name="countryId" class="tv-sc-select tv-select" aria-label="Страна отдыха">
-                                <option value="">Страна</option>
-                            </select>
-                        </div>
-                        <div class="th-wizard__nav">
-                            <button type="button" class="th-wizard__back" data-thw-back>Назад</button>
-                            <button type="button" class="th-wizard__next" data-thw-next>Далее <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
-                        </div>
-                    </div>
-
-                    <!-- Шаг 3: когда -->
-                    <div class="th-wizard__panel" data-panel="3" hidden>
                         <h3 class="th-wizard__panel-title" tabindex="-1">Когда и на сколько?</h3>
                         <p class="th-wizard__panel-hint">Период вылета и сколько ночей в отеле</p>
                         <div class="th-wizard__when-grid">
@@ -317,6 +291,52 @@ $current_page = 'home';
                             </div>
                         </div>
                         <div class="th-wizard__nav">
+                            <button type="button" class="th-wizard__back" data-thw-back hidden>Назад</button>
+                            <button type="button" class="th-wizard__next" data-thw-next>Далее <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Шаг 2: откуда -->
+                    <div class="th-wizard__panel" data-panel="2" hidden>
+                        <h3 class="th-wizard__panel-title" tabindex="-1">Откуда летим?</h3>
+                        <p class="th-wizard__panel-hint">Город вылета</p>
+                        <div class="tv-sc-field tv-sc-field--sel tv-sc-field--departure">
+                            <span class="tv-sc-field-label" aria-hidden="true">Город вылета</span>
+                            <i class="fas fa-plane-departure tv-sc-ico" aria-hidden="true"></i>
+                            <select id="tv-departure" name="departureId" class="tv-sc-select tv-select" aria-label="Город вылета">
+                                <option value="<?php echo (int) th_departure_default_id(); ?>"><?php echo htmlspecialchars(th_departure_default_name(), ENT_QUOTES, 'UTF-8'); ?></option>
+                            </select>
+                        </div>
+                        <div class="th-wizard__nav">
+                            <button type="button" class="th-wizard__back" data-thw-back>Назад</button>
+                            <button type="button" class="th-wizard__next" data-thw-next>Далее <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Шаг 3: куда + фильтры -->
+                    <div class="th-wizard__panel" data-panel="3" hidden>
+                        <h3 class="th-wizard__panel-title" tabindex="-1">Куда хотим?</h3>
+                        <p class="th-wizard__panel-hint">Страна отдыха и доп. параметры</p>
+                        <div class="tv-sc-field tv-sc-field--sel">
+                            <span class="tv-sc-field-label" aria-hidden="true">Страна</span>
+                            <i class="fas fa-globe tv-sc-ico" aria-hidden="true"></i>
+                            <select id="tv-country" name="countryId" class="tv-sc-select tv-select" aria-label="Страна отдыха">
+                                <option value="">Страна</option>
+                            </select>
+                        </div>
+                        <div class="tv-sc-field tv-sc-field--filters th-wizard__legacy-fields" aria-hidden="true">
+                            <button type="button" id="tv-filters-modal-open" class="tv-sc-trigger tv-filters-modal-open-btn"
+                                    aria-haspopup="dialog" aria-controls="tv-filters-modal" aria-expanded="false">
+                                <span class="tv-sc-ico" aria-hidden="true">⚙</span>
+                                <span class="tv-sc-filters-label">Фильтры</span>
+                            </button>
+                        </div>
+                        <div class="th-wizard__advanced">
+                            <button type="button" class="th-wizard__advanced-btn" id="th-wizard-open-filters">
+                                Доп. параметры (звёзды, питание, бюджет)
+                            </button>
+                        </div>
+                        <div class="th-wizard__nav">
                             <button type="button" class="th-wizard__back" data-thw-back>Назад</button>
                             <button type="button" class="th-wizard__next" data-thw-next>Далее <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
                         </div>
@@ -335,24 +355,11 @@ $current_page = 'home';
                                 <i class="fas fa-chevron-down tv-sc-chevron" aria-hidden="true"></i>
                             </button>
                         </div>
-                        <!-- Скрытая кнопка фильтров: доступна через «Доп. параметры», ID сохранён -->
-                        <div class="tv-sc-field tv-sc-field--filters th-wizard__legacy-fields" aria-hidden="true">
-                            <button type="button" id="tv-filters-modal-open" class="tv-sc-trigger tv-filters-modal-open-btn"
-                                    aria-haspopup="dialog" aria-controls="tv-filters-modal" aria-expanded="false">
-                                <span class="tv-sc-ico" aria-hidden="true">⚙</span>
-                                <span class="tv-sc-filters-label">Фильтры</span>
-                            </button>
-                        </div>
                         <div class="th-wizard__nav">
                             <button type="button" class="th-wizard__back" data-thw-back>Назад</button>
                             <button id="tv-search-btn" type="button" class="button button-primary tv-sc-search-btn">
                                 <i class="fas fa-search" aria-hidden="true"></i>
                                 <span class="tv-sc-search-text">Найти туры</span>
-                            </button>
-                        </div>
-                        <div class="th-wizard__advanced">
-                            <button type="button" class="th-wizard__advanced-btn" id="th-wizard-open-filters">
-                                Доп. параметры (звёзды, питание, бюджет)
                             </button>
                         </div>
                     </div>
@@ -415,6 +422,10 @@ $current_page = 'home';
                     </div>
                     <p id="tv-sc-dates-preview" class="tv-sc-dates-preview" aria-live="polite"></p>
 
+                    <button type="button" id="tv-sc-dates-custom-toggle" class="tv-sc-exact-dates tv-sc-exact-dates--top" aria-expanded="false" aria-controls="tv-sc-cal-panel">
+                        <i class="fas fa-calendar-day" aria-hidden="true"></i> Свои даты
+                    </button>
+
                     <div class="tv-sc-date-chips tv-sc-date-chips--quick" id="tv-sc-date-chips-row">
                         <button type="button" class="tv-sc-chip tv-sc-chip--lg active" data-date-preset="14d" aria-pressed="true">
                             <span class="tv-sc-chip__main">Ближайшие 2 недели</span>
@@ -425,10 +436,6 @@ $current_page = 'home';
                     </div>
 
                     <div class="tv-sc-date-chips tv-sc-date-chips--months" id="tv-sc-date-months-row"></div>
-
-                    <button type="button" id="tv-sc-dates-custom-toggle" class="tv-sc-exact-dates" aria-expanded="false" aria-controls="tv-sc-cal-panel">
-                        Свои даты
-                    </button>
 
                     <div id="tv-sc-cal-panel" class="tv-sc-cal-panel" hidden>
                         <p id="tv-sc-dates-step" class="tv-sc-dates-step" aria-live="polite">Нажмите день начала, потом конец</p>
@@ -1022,7 +1029,8 @@ $current_page = 'home';
             return j.success ? 'OK' : (j.error || 'Ошибка');
         }
 
-        async function tvFetch(type, params = {}) {
+        async function tvFetch(type, params = {}, opts) {
+            opts = opts || {};
             const base = TV_API_BASE;
             const u = new URL(base);
             u.searchParams.set('type', type);
@@ -1036,7 +1044,7 @@ $current_page = 'home';
                 if (v != null && v !== '') u.searchParams.set(k, String(v));
             });
             if (type === 'search-cached') {
-                u.searchParams.set('live', '1');
+                if (!opts.cacheOnly) u.searchParams.set('live', '1');
                 u.searchParams.set('_t', String(Date.now()));
             }
             const url = u.toString();
@@ -2038,7 +2046,7 @@ $current_page = 'home';
             if (msg) msg.classList.remove('done');
             if (sub) sub.textContent = 'Ищем лучшие предложения';
             if (tvLoaderRotateInterval) { clearInterval(tvLoaderRotateInterval); tvLoaderRotateInterval = null; }
-            /* UX: при долгом поиске (>35с) предлагаем помощь менеджера */
+            /* UX: при долгом поиске (>10с) предлагаем inline-лид */
             const slow = document.getElementById('tv-loader-slow');
             if (slow) slow.classList.remove('show');
             if (tvLoaderSlowTimer) clearTimeout(tvLoaderSlowTimer);
@@ -2046,8 +2054,10 @@ $current_page = 'home';
                 const s = document.getElementById('tv-loader-slow');
                 const loaderEl = document.getElementById('tv-search-loader');
                 if (s && loaderEl && loaderEl.classList.contains('active')) s.classList.add('show');
-            }, 35000);
-            tvLoaderSetProgress(0, 'Подготовка поиска...');
+            }, 10000);
+            const instant = document.getElementById('tv-loader-instant');
+            if (instant) instant.textContent = '';
+            tvLoaderSetProgress(0, 'Подготовка поиска...', 'Обычно 30–60 сек · ищем лучшие предложения');
         }
         function tvLoaderSetProgress(percent, text, subText) {
             const p = Math.min(100, Math.max(0, Math.round(percent)));
@@ -2092,6 +2102,7 @@ $current_page = 'home';
         async function performTvSearch(manual) {
             if (window.__tvRestoringFromBack && !manual) return;
             if (manual) window.__tvRestoringFromBack = false;
+            if (window.THLeadCapture) window.THLeadCapture.reachGoal('search_start');
             const dep = document.getElementById('tv-departure')?.value || (window.TH_DEPARTURE && window.TH_DEPARTURE.id) || '7';
             const country = document.getElementById('tv-country')?.value;
             if (!country) { alert('Выберите страну'); return; }
@@ -2203,10 +2214,18 @@ $current_page = 'home';
                 }
                 console.log('%c[API → сайт] Параметры поиска отправляются в API', 'color: #5DA9A4; font-weight: bold', cacheParams);
                 console.log('[Фильтры] Поиск с параметрами:', { meal: meal || '—', regionIds: region || '—', hotelCategory: category || '—', hotelServices: (typeof tvSelectedServiceIds !== 'undefined' && tvSelectedServiceIds.length) ? tvSelectedServiceIds.join(',') : '—' });
-                rCache = await tvFetch('search-cached', cacheParams);
+                tvLoaderUpdateInstantPreview(countryNameForCache, dep);
+                rCache = await tvFetch('search-cached', cacheParams, { cacheOnly: true });
+                if (!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0) {
+                    rCache = await tvFetch('search-cached', cacheParams);
+                }
                 if ((!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0) && origNFrom === 6 && origNTo === 9) {
                     const altParams = Object.assign({}, cacheParams, { nightsFrom: 5, nightsTo: 10 });
-                    const rAlt = await tvFetch('search-cached', altParams);
+                    const rAlt = await tvFetch('search-cached', altParams, { cacheOnly: true });
+                    if (!rAlt.success || !Array.isArray(rAlt.data) || rAlt.data.length === 0) {
+                        var rAltLive = await tvFetch('search-cached', altParams);
+                        if (rAltLive.success && Array.isArray(rAltLive.data) && rAltLive.data.length > 0) rAlt = rAltLive;
+                    }
                     if (rAlt.success && Array.isArray(rAlt.data) && rAlt.data.length > 0) {
                         rCache = rAlt;
                         tvShowAltNightsBanner(true);
@@ -2239,11 +2258,34 @@ $current_page = 'home';
             tvHotelsBeforeBudgetFilter = [];
             tvLastResults = [];
             document.getElementById('tv-result-count').textContent = '0';
-            if (resultsDiv) resultsDiv.innerHTML = tvEmptyResultsHtml(origNFrom, origNTo, false);
+            var isApiErr = rCache && rCache.error && String(rCache.error).length > 0;
+            if (resultsDiv) resultsDiv.innerHTML = isApiErr ? tvSearchErrorHtml(rCache.error) : tvEmptyResultsHtml(origNFrom, origNTo, false);
             showTvResultsChrome();
             updateTvLoadMoreButton();
-            console.warn('[Главная · Поиск] Нет результатов по выбранным параметрам.');
+            if (isApiErr && window.THLeadCapture) window.THLeadCapture.reachGoal('search_error');
+            console.warn('[Главная · Поиск] Нет результатов по выбранным параметрам.', rCache.error || '');
             return;
+        }
+
+        function tvLoaderUpdateInstantPreview(countryName, depId) {
+            var el = document.getElementById('tv-loader-instant');
+            if (!el || !countryName) return;
+            el.textContent = 'Ищем туры: ' + countryName + '…';
+            fetch('/backend/api/home_popular_destinations.php?departureId=' + encodeURIComponent(depId || '7'), { cache: 'no-store' })
+                .then(function(r) { return r.json(); })
+                .then(function(j) {
+                    if (!el || !j || !j.success) return;
+                    var hit = (j.items || []).find(function(it) {
+                        return String(it.name || '').toLowerCase().indexOf(String(countryName).toLowerCase().slice(0, 4)) >= 0;
+                    });
+                    if (hit && hit.minPrice) {
+                        el.textContent = 'Туры в ' + countryName + ' от ~' + new Intl.NumberFormat('ru-RU').format(hit.minPrice) + ' ₽ · уточняем цены…';
+                    }
+                }).catch(function() {});
+        }
+        function tvSearchErrorHtml(errMsg) {
+            var sub = String(errMsg || 'Сервис временно недоступен').replace(/</g, '&lt;');
+            return '<div class="tv-empty-state tv-empty-state--error"><div class="tv-empty-state__icon">⚠️</div><div class="tv-empty-state__title">Не удалось загрузить туры</div><div class="tv-empty-state__sub">' + sub + '</div><button type="button" class="tv-empty-state__btn" data-open-lead-modal="search-error"><i class="fas fa-headset"></i>Помочь с подбором</button></div>';
         }
 
                 /** Как promoHotelListPrice / страница акций: totalPrice ближе к деталям тура, чем поле price из поиска. */
@@ -2311,7 +2353,7 @@ $current_page = 'home';
             var sub = (nFrom === 6 && nTo === 9 && !triedAlt)
                 ? 'Нет туров на 6–9 ночей. Попробуйте другой диапазон'
                 : 'Попробуйте изменить даты, страну или город вылета — и мы найдём подходящий вариант.';
-            return '<div class="tv-empty-state"><div class="tv-empty-state__icon">🔍</div><div class="tv-empty-state__title">Туров не найдено</div><div class="tv-empty-state__sub">' + sub.replace(/</g, '&lt;') + '</div><button type="button" class="tv-empty-state__btn" data-open-lead-modal="empty-state"><i class="fas fa-headset"></i>Оставить заявку менеджеру</button></div>';
+            return '<div class="tv-empty-state"><div class="tv-empty-state__icon">🔍</div><div class="tv-empty-state__title">Туров не найдено</div><div class="tv-empty-state__sub">' + sub.replace(/</g, '&lt;') + '</div><button type="button" class="tv-empty-state__btn" data-open-lead-modal="empty-state"><i class="fas fa-headset"></i>Получить подбор от менеджера</button></div>';
         }
         function applyBudgetFilterToHotels(arr) {
             if (!Array.isArray(arr)) return [];
@@ -2829,6 +2871,8 @@ $current_page = 'home';
                     popup.setAttribute('aria-hidden', 'true');
                 }
 
+                window.__thWizardOpenNightsPopup = openPopup;
+
                 trigger.addEventListener('click', openPopup);
                 if (summaryBtn) summaryBtn.addEventListener('click', openPopup);
                 function handleCellSelect(btn, e) {
@@ -2980,11 +3024,12 @@ $current_page = 'home';
         <div class="th-qbm-modal__backdrop" id="qbm-backdrop"></div>
         <div class="th-qbm-modal__panel">
             <button type="button" id="qbm-close" class="th-qbm-modal__close" aria-label="Закрыть">✕</button>
-            <h3 class="th-qbm-modal__title">Подберём тур для вас</h3>
-            <p class="th-qbm-modal__sub">Перезвоним за 15 минут. Без спама.</p>
-            <form id="qbm-form" class="th-qbm-modal__form">
-                <input type="text" name="name" placeholder="Ваше имя" required class="th-qbm-modal__input">
-                <input type="tel" name="phone" placeholder="+7 (___) ___-__-__" required class="th-qbm-modal__input">
+        <h3 class="th-qbm-modal__title">Подберём тур для вас</h3>
+        <p class="th-qbm-modal__sub">Перезвоним за 15 минут. Без спама.</p>
+        <p class="th-qbm-modal__proof"><i class="fas fa-clock"></i> Ответ за 15 минут · <i class="fas fa-shield-alt"></i> Без спама</p>
+        <form id="qbm-form" class="th-qbm-modal__form">
+            <div class="th-qbm-modal__field"><input type="text" name="name" placeholder="Ваше имя" required class="th-qbm-modal__input"></div>
+            <input type="tel" name="phone" placeholder="+7 (___) ___-__-__" required class="th-qbm-modal__input">
                 <label class="th-qbm-modal__agree">
                     <input type="checkbox" name="agree" required>
                     <span>Согласен на <a href="/frontend/window/privacy.php" target="_blank" rel="noopener">обработку персональных данных</a></span>
@@ -3028,6 +3073,14 @@ $current_page = 'home';
                 <option value="4">4★</option>
                 <option value="5">5★</option>
             </select>
+        </div>
+        <div class="tv-filters-modal__field">
+            <span class="tv-filters-modal__lbl">Береговая линия</span>
+            <div class="tv-filters-modal__stars tv-filters-modal__beach" role="group" aria-label="Береговая линия">
+                <button type="button" class="tv-filters-modal__star-chip is-active" data-tv-beach="" aria-pressed="true">Любая</button>
+                <button type="button" class="tv-filters-modal__star-chip" data-tv-beach="1" aria-pressed="false">1-я линия</button>
+                <button type="button" class="tv-filters-modal__star-chip" data-tv-beach="2" aria-pressed="false">2-я линия</button>
+            </div>
         </div>
         <div class="tv-filters-modal__field">
             <span class="tv-filters-modal__lbl">Бюджет за тур, ₽</span>
@@ -3176,13 +3229,18 @@ $current_page = 'home';
                 if (preview) preview.textContent = 'Выбрано: ' + verbose;
             }
 
+            function setCustomToggleLabel(open) {
+                if (!customToggle) return;
+                customToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                customToggle.innerHTML = open
+                    ? '<i class="fas fa-chevron-up" aria-hidden="true"></i> Скрыть календарь'
+                    : '<i class="fas fa-calendar-day" aria-hidden="true"></i> Свои даты';
+            }
+
             function hideCustomCalendar() {
                 calOpen = false;
                 if (calPanel) calPanel.hidden = true;
-                if (customToggle) {
-                    customToggle.setAttribute('aria-expanded', 'false');
-                    customToggle.textContent = 'Свои даты';
-                }
+                setCustomToggleLabel(false);
             }
 
             function applyDates(dates, opts) {
@@ -3303,10 +3361,7 @@ $current_page = 'home';
             function showCustomCalendar() {
                 calOpen = true;
                 if (calPanel) calPanel.hidden = false;
-                if (customToggle) {
-                    customToggle.setAttribute('aria-expanded', 'true');
-                    customToggle.textContent = 'Скрыть календарь';
-                }
+                setCustomToggleLabel(true);
                 mountCalTries = 0;
                 requestAnimationFrame(function () { mountInlineCalendar(); });
             }
@@ -3378,6 +3433,8 @@ $current_page = 'home';
             if (closeBtn) closeBtn.addEventListener('click', closePopup);
             var applyBtn = document.getElementById('tv-sc-dates-apply');
             if (applyBtn) applyBtn.addEventListener('click', closePopup);
+
+            window.__thWizardOpenDatePopup = openPopup;
         }
 
         /* ══════════════════════════════════════════════
@@ -3420,6 +3477,10 @@ $current_page = 'home';
                     closeTotourists();
                 }
             });
+
+            window.__thWizardOpenTouristsPopup = function () {
+                touristsBlock.classList.remove('hidden');
+            };
         }
 
         /* ══════════════════════════════════════════════
@@ -3432,12 +3493,33 @@ $current_page = 'home';
             var closeBtn = document.getElementById('tv-filters-modal-close');
             var applyBtn = document.getElementById('tv-filters-modal-apply');
             var resetBtn = document.getElementById('tv-filters-modal-reset');
-            if (!overlay || !modal || !openBtn) return;
+            if (!overlay || !modal) return;
+
+            function syncBeachChips(val) {
+                modal.querySelectorAll('[data-tv-beach]').forEach(function (b) {
+                    var sv = b.getAttribute('data-tv-beach');
+                    if (sv === null) return;
+                    var active = (sv === '' && !val) || (sv !== '' && sv === String(val));
+                    b.classList.toggle('is-active', active);
+                    b.setAttribute('aria-pressed', active ? 'true' : 'false');
+                });
+            }
+            function getBeachValue() {
+                var active = modal.querySelector('[data-tv-beach].is-active');
+                return active ? (active.getAttribute('data-tv-beach') || '') : '';
+            }
+            function setBeachValue(val) {
+                window.__tvWizardBeachLine = val ? String(val) : '';
+                syncBeachChips(window.__tvWizardBeachLine);
+                if (window.tvPostFiltersCtrl && window.tvPostFiltersCtrl.state) {
+                    window.tvPostFiltersCtrl.state.beachLine = window.__tvWizardBeachLine;
+                }
+            }
 
             function syncStarsFromSelect() {
                 var sel = document.getElementById('tv-category');
                 var v = sel ? String(sel.value || '') : '';
-                modal.querySelectorAll('.tv-filters-modal__star-chip').forEach(function(b) {
+                modal.querySelectorAll('[data-tv-stars]').forEach(function(b) {
                     var sv = b.getAttribute('data-tv-stars');
                     if (sv === null) return;
                     var active = (sv === '' && v === '') || (sv !== '' && sv === v);
@@ -3455,6 +3537,9 @@ $current_page = 'home';
 
             function openModal() {
                 syncStarsFromSelect();
+                syncBeachChips(window.__tvWizardBeachLine || '');
+                var countrySel = document.getElementById('tv-country');
+                var depSel = document.getElementById('tv-departure');
                 var regionEl = document.getElementById('tv-region');
                 if (countrySel && depSel && regionEl && countrySel.value && depSel.value && regionEl.options.length <= 1) {
                     try { countrySel.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
@@ -3465,7 +3550,7 @@ $current_page = 'home';
                 overlay.setAttribute('aria-hidden', 'false');
                 document.body.classList.add('th-modal-open');
             if (window.THMobile && window.THMobile.sync) window.THMobile.sync();
-                openBtn.setAttribute('aria-expanded', 'true');
+                if (openBtn) openBtn.setAttribute('aria-expanded', 'true');
             }
             function closeModal() {
                 overlay.classList.remove('tv-filters-modal--show');
@@ -3474,19 +3559,27 @@ $current_page = 'home';
                 overlay.setAttribute('aria-hidden', 'true');
                 document.body.classList.remove('th-modal-open');
             if (window.THMobile && window.THMobile.sync) window.THMobile.sync();
-                openBtn.setAttribute('aria-expanded', 'false');
+                if (openBtn) openBtn.setAttribute('aria-expanded', 'false');
             }
 
-            openBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                openModal();
-            });
+            window.openTvFiltersModal = openModal;
+
+            if (openBtn) {
+                openBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    openModal();
+                });
+            }
             if (closeBtn) closeBtn.addEventListener('click', function(e) { e.preventDefault(); closeModal(); });
             overlay.addEventListener('click', function() { closeModal(); });
             modal.addEventListener('click', function(e) { e.stopPropagation(); });
 
             modal.querySelectorAll('.tv-filters-modal__star-chip').forEach(function(btn) {
                 btn.addEventListener('click', function() {
+                    if (btn.hasAttribute('data-tv-beach')) {
+                        setBeachValue(btn.getAttribute('data-tv-beach') || '');
+                        return;
+                    }
                     var v = btn.getAttribute('data-tv-stars');
                     setStarsValue(v === null ? '' : v);
                 });
@@ -3494,6 +3587,7 @@ $current_page = 'home';
 
             if (applyBtn) {
                 applyBtn.addEventListener('click', function() {
+                    setBeachValue(getBeachValue());
                     closeModal();
                     var w = document.getElementById('tv-results-wrapper');
                     if (w && !w.classList.contains('hidden') && typeof performTvSearch === 'function') {
@@ -3512,6 +3606,7 @@ $current_page = 'home';
                     if (pmin) pmin.value = '';
                     if (pmax) pmax.value = '';
                     setStarsValue('');
+                    setBeachValue('');
                     if (typeof tvSelectedServiceIds !== 'undefined' && tvSelectedServiceIds.length) {
                         tvSelectedServiceIds.length = 0;
                     }
@@ -3578,13 +3673,19 @@ $current_page = 'home';
 
         /* ===== ФИЛЬТРЫ: центральное модальное окно (оверлей + диалог) ===== */
         function openQuickModal(source) {
+            if (window.THConversionBoost && window.THConversionBoost.applyIntent) {
+                window.THConversionBoost.applyIntent(source || 'home_quick_modal');
+            }
             var modal = document.getElementById('quick-booking-modal');
             if (!modal) return;
+            modal.dataset.thLeadSource = source || 'home_quick_modal';
             modal.style.display = 'flex';
             document.body.classList.add('th-modal-open');
             if (window.THMobile && window.THMobile.sync) window.THMobile.sync();
             var msg = document.getElementById('qbm-msg');
             if (msg) msg.style.display = 'none';
+            var phoneInp = modal.querySelector('[name="phone"]');
+            if (phoneInp) try { phoneInp.focus(); } catch (e) {}
         }
         function closeQuickModal() {
             var modal = document.getElementById('quick-booking-modal');
@@ -3620,11 +3721,12 @@ $current_page = 'home';
                     submit.disabled = true; submit.textContent = 'Отправка…';
                     var send = (window.THLeadCapture && window.THLeadCapture.submit)
                         ? window.THLeadCapture.submit({
-                            name: String(fd.get('name') || '').trim(),
+                            name: String(fd.get('name') || '').trim() || 'Клиент сайта',
                             phone: String(fd.get('phone') || '').trim(),
                             agree: !!fd.get('agree'),
                             website: String(fd.get('website') || ''),
-                            source: 'home_quick_modal',
+                            source: (document.getElementById('quick-booking-modal') || {}).dataset?.thLeadSource || 'home_quick_modal',
+                            phoneOnly: (document.getElementById('quick-booking-modal') || {}).dataset?.thPhoneOnly === '1',
                             message: 'Заявка из модального окна (жёсткая воронка)'
                         })
                         : Promise.resolve({ success: false, error: 'Модуль заявки не загружен' });
@@ -3682,6 +3784,42 @@ $current_page = 'home';
             if (sidebarBtn && mainBtn) sidebarBtn.addEventListener('click', function() { mainBtn.click(); });
         }
 
+        function initLoaderLeadForm() {
+            var form = document.getElementById('tv-loader-lead-form');
+            if (!form || form.__thBound) return;
+            form.__thBound = true;
+            var phone = form.querySelector('[name="phone"]');
+            var msg = document.getElementById('tv-loader-lead-msg');
+            if (window.THLeadCapture && phone) window.THLeadCapture.formatPhoneInput(phone);
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                var btn = form.querySelector('[type="submit"]');
+                var fd = new FormData(form);
+                if (btn) { btn.disabled = true; }
+                if (window.THLeadCapture) window.THLeadCapture.reachGoal('slow_search_lead_attempt');
+                var send = (window.THLeadCapture && window.THLeadCapture.submit)
+                    ? window.THLeadCapture.submit({
+                        name: 'Клиент сайта',
+                        phone: String(fd.get('phone') || '').trim(),
+                        agree: !!fd.get('agree'),
+                        website: String(fd.get('website') || ''),
+                        source: 'slow_search_lead',
+                        phoneOnly: true,
+                        message: 'Лид во время долгого поиска на главной'
+                    })
+                    : Promise.resolve({ success: false, error: 'Форма недоступна' });
+                send.then(function(res) {
+                    if (msg) {
+                        msg.classList.remove('hidden');
+                        msg.textContent = res.success ? (res.message || 'Заявка принята! Поиск продолжается…') : (res.error || 'Ошибка');
+                    }
+                    if (res.success) form.reset();
+                }).finally(function() {
+                    if (btn) btn.disabled = false;
+                });
+            });
+        }
+
         /* ══════════════════════════════════════════════
            INIT
         ══════════════════════════════════════════════ */
@@ -3693,6 +3831,7 @@ $current_page = 'home';
             initQuickModal();
             initEmptyState();
             initSidebarSync();
+            initLoaderLeadForm();
         }
 
         /* --- 1. Date Presets (legacy — оставляем для совместимости) --- */
@@ -3808,14 +3947,19 @@ $current_page = 'home';
 
         /* --- 5. Quick Booking Modal --- */
         function openQuickModal(source) {
+            if (window.THConversionBoost && window.THConversionBoost.applyIntent) {
+                window.THConversionBoost.applyIntent(source || 'home_quick_modal');
+            }
             var modal = document.getElementById('quick-booking-modal');
             if (!modal) return;
+            modal.dataset.thLeadSource = source || 'home_quick_modal';
             modal.style.display = 'flex';
             document.body.classList.add('th-modal-open');
             if (window.THMobile && window.THMobile.sync) window.THMobile.sync();
-            // Сбрасываем сообщение
             var msg = document.getElementById('qbm-msg');
             if (msg) msg.style.display = 'none';
+            var phoneInp = modal.querySelector('[name="phone"]');
+            if (phoneInp) try { phoneInp.focus(); } catch (e) {}
         }
 
         function closeQuickModal() {
@@ -3913,9 +4057,9 @@ $current_page = 'home';
                 var trigger = e.target.closest('[data-open-lead-modal]');
                 if (trigger) {
                     e.preventDefault();
-                    /* Из лоадера долгого поиска: сперва скрываем оверлей, иначе он перекроет модал */
-                    if (trigger.dataset.openLeadModal === 'slow-search' && typeof tvLoaderHide === 'function') {
-                        tvLoaderHide();
+                    /* slow-search: не закрываем loader — поиск продолжается */
+                    if (trigger.dataset.openLeadModal !== 'slow-search' || typeof tvLoaderHide !== 'function') {
+                        /* no-op for slow-search inline form path */
                     }
                     openQuickModal(trigger.dataset.openLeadModal || 'trigger');
                 }

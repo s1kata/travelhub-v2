@@ -9,7 +9,7 @@
     <div class="th-sf-card">
         <button type="button" class="th-sf-x" data-th-sf-close="1" aria-label="Закрыть">&times;</button>
         <h2 id="th-sf-title" class="th-sf-title">Обратная связь</h2>
-        <p class="th-sf-sub">Оставьте контакты — ответим в ближайшее время.</p>
+        <p class="th-sf-sub">Оставьте телефон — перезвоним за 15 минут. Без спама.</p>
         <form id="th-site-feedback-form" class="th-sf-form">
             <div class="th-sf-field">
                 <label for="th-sf-name">Имя <span class="text-red-500">*</span></label>
@@ -65,7 +65,7 @@
     var overlay = document.getElementById('th-site-feedback-overlay');
     if (!overlay) return;
     var form = document.getElementById('th-site-feedback-form');
-    var modalState = { source: 'site_feedback' };
+    var modalState = { source: 'site_feedback', phoneOnly: false };
     var defaultTitle = 'Обратная связь';
     var defaultSub = 'Оставьте контакты — ответим в ближайшее время.';
 
@@ -90,7 +90,19 @@
     function open(opts) {
         opts = opts || {};
         modalState.source = opts.source || 'site_feedback';
+        modalState.phoneOnly = !!opts.phoneOnly || !!opts.focusPhone;
         applyModalCopy(opts);
+        var nameField = document.getElementById('th-sf-name');
+        var nameWrap = nameField && nameField.closest('.th-sf-field');
+        if (nameField && nameWrap) {
+            if (modalState.phoneOnly) {
+                nameField.removeAttribute('required');
+                nameWrap.style.display = 'none';
+            } else {
+                nameField.setAttribute('required', 'required');
+                nameWrap.style.display = '';
+            }
+        }
         overlay.classList.remove('hidden');
         if (window.THMobile && window.THMobile.lockScroll) window.THMobile.lockScroll(true);
         try {
@@ -104,6 +116,7 @@
         overlay.classList.add('hidden');
         if (window.THMobile && window.THMobile.lockScroll) window.THMobile.lockScroll(false);
         modalState.source = 'site_feedback';
+        modalState.phoneOnly = false;
         applyModalCopy({});
     }
     document.addEventListener('click', function (e) {
@@ -128,6 +141,7 @@
             var btn = document.getElementById('th-sf-submit');
             var name = ((document.getElementById('th-sf-name') || {}).value || '').trim();
             var phone = ((document.getElementById('th-sf-phone') || {}).value || '').trim();
+            if (!name && modalState.phoneOnly) name = 'Клиент сайта';
             var email = ((document.getElementById('th-sf-email') || {}).value || '').trim();
             var message = ((document.getElementById('th-sf-comment') || {}).value || '').trim();
             var agree = !!(document.getElementById('th-sf-agree') || {}).checked;
@@ -162,7 +176,8 @@
                     email: email,
                     message: message,
                     website: website,
-                    source: modalState.source || 'site_feedback'
+                    source: modalState.source || 'site_feedback',
+                    phoneOnly: modalState.phoneOnly
                 }).then(function (data) {
                     if (data && data.success && String(modalState.source || '').indexOf('promo_') === 0) {
                         promoYm('promo_lead_submit');

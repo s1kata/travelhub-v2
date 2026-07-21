@@ -356,16 +356,14 @@ html.th-yandex-mobile.th-kb-open #promo-sticky-cta {
 }
 
 html.th-yandex-mobile body.th-promo-tab-bottom .th-promo-popup--collapsed .th-promo-popup__tab {
-    bottom: calc(
-        var(--th-sticky-bottom-h, 64px) +
-        var(--th-yandex-fixed-gap, 0px) +
-        8px
-    ) !important;
+    top: calc(var(--th-header-h, 56px) + var(--th-safe-top, 0px) + 6px) !important;
+    bottom: auto !important;
     left: 12px !important;
     right: 12px !important;
     transform: none !important;
     width: auto !important;
-    max-width: none !important;
+    max-width: calc(100vw - 24px) !important;
+    height: auto !important;
     justify-content: center;
 }
 

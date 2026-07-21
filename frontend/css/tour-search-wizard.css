@@ -150,6 +150,27 @@
     font-size: 0.75rem;
     font-weight: 600;
     border: 1px solid rgba(93, 169, 164, 0.22);
+    cursor: pointer;
+    font-family: inherit;
+    line-height: 1.2;
+    text-align: left;
+    transition: background 0.15s, border-color 0.15s, transform 0.12s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+button.th-wizard__chip:hover {
+    background: rgba(93, 169, 164, 0.2);
+    border-color: rgba(93, 169, 164, 0.45);
+}
+
+button.th-wizard__chip:active {
+    transform: scale(0.97);
+}
+
+button.th-wizard__chip:focus-visible {
+    outline: 2px solid var(--thw-teal, #5DA9A4);
+    outline-offset: 2px;
 }
 
 .th-wizard__chip i {

@@ -931,6 +931,18 @@
             }
             tile.classList.remove('promo-cptile-nopromo');
             if (price > 0) promoSetCptilePriceBadge(id, price);
+            var cName = tile.getAttribute('data-uname') || tile.querySelector('.promo-cptile-name');
+            cName = (typeof cName === 'string') ? cName : (cName ? cName.textContent : '');
+            if (!tile.querySelector('[data-promo-country-callback]')) {
+                var cb = document.createElement('button');
+                cb.type = 'button';
+                cb.className = 'promo-country-callback';
+                cb.setAttribute('data-promo-country-callback', '1');
+                cb.setAttribute('data-country-id', id);
+                cb.setAttribute('data-country-name', String(cName || '').trim());
+                cb.textContent = 'Перезвонить';
+                tile.appendChild(cb);
+            }
         });
     }
 
@@ -2689,14 +2701,17 @@
             var isPopular = !!opts.isPopular;
             var classes = 'country-card promo-country-tile surface-card block overflow-hidden rounded-2xl relative';
             if (isPopular) classes += ' promo-country-popular';
-            return '<a href="' + escAttr(href) + '" class="' + classes + '" data-promo-cid="' + escAttr(cid) + '" data-promo-popular="' + (isPopular ? '1' : '0') + '" title="' + nameEsc + '">' +
+            return '<div class="' + classes + '" data-promo-cid="' + escAttr(cid) + '" data-promo-popular="' + (isPopular ? '1' : '0') + '">' +
+                '<a href="' + escAttr(href) + '" class="block relative z-10" title="' + nameEsc + '" aria-label="' + nameEsc + '">' +
                 '<div class="promo-country-img aspect-[4/3] w-full bg-no-repeat relative" style="' + style + '">' +
                 '<span class="promo-country-check-badge absolute top-3 left-3 z-20 inline-flex items-center gap-1 rounded-full text-white text-xs font-semibold px-2 py-1 shadow-lg" style="background:rgba(15,23,42,0.82)" data-promo-checking="1">' +
                 '<i class="fas fa-circle-notch fa-spin" style="font-size:10px"></i><span>Проверяем акции…</span></span>' +
                 '<span class="promo-banner-chip"><i class="fas fa-bolt text-[10px]"></i><strong>' + nameEsc + '</strong><span>Акция</span></span>' +
                 '<div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>' +
-                '<span class="absolute bottom-4 left-4 right-4 text-white font-bold text-xl sm:text-2xl drop-shadow-lg">' + nameEsc + '</span>' +
-                '</div></a>';
+                '<span class="absolute bottom-4 left-4 right-16 text-white font-bold text-xl sm:text-2xl drop-shadow-lg">' + nameEsc + '</span>' +
+                '</div></a>' +
+                '<button type="button" class="promo-country-callback" data-promo-country-callback data-country-name="' + nameEsc + '" data-country-id="' + escAttr(cid) + '">Перезвонить</button>' +
+                '</div>';
         }
 
         function renderPopularCards() {
