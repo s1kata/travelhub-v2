@@ -49,6 +49,10 @@
     var PROMO_COUNTRY_ID_THAILAND = '2';
     /** Плитка «Сочи» = Tourvisor countryId 47 (Россия); в выдаче только курорты Сочи. */
     var PROMO_COUNTRY_ID_SOCHI = '47';
+    /** Плитка «Фукуок» = виртуальный id 16104 (Вьетнам 16 + region 104). */
+    var PROMO_COUNTRY_ID_PHUQUOC = '16104';
+    var PROMO_VIRTUAL_DESTINATIONS = (cfg && cfg.promoVirtualDestinations && typeof cfg.promoVirtualDestinations === 'object')
+        ? cfg.promoVirtualDestinations : {};
     var PROMO_COUNTRY_ID_MALDIVES = '8';
     /**
      * Tourvisor: за один запрос не более 10 ночей в диапазоне. Раньше 7–14 обрезало страны с другой длительностью.
@@ -124,7 +128,7 @@
 
     function promoDatePlusTo(countryId) {
         var s = String(countryId != null ? countryId : '');
-        if (isVietnamPromoCountry(s) || s === PROMO_COUNTRY_ID_THAILAND || isSochiPromoCountry(s) || s === PROMO_COUNTRY_ID_MALDIVES) return 21;
+        if (isVietnamPromoCountry(s) || isPhuQuocPromoCountry(s) || s === PROMO_COUNTRY_ID_THAILAND || isSochiPromoCountry(s) || s === PROMO_COUNTRY_ID_MALDIVES) return 21;
         if (s === '9' || s === '12' || s === '46') return 21;
         if (isPromoTrOrEg(s)) return 21;
         return PROMO_DATE_PLUS_TO;
@@ -212,6 +216,20 @@
     function isSochiPromoCountry(cid) {
         return String(cid != null ? cid : '') === PROMO_COUNTRY_ID_SOCHI;
     }
+    function isPhuQuocPromoCountry(cid) {
+        return String(cid != null ? cid : '') === PROMO_COUNTRY_ID_PHUQUOC;
+    }
+    function promoVirtualDestinationConfig(countryId) {
+        var s = String(countryId != null ? countryId : '');
+        return PROMO_VIRTUAL_DESTINATIONS[s] || null;
+    }
+    /** TourVisor countryId в ответе API (для виртуальных плиток — базовая страна). */
+    function promoExpectedHotelCountryId(promoCountryId) {
+        var s = String(promoCountryId != null ? promoCountryId : '');
+        var vd = promoVirtualDestinationConfig(s);
+        if (vd && vd.tvCountryId != null && vd.tvCountryId !== '') return String(vd.tvCountryId);
+        return s;
+    }
     /** Абхазия: без фильтра звёзд (гостевые дома). Сочи — фильтр как у остальных стран. */
     function promoSkipsStarFilterForCountry(countryId) {
         return String(countryId != null ? countryId : '') === '46';
@@ -231,7 +249,7 @@
     /** Только Таиланд и Вьетнам: в выдаче оставляем прямые рейсы. Турция и остальные — с пересадками, без этого фильтра. */
     function isThailandOrVietnamDirectFilterCountry(cid) {
         var s = String(cid != null ? cid : '');
-        return s === PROMO_COUNTRY_ID_THAILAND || isVietnamPromoCountry(s);
+        return s === PROMO_COUNTRY_ID_THAILAND || isVietnamPromoCountry(s) || isPhuQuocPromoCountry(s);
     }
     function promoActiveCountryId() {
         if (typeof window !== 'undefined' && window.__promoActiveCountryId) {
@@ -661,7 +679,7 @@
 
     var PROMO_CACHE_INDEX_BY_DEP = (cfg && cfg.promoCacheIndexByDeparture && typeof cfg.promoCacheIndexByDeparture === 'object')
         ? cfg.promoCacheIndexByDeparture : {};
-    var PROMO_INSTANT_CACHE_DEFAULT_IDS = ['4', '1', '16', '2', '47', '46', '8'];
+    var PROMO_INSTANT_CACHE_DEFAULT_IDS = ['4', '1', '16', '16104', '2', '47', '46', '8'];
     var PROMO_INSTANT_CACHE_COUNTRY_IDS = (cfg && Array.isArray(cfg.promoInstantCacheCountryIds))
         ? cfg.promoInstantCacheCountryIds.map(function (x) { return String(x); }) : PROMO_INSTANT_CACHE_DEFAULT_IDS.slice();
     var PROMO_TOURS_PREFETCH_MAX_MS = 24 * 60 * 60 * 1000;
@@ -1483,6 +1501,7 @@
     function mergePromoHotelDataArrays(dataArrays, expectedCountryId) {
         var ec = expectedCountryId != null && expectedCountryId !== '' ? String(expectedCountryId) : '';
         function mergePass(skipCountryFilter) {
+            var expectedHotelCid = ec ? promoExpectedHotelCountryId(ec) : '';
             var byKey = {};
             dataArrays.forEach(function (arr) {
                 if (!arr || !Array.isArray(arr)) return;
@@ -1490,7 +1509,7 @@
                     if (!h || h.id == null) return;
                     if (ec && !skipCountryFilter) {
                         var cid = hotelSearchCountryId(h);
-                        if (cid !== '' && cid !== ec) return;
+                        if (cid !== '' && cid !== expectedHotelCid) return;
                     }
                     var hid = String(h.id);
                     var key = ec ? (ec + '_' + hid) : hid;
@@ -1522,9 +1541,9 @@
         var merged = mergePass(false);
         if (ec && merged.length === 0) {
             var loose = mergePass(true);
-            if (loose.length > 0) return promoFilterSochiDestinationHotels(loose, ec);
+            if (loose.length > 0) return promoFilterVirtualDestinationHotels(loose, ec);
         }
-        return promoFilterSochiDestinationHotels(merged, ec);
+        return promoFilterVirtualDestinationHotels(merged, ec);
     }
 
     /** Разбор ответа fetch для search-cached (общий для нескольких параллельных запросов по ночам). */
@@ -1678,6 +1697,7 @@
 
     function promoCardGeoCountryName(h, cardCountryId) {
         if (isSochiPromoCountry(cardCountryId)) return 'Сочи';
+        if (isPhuQuocPromoCountry(cardCountryId)) return 'Фукуок';
         return (h && h.country && h.country.name) ? h.country.name : '';
     }
 
@@ -1732,9 +1752,45 @@
         });
     }
 
+    function promoRegionIsPhuQuocDestination(region) {
+        var r = (region || '').toString().trim();
+        if (!r) return false;
+        return /\b(фук|phu\s*quoc|phuquoc|фу\s*куок)\b/i.test(r);
+    }
+
+    /** Для countryId 16104: только курорт Фукуок (остальной Вьетнам отсекается). */
+    function promoFilterPhuQuocDestinationHotels(data, countryId) {
+        if (String(countryId) !== PROMO_COUNTRY_ID_PHUQUOC) {
+            return Array.isArray(data) ? data.slice() : [];
+        }
+        var list = Array.isArray(data) ? data : [];
+        if (!list.length) return [];
+        return list.filter(function (h) {
+            return h && promoRegionIsPhuQuocDestination(promoRegionName(h));
+        });
+    }
+
+    /** Плитка «Вьетнам» (16): без Фукуок — отдельная плитка 16104. */
+    function promoFilterVietnamExcludePhuQuocHotels(data, countryId) {
+        if (!isVietnamPromoCountry(countryId) || isPhuQuocPromoCountry(countryId)) {
+            return Array.isArray(data) ? data.slice() : [];
+        }
+        var list = Array.isArray(data) ? data : [];
+        if (!list.length) return [];
+        return list.filter(function (h) {
+            return h && !promoRegionIsPhuQuocDestination(promoRegionName(h));
+        });
+    }
+
+    function promoFilterVirtualDestinationHotels(data, countryId) {
+        var list = promoFilterSochiDestinationHotels(data, countryId);
+        list = promoFilterPhuQuocDestinationHotels(list, countryId);
+        return promoFilterVietnamExcludePhuQuocHotels(list, countryId);
+    }
+
     function promoPostProcessHotelList(data, countryId) {
         var countryName = (typeof uCurrentCountryName !== 'undefined' && uCurrentCountryName) ? uCurrentCountryName : COUNTRY_NAME;
-        var list = promoFilterSochiDestinationHotels(Array.isArray(data) ? data : [], countryId);
+        var list = promoFilterVirtualDestinationHotels(Array.isArray(data) ? data : [], countryId);
         list = promoFilterTurkeyDestinationHotels(list, countryId);
         /* Для Сочи departureId уже в запросе API; фильтр по кодам в tour.name отрезал лишнее */
         if (String(countryId) !== PROMO_COUNTRY_ID_SOCHI) {
@@ -1755,7 +1811,7 @@
         var fin = Array.isArray(finalized) ? finalized : [];
         var raw = Array.isArray(rawFallback) ? rawFallback : [];
         var pick;
-        if (cid !== PROMO_COUNTRY_ID_SOCHI && raw.length > fin.length && raw.length >= 3) {
+        if (cid !== PROMO_COUNTRY_ID_SOCHI && cid !== PROMO_COUNTRY_ID_PHUQUOC && !isVietnamPromoCountry(cid) && raw.length > fin.length && raw.length >= 3) {
             pick = raw;
         } else if (fin.length) {
             pick = fin;
@@ -1766,6 +1822,12 @@
         }
         if (cid === PROMO_COUNTRY_ID_SOCHI) {
             return promoFilterSochiDestinationHotels(pick, cid);
+        }
+        if (cid === PROMO_COUNTRY_ID_PHUQUOC) {
+            return promoFilterPhuQuocDestinationHotels(pick, cid);
+        }
+        if (isVietnamPromoCountry(cid)) {
+            return promoFilterVietnamExcludePhuQuocHotels(pick, cid);
         }
         return pick;
     }

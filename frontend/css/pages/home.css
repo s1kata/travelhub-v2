@@ -441,8 +441,10 @@ header {
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
+    background-color: #1a2744;
+    background-image: linear-gradient(165deg, #243b6e 0%, #1a2744 45%, #121830 100%);
 }
-/* Фон вне потока flex — абсолютное позиционирование (один img, без <picture> + type=webp — совместимость с iOS) */
+/* Фон вне потока flex — локальный WebP, плавное появление после загрузки */
 .home-hero-section > .hero-background-img {
     position: absolute;
     inset: 0;
@@ -451,6 +453,12 @@ header {
     height: 100%;
     object-fit: cover;
     pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+.home-hero-section.hero-bg-ready > .hero-background-img,
+.home-hero-section > .hero-background-img.is-ready {
+    opacity: 1;
 }
 .hero-overlay {
     position: absolute;

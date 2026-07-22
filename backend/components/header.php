@@ -27,7 +27,7 @@ $th_csrf_token = security_csrf_token();
 <?php define('TRAVELHUB_HEADER_FALLBACK_STYLES', true); ?>
 <?php /* v2: тема и микровзаимодействия на всех страницах (header подключается везде) */ ?>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/frontend/css/v2-theme.css?v=1">
+<link rel="stylesheet" href="/frontend/css/v2-theme.css?v=3">
 <script src="/frontend/js/v2-theme.js?v=1" defer></script>
 <style>
     /* Fallback styles: header works even without design-system.css */
@@ -39,9 +39,12 @@ $th_csrf_token = security_csrf_token();
         z-index: 1000;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 24px;
-        padding: 12px 40px;
+        justify-content: flex-start;
+        gap: 0;
+        padding: 10px clamp(16px, 3vw, 40px);
+        min-height: 56px;
+        box-sizing: border-box;
+        border-bottom: 1px solid transparent;
         background: rgba(0, 0, 0, 0.3);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
@@ -58,10 +61,11 @@ $th_csrf_token = security_csrf_token();
 
     #site-header .header__nav {
         display: flex;
-        gap: 24px;
+        gap: clamp(12px, 1.8vw, 24px);
         align-items: center;
-        justify-content: center;
-        flex: 1;
+        justify-content: flex-start;
+        flex: 0 1 auto;
+        margin-left: clamp(16px, 2.5vw, 36px);
     }
 
     #site-header .header__nav a {
@@ -153,10 +157,27 @@ $th_csrf_token = security_csrf_token();
         display: block;
     }
 
+    #site-header .th-promo-header-slot {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
     #site-header .header__actions {
         display: flex;
-        gap: 12px;
+        gap: 10px;
         align-items: center;
+        flex-shrink: 0;
+        margin-left: auto;
+    }
+
+    #site-header .header__burger {
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 768px) {
+        #site-header .header__burger {
+            margin-left: auto;
+        }
     }
 
     /* UX: телефон в шапке — всегда на виду, кликабельный */
@@ -390,8 +411,17 @@ $th_csrf_token = security_csrf_token();
         #site-header .header__actions {
             display: none;
         }
+        #site-header .th-promo-header-slot {
+            display: none !important;
+        }
         #site-header .header__burger {
             display: inline-flex;
+            margin-left: auto;
+            order: 10;
+        }
+        #site-header .header__logo {
+            flex: 0 1 auto;
+            min-width: 0;
         }
     }
 
@@ -413,9 +443,14 @@ $th_csrf_token = security_csrf_token();
         top: 0;
         right: 0;
         z-index: 1100;
-        width: min(100vw - 2.5rem, 320px);
+        width: min(100vw - 1.5rem, 320px);
+        max-width: 100%;
         max-height: 100vh;
+        max-height: 100dvh;
         height: 100%;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-right: env(safe-area-inset-right, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
         background: rgba(16, 16, 46, 0.98);
         border-left: 1px solid rgba(255, 255, 255, 0.1);
         box-shadow: -12px 0 40px rgba(0, 0, 0, 0.35);
@@ -428,6 +463,7 @@ $th_csrf_token = security_csrf_token();
         -webkit-overflow-scrolling: touch;
         visibility: hidden;
         pointer-events: none;
+        will-change: transform;
     }
     .site-header-mobile-panel.is-open {
         transform: translate3d(0, 0, 0);
@@ -623,6 +659,9 @@ $th_csrf_token = security_csrf_token();
     var panel = document.getElementById('site-header-mobile-panel');
     var closeBtn = document.getElementById('site-header-mobile-close');
     if (!burger || !overlay || !panel) return;
+
+    if (overlay.parentNode !== document.body) document.body.appendChild(overlay);
+    if (panel.parentNode !== document.body) document.body.appendChild(panel);
 
     var scrollLockY = 0;
 

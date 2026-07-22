@@ -182,6 +182,156 @@ textarea:focus-visible {
     outline-offset: 1px;
 }
 
+/* ── Header: белый фон (скролл / внутренние страницы) ── */
+#site-header.header:not([data-home="1"]),
+#site-header.header[data-home="1"].scrolled {
+    background: rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom-color: rgba(226, 232, 240, 0.95) !important;
+    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.05), 0 4px 18px rgba(15, 23, 42, 0.05) !important;
+}
+
+/* Главная на hero: стеклянная шапка + белые ссылки (как на локалке) */
+#site-header.header[data-home="1"]:not(.scrolled) {
+    background: rgba(255, 255, 255, 0.14) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.22) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+}
+
+#site-header.header[data-home="1"]:not(.scrolled) .header__logo {
+    color: #fff !important;
+}
+
+#site-header.header[data-home="1"]:not(.scrolled) .header__nav a,
+#site-header.header[data-home="1"]:not(.scrolled) .header__more-toggle {
+    color: rgba(255, 255, 255, 0.92) !important;
+    opacity: 1;
+}
+
+#site-header.header[data-home="1"]:not(.scrolled) .header__nav a.is-active,
+#site-header.header[data-home="1"]:not(.scrolled) .header__more-toggle.is-active {
+    color: #fff !important;
+    font-weight: 600;
+}
+
+#site-header.header[data-home="1"]:not(.scrolled) .header__nav a:hover,
+#site-header.header[data-home="1"]:not(.scrolled) .header__more-toggle:hover {
+    color: #fff !important;
+}
+
+#site-header.header[data-home="1"]:not(.scrolled) .header__actions .button-secondary {
+    background: rgba(255, 255, 255, 0.14) !important;
+    border: 1px solid rgba(255, 255, 255, 0.45) !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff;
+}
+
+#site-header.header[data-home="1"]:not(.scrolled) .header__actions .button-secondary:hover {
+    background: rgba(255, 255, 255, 0.24) !important;
+    color: #fff !important;
+}
+
+#site-header.header[data-home="1"]:not(.scrolled) .header__phone {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    color: #fff !important;
+}
+
+#site-header.header[data-home="1"]:not(.scrolled) .header__phone i {
+    color: #79bcb7 !important;
+}
+
+#site-header.header[data-home="1"]:not(.scrolled) .header__phone-num {
+    color: #fff !important;
+}
+
+/* Hero: градиент до загрузки WebP */
+.home-hero-section {
+    background-color: #1a2744;
+    background-image: linear-gradient(165deg, #243b6e 0%, #1a2744 45%, #121830 100%);
+}
+
+#site-header.header:not([data-home="1"]) .header__logo,
+#site-header.header[data-home="1"].scrolled .header__logo {
+    color: var(--v2-primary) !important;
+}
+
+#site-header.header:not([data-home="1"]) .header__nav a,
+#site-header.header:not([data-home="1"]) .header__more-toggle,
+#site-header.header[data-home="1"].scrolled .header__nav a,
+#site-header.header[data-home="1"].scrolled .header__more-toggle {
+    color: #475569 !important;
+    opacity: 1;
+}
+
+#site-header.header:not([data-home="1"]) .header__nav a.is-active,
+#site-header.header:not([data-home="1"]) .header__more-toggle.is-active,
+#site-header.header[data-home="1"].scrolled .header__nav a.is-active,
+#site-header.header[data-home="1"].scrolled .header__more-toggle.is-active {
+    color: var(--v2-primary) !important;
+    font-weight: 600;
+}
+
+#site-header.header:not([data-home="1"]) .header__nav a:hover,
+#site-header.header:not([data-home="1"]) .header__more-toggle:hover,
+#site-header.header[data-home="1"].scrolled .header__nav a:hover,
+#site-header.header[data-home="1"].scrolled .header__more-toggle:hover {
+    color: var(--v2-primary) !important;
+}
+
+#site-header.header:not([data-home="1"]) .header__actions .button-secondary,
+#site-header.header[data-home="1"].scrolled .header__actions .button-secondary {
+    background: #fff !important;
+    border: 1.5px solid rgba(93, 169, 164, 0.5) !important;
+    color: var(--v2-primary) !important;
+    -webkit-text-fill-color: var(--v2-primary);
+}
+
+#site-header.header:not([data-home="1"]) .header__actions .button-secondary:hover,
+#site-header.header[data-home="1"].scrolled .header__actions .button-secondary:hover {
+    background: var(--v2-secondary-soft) !important;
+    border-color: var(--v2-secondary) !important;
+    color: var(--v2-primary) !important;
+}
+
+#site-header.header:not([data-home="1"]) .header__phone,
+#site-header.header[data-home="1"].scrolled .header__phone {
+    background: transparent !important;
+    border: none !important;
+    color: var(--v2-primary) !important;
+    padding: 8px 10px !important;
+}
+
+#site-header.header:not([data-home="1"]) .header__phone i,
+#site-header.header[data-home="1"].scrolled .header__phone i {
+    color: var(--v2-secondary) !important;
+}
+
+#site-header.header:not([data-home="1"]) .header__phone-num,
+#site-header.header[data-home="1"].scrolled .header__phone-num {
+    color: var(--v2-primary) !important;
+}
+
+#site-header .header__logo {
+    font-family: 'Outfit', var(--font-sans);
+    font-size: 1.35rem;
+    letter-spacing: -0.02em;
+}
+
+@media (min-width: 768px) and (max-width: 1100px) {
+    #site-header .header__nav {
+        margin-left: 14px;
+        gap: 10px;
+    }
+    #site-header .header__nav a,
+    #site-header .header__more-toggle {
+        font-size: 0.9rem;
+    }
+}
+
 /* ── Ссылки навигации: анимированное подчёркивание ── */
 #site-header .nav-link {
     position: relative;

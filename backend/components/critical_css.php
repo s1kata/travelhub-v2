@@ -68,6 +68,12 @@ header {
 .min-h-screen { min-height: 100vh; }
 .w-full { width: 100%; }
 /* Hero section critical styles */
+.home-hero-section {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background-color: #1a2744;
+    background-image: linear-gradient(165deg, #243b6e 0%, #1a2744 45%, #121830 100%);
+}
 .hero-background-img {
     position: absolute;
     top: 0;
@@ -76,6 +82,12 @@ header {
     height: 100%;
     object-fit: cover;
     z-index: 0;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+.hero-background-img.is-ready,
+.home-hero-section.hero-bg-ready .hero-background-img {
+    opacity: 1;
 }
 .hero-overlay {
     position: absolute;

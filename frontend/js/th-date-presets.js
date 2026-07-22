@@ -216,8 +216,14 @@
     });
   }
 
+  /** Дефолт формы: сегодня → +14 дней (ближайшие 2 недели). */
+  function getDefaultRange() {
+    return getRange('14d');
+  }
+
   global.THDatePresets = {
     getRange: getRange,
+    getDefaultRange: getDefaultRange,
     getMonthRange: getMonthRange,
     apply: apply,
     renderChips: renderChips,

@@ -299,6 +299,32 @@
         return false;
     }
 
+    function isHomeWizardFlow() {
+        var root = document.getElementById('tour-search-section');
+        return !!(root && root.classList.contains('th-wizard'));
+    }
+
+    function getWizardStep() {
+        var root = document.getElementById('tour-search-section');
+        if (!root) return 0;
+        return parseInt(root.getAttribute('data-step') || '1', 10) || 1;
+    }
+
+    function shouldDeferPromoExpand() {
+        if (document.body.classList.contains('th-modal-open') || document.body.classList.contains('th-abandon-open')) return true;
+        if (!isHomeWizardFlow()) return false;
+        return getWizardStep() >= 1 && getWizardStep() <= 4;
+    }
+
+    function collapsePromoForWizard() {
+        var popup = document.getElementById('th-promo-popup');
+        if (!popup) return;
+        popup.classList.remove('th-promo-popup--visible');
+        document.body.classList.remove('th-promo-open');
+        popup.classList.add('th-promo-popup--collapsed');
+        lsSet(LS_COLLAPSED, '1');
+    }
+
     function syncPromoTabPlacement(popup) {
         popup = popup || document.getElementById('th-promo-popup');
         if (!popup) return;
@@ -484,13 +510,15 @@
 
     function showPromoModal(opts) {
         opts = opts || {};
+        var expand = opts.expand !== false && lsGet(LS_COLLAPSED) !== '1';
+        if (shouldDeferPromoExpand()) expand = false;
         var existing = document.getElementById('th-promo-popup');
         if (existing) {
             syncPopupTimerExpires(existing);
             updateAllPromoTimers(existing);
             updatePromoTab(existing);
             document.body.classList.add('th-promo-tab-visible');
-            if (opts.expand !== false && lsGet(LS_COLLAPSED) !== '1') {
+            if (expand) {
                 existing.classList.remove('th-promo-popup--collapsed');
                 document.body.classList.add('th-promo-open');
                 requestAnimationFrame(function () {
@@ -498,6 +526,7 @@
                 });
             } else {
                 existing.classList.add('th-promo-popup--collapsed');
+                document.body.classList.remove('th-promo-open');
             }
             syncPromoTabPlacement(existing);
             return;
@@ -507,7 +536,7 @@
         }
         var popup = buildPopup();
         document.body.appendChild(popup);
-        if (lsGet(LS_COLLAPSED) !== '1') {
+        if (expand) {
             document.body.classList.add('th-promo-open');
         }
         if (opts.markShown !== false && lsGet(LS_POPUP_SHOWN) !== '1') {
@@ -519,7 +548,7 @@
         updateAllPromoTimers(popup);
         updatePromoTab(popup);
         document.body.classList.add('th-promo-tab-visible');
-        if (lsGet(LS_COLLAPSED) === '1') {
+        if (!expand || lsGet(LS_COLLAPSED) === '1') {
             popup.classList.add('th-promo-popup--collapsed');
             document.body.classList.remove('th-promo-open');
         } else {
@@ -624,9 +653,10 @@
     }
 
     function showPopup() {
+        if (shouldDeferPromoExpand() && getWizardStep() > 1) return;
         if (document.getElementById('th-promo-popup')) {
             if (lsGet(LS_COLLAPSED) === '1') return;
-            showPromoModal({ markShown: false, expand: true });
+            showPromoModal({ markShown: false, expand: !shouldDeferPromoExpand() });
             return;
         }
         if (lsGet(LS_POPUP_SHOWN) === '1' && lsGet(LS_COLLAPSED) === '1') {
@@ -634,7 +664,7 @@
             return;
         }
         if (lsGet(LS_POPUP_SHOWN) === '1') return;
-        showPromoModal({ markShown: true, expand: true });
+        showPromoModal({ markShown: true, expand: !shouldDeferPromoExpand() });
     }
 
     function shouldShowStatusBar() {
@@ -821,26 +851,29 @@
         });
         if (isFirstVisit && lsGet(LS_POPUP_SHOWN) !== '1') {
             setTimeout(function () {
-                var wiz = document.getElementById('tour-search-section');
-                var step = wiz ? parseInt(wiz.getAttribute('data-step') || '1', 10) : 1;
-                if (step > 1) return;
+                if (shouldDeferPromoExpand() && getWizardStep() > 1) return;
                 showPopup();
             }, 5000);
         } else if (promoUiShouldShow()) {
             setTimeout(function () {
                 if (!document.getElementById('th-promo-popup')) {
-                    showPromoModal({ markShown: false, expand: lsGet(LS_COLLAPSED) !== '1' });
+                    showPromoModal({ markShown: false, expand: !shouldDeferPromoExpand() && lsGet(LS_COLLAPSED) !== '1' });
                 } else {
                     syncPromoTabPlacement();
                 }
             }, 800);
         }
+
+        document.addEventListener('th:wizard-step', function (e) {
+            if (!e || !e.detail) return;
+            if (e.detail.step >= 2) collapsePromoForWizard();
+        });
     }
 
     function ensurePromoSheetOnLoad() {
         if (!promoUiShouldShow()) return;
         if (!document.getElementById('th-promo-popup') && (lsGet(LS_POPUP_SHOWN) === '1' || lsGet(LS_TEN_START))) {
-            showPromoModal({ markShown: false, expand: lsGet(LS_COLLAPSED) !== '1' });
+            showPromoModal({ markShown: false, expand: !shouldDeferPromoExpand() && lsGet(LS_COLLAPSED) !== '1' });
         }
     }
 

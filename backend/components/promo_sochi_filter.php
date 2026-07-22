@@ -47,6 +47,71 @@ function th_promo_region_is_sochi_destination(string $region): bool
     return preg_match($sochiResortPattern, $region) === 1;
 }
 
+function th_promo_phuquoc_virtual_country_id(): int
+{
+    return 16104;
+}
+
+function th_promo_vietnam_country_id(): int
+{
+    return 16;
+}
+
+function th_promo_is_vietnam_promo_country_id(int $countryId): bool
+{
+    return in_array($countryId, [th_promo_vietnam_country_id(), 18], true);
+}
+
+function th_promo_region_is_phuquoc_destination(string $region): bool
+{
+    $region = trim($region);
+    if ($region === '') {
+        return false;
+    }
+
+    return preg_match('/\b(фук|phu\s*quoc|phuquoc|фу\s*куок)\b/ui', $region) === 1;
+}
+
+/**
+ * @param list<array<string, mixed>> $hotels
+ * @return list<array<string, mixed>>
+ */
+function th_promo_filter_hotels_phuquoc_only(array $hotels): array
+{
+    $out = [];
+    foreach ($hotels as $h) {
+        if (!is_array($h)) {
+            continue;
+        }
+        if (th_promo_region_is_phuquoc_destination(th_promo_hotel_region_label($h))) {
+            $out[] = $h;
+        }
+    }
+
+    return $out;
+}
+
+/**
+ * Плитка «Вьетнам»: без Фукуок (отдельная плитка 16104).
+ *
+ * @param list<array<string, mixed>> $hotels
+ * @return list<array<string, mixed>>
+ */
+function th_promo_filter_hotels_vietnam_exclude_phuquoc(array $hotels): array
+{
+    $out = [];
+    foreach ($hotels as $h) {
+        if (!is_array($h)) {
+            continue;
+        }
+        if (!th_promo_region_is_phuquoc_destination(th_promo_hotel_region_label($h))) {
+            $out[] = $h;
+        }
+    }
+
+    return $out;
+}
+
 function th_promo_turkey_country_id(): int
 {
     return 4;
@@ -91,6 +156,12 @@ function th_promo_filter_hotels_sochi_resort_only(array $hotels): array
  */
 function th_promo_filter_hotels_for_promo_country(array $hotels, int $countryId): array
 {
+    if ($countryId === th_promo_phuquoc_virtual_country_id()) {
+        return th_promo_filter_hotels_phuquoc_only($hotels);
+    }
+    if (th_promo_is_vietnam_promo_country_id($countryId)) {
+        return th_promo_filter_hotels_vietnam_exclude_phuquoc($hotels);
+    }
     if ($countryId === th_promo_sochi_country_id()) {
         return th_promo_filter_hotels_sochi_resort_only($hotels);
     }

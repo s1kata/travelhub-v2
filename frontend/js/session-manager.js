@@ -163,8 +163,8 @@
                 meal: safeGet('tv-meal'),
                 region: safeGet('tv-region'),
                 category: safeGet('tv-category'),
-                nightsFrom: (typeof window.tvNightsFrom !== 'undefined') ? window.tvNightsFrom : 7,
-                nightsTo: (typeof window.tvNightsTo !== 'undefined') ? window.tvNightsTo : 14,
+                nightsFrom: (typeof window.tvNightsFrom !== 'undefined') ? window.tvNightsFrom : 6,
+                nightsTo: (typeof window.tvNightsTo !== 'undefined') ? window.tvNightsTo : 9,
                 adults: (typeof window.tvAdultsCount !== 'undefined') ? window.tvAdultsCount : 2,
                 childAges: Array.isArray(window.tvChildrenAges) ? window.tvChildrenAges.slice() : [],
                 datesRaw: safeGet('tv-dates')

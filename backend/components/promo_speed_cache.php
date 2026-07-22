@@ -5,6 +5,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/promo_sochi_filter.php';
+require_once __DIR__ . '/promo_virtual_destinations.php';
 require_once __DIR__ . '/operator_filter.php';
 
 require_once __DIR__ . '/../config/departure_defaults.php';
@@ -54,7 +55,7 @@ function th_promo_speed_ttl_seconds(): int
 /** ОАЭ, Шри-Ланка, Вьетнам, Абхазия: /tours/hots → 403, promo_cache устаревает — только search-cached + onlyPromo. */
 function th_promo_speed_live_search_country_ids(): array
 {
-    return [9, 12, 16, 46];
+    return [9, 12, 16, 46, th_promo_phuquoc_virtual_country_id()];
 }
 
 function th_promo_speed_uses_live_search(int $countryId): bool
@@ -65,6 +66,7 @@ function th_promo_speed_uses_live_search(int $countryId): bool
 /** @return array<int, array{0: int, 1: int}> */
 function th_promo_speed_night_windows(int $countryId = 0): array
 {
+    $countryId = th_promo_effective_rules_country_id($countryId);
     if (in_array($countryId, [1, 4, 13], true)) {
         return [[6, 13]];
     }
@@ -82,6 +84,7 @@ function th_promo_speed_night_windows(int $countryId = 0): array
 
 function th_promo_speed_date_plus_to(int $countryId): int
 {
+    $countryId = th_promo_effective_rules_country_id($countryId);
     if (in_array($countryId, [1, 2, 4, 8, 9, 12, 13, 16, 46, 47], true)) {
         return 21;
     }
@@ -132,6 +135,7 @@ function th_promo_speed_fetch_regular_window_arrays(
         if ($childs !== null && $childs !== '') {
             $winParams['childs'] = $childs;
         }
+        $winParams = th_promo_apply_virtual_search_params($countryId, $winParams);
         $winRes = $dispatch($winParams);
         if (!empty($winRes['success']) && is_array($winRes['data'] ?? null)) {
             $regularArrays[] = $winRes['data'];
@@ -234,6 +238,7 @@ function th_promo_speed_fetch_promo_only_search_arrays(
         if ($childs !== null && $childs !== '') {
             $winParams['childs'] = $childs;
         }
+        $winParams = th_promo_apply_virtual_search_params($countryId, $winParams);
         $winRes = $dispatch($winParams);
         if (!empty($winRes['success']) && is_array($winRes['data'] ?? null) && $winRes['data'] !== []) {
             $arrays[] = $winRes['data'];
@@ -797,6 +802,7 @@ function th_promo_speed_promo_dates(int $countryId): array
 /** Минимум ночей для цены на плитке и в index (как promoMinNightsForCountry в promotions-page.js). */
 function th_promo_min_nights_for_country(int $countryId): int
 {
+    $countryId = th_promo_effective_rules_country_id($countryId);
     if (in_array($countryId, [1, 4, 13], true)) {
         return 6;
     }
@@ -809,6 +815,7 @@ function th_promo_min_nights_for_country(int $countryId): int
 
 function th_promo_max_nights_for_country(int $countryId): int
 {
+    $countryId = th_promo_effective_rules_country_id($countryId);
     if (in_array($countryId, [1, 4, 13], true)) {
         return 13;
     }
@@ -943,6 +950,12 @@ function th_promo_speed_merge_hotels(array $dataArrays, int $expectedCountryId):
     $merged = array_values($byKey);
     if ($expectedCountryId === th_promo_sochi_country_id()) {
         $merged = th_promo_filter_hotels_sochi_resort_only($merged);
+    }
+    if ($expectedCountryId === th_promo_phuquoc_virtual_country_id()) {
+        $merged = th_promo_filter_hotels_phuquoc_only($merged);
+    }
+    if (th_promo_is_vietnam_promo_country_id($expectedCountryId)) {
+        $merged = th_promo_filter_hotels_vietnam_exclude_phuquoc($merged);
     }
 
     return $merged;

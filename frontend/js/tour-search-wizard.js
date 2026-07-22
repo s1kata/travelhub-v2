@@ -1,16 +1,13 @@
 /**
- * Tour Search Wizard — поэтапный UX поверх существующих #tv-* полей.
- * Не дублирует Tourvisor-логику: только шаги, валидация и summary.
+ * Tour Search Wizard — Coral-style поэтапный UX поверх #tv-*.
+ * 5 шагов: Куда → Когда → Ночи → Туристы → Откуда.
  */
 (function () {
     'use strict';
 
-    var STEPS = [
-        { id: 1, key: 'when', label: 'Когда' },
-        { id: 2, key: 'departure', label: 'Откуда' },
-        { id: 3, key: 'country', label: 'Куда' },
-        { id: 4, key: 'who', label: 'Кто' }
-    ];
+    var STEP_COUNT = 5;
+    var STEP_LABELS = ['Куда', 'Когда', 'Ночи', 'Туристы', 'Откуда'];
+    var STEP_OPEN = ['country', 'dates', 'nights', 'tourists', 'departure'];
 
     function qs(sel, root) {
         return (root || document).querySelector(sel);
@@ -20,27 +17,37 @@
         return Array.prototype.slice.call((root || document).querySelectorAll(sel));
     }
 
-    function textOfSelect(sel) {
-        if (!sel || !sel.options || sel.selectedIndex < 0) return '';
-        var opt = sel.options[sel.selectedIndex];
-        var t = (opt && opt.textContent) || '';
-        return t.replace(/^—\s*/, '').trim();
+    function hasDateRange() {
+        var inp = document.getElementById('tv-dates');
+        var val = (inp && inp.value || '').trim();
+        if (val) {
+            var parts = val.split(/\s+(?:по|to)\s+|\s+[-–—]\s+/i);
+            if (parts.length >= 2) return true;
+        }
+        var fp = window.tvDatePicker;
+        if (fp && fp.selectedDates && fp.selectedDates.length >= 2) return true;
+        var disp = document.getElementById('tv-sc-dates-display');
+        var d = (disp && disp.textContent || '').trim();
+        return !!(d && d !== 'Даты');
+    }
+
+    function hasNightsRange() {
+        var nf = typeof window.tvNightsFrom !== 'undefined' ? window.tvNightsFrom : 0;
+        var nt = typeof window.tvNightsTo !== 'undefined' ? window.tvNightsTo : 0;
+        return nf >= 1 && nt >= nf;
     }
 
     function TourSearchWizard(root, options) {
         this.root = root;
         this.options = options || {};
-        this.step = Math.max(1, Math.min(4, parseInt(root.getAttribute('data-start-step') || '1', 10) || 1));
+        this.step = Math.max(1, Math.min(STEP_COUNT, parseInt(root.getAttribute('data-start-step') || '1', 10) || 1));
         this.depSel = qs('#tv-departure', root) || qs('#tv-departure');
         this.countrySel = qs('#tv-country', root) || qs('#tv-country');
         this.datesDisplay = qs('#tv-sc-dates-display', root) || qs('#tv-sc-dates-display');
         this.nightsText = qs('#tv-nights-summary-text', root) || qs('#tv-nights-summary-text');
         this.touristsText = qs('#tv-tourists-summary-text', root) || qs('#tv-tourists-summary-text');
-        this.summaryEl = qs('#th-wizard-summary', root);
-        this.progressEl = qs('.th-wizard__progress', root);
         this.bind();
         this.go(this.step, true);
-        this.refreshSummary();
     }
 
     TourSearchWizard.prototype.bind = function () {
@@ -57,7 +64,7 @@
         qsa('[data-thw-next]', this.root).forEach(function (btn) {
             btn.addEventListener('click', function () {
                 if (!self.validateCurrent()) return;
-                if (self.step < 4) self.go(self.step + 1);
+                if (self.step < STEP_COUNT) self.go(self.step + 1);
             });
         });
 
@@ -67,7 +74,7 @@
             });
         });
 
-        var adv = qs('#th-wizard-open-filters', this.root);
+        var adv = qs('#th-wizard-open-filters', this.root) || document.getElementById('th-wizard-open-filters');
         if (adv && !adv.dataset.thwFiltersBound) {
             adv.dataset.thwFiltersBound = '1';
             adv.addEventListener('click', function (e) {
@@ -81,43 +88,113 @@
             });
         }
 
-        this.bindSummaryChipClicks();
+        var filtersToggle = qs('#th-wizard-toggle-filters', this.root);
+        var filtersPanel = qs('#th-wizard-filters-panel', this.root);
+        if (filtersToggle && filtersPanel && !filtersToggle.dataset.thwToggleBound) {
+            filtersToggle.dataset.thwToggleBound = '1';
+            filtersToggle.addEventListener('click', function () {
+                var open = filtersPanel.hasAttribute('hidden');
+                if (open) {
+                    filtersPanel.removeAttribute('hidden');
+                    filtersToggle.setAttribute('aria-expanded', 'true');
+                    filtersToggle.classList.add('is-open');
+                } else {
+                    filtersPanel.setAttribute('hidden', '');
+                    filtersToggle.setAttribute('aria-expanded', 'false');
+                    filtersToggle.classList.remove('is-open');
+                }
+            });
+        }
 
-        ['change', 'input'].forEach(function (ev) {
-            if (self.depSel) self.depSel.addEventListener(ev, function () { self.refreshSummary(); });
-            if (self.countrySel) self.countrySel.addEventListener(ev, function () { self.refreshSummary(); });
-        });
+        if (this.countrySel) {
+            this.countrySel.addEventListener('change', function () {
+                self.refreshSummary();
+                if (self.step === 1 && self.countrySel.value) {
+                    setTimeout(function () {
+                        if (self.validateCurrent()) self.go(2);
+                    }, 280);
+                }
+            });
+        }
 
-        var observerTargets = [this.datesDisplay, this.nightsText, this.touristsText].filter(Boolean);
-        if (typeof MutationObserver !== 'undefined' && observerTargets.length) {
-            var mo = new MutationObserver(function () { self.refreshSummary(); });
-            observerTargets.forEach(function (el) {
-                mo.observe(el, { characterData: true, childList: true, subtree: true });
+        if (this.depSel) {
+            this.depSel.addEventListener('change', function () {
+                self.refreshSummary();
             });
         }
 
         document.addEventListener('click', function (e) {
-            if (e.target && (e.target.id === 'tv-sc-dates-apply' || e.target.closest && e.target.closest('#tv-sc-dates-apply'))) {
-                setTimeout(function () { self.refreshSummary(); }, 50);
+            if (e.target && (e.target.id === 'tv-sc-dates-apply' || (e.target.closest && e.target.closest('#tv-sc-dates-apply')))) {
+                setTimeout(function () {
+                    self.refreshSummary();
+                    if (self.step === 2 && self.validateCurrent()) self.go(3);
+                }, 50);
             }
-            if (e.target && (e.target.id === 'tv-nights-apply' || e.target.id === 'tv-tourists-apply')) {
-                setTimeout(function () { self.refreshSummary(); }, 50);
+            if (e.target && (e.target.id === 'tv-nights-apply' || (e.target.closest && e.target.closest('#tv-nights-apply')))) {
+                setTimeout(function () {
+                    self.refreshSummary();
+                    if (self.step === 3 && self.validateCurrent()) self.go(4);
+                }, 50);
             }
+            if (e.target && (e.target.id === 'tv-tourists-apply' || (e.target.closest && e.target.closest('#tv-tourists-apply')))) {
+                setTimeout(function () {
+                    self.refreshSummary();
+                    if (self.step === 4) self.go(5);
+                }, 50);
+            }
+        });
+
+        document.addEventListener('th:wizard-nights-done', function () {
+            setTimeout(function () {
+                self.refreshSummary();
+                if (self.step === 3 && self.validateCurrent()) self.go(4);
+            }, 50);
         });
     };
 
+    TourSearchWizard.prototype.openStepModal = function (step) {
+        var ui = window.THSearchUI;
+        if (!ui) return;
+        var key = STEP_OPEN[step - 1];
+        if (key === 'country' || key === 'departure') {
+            if (typeof ui.openChoice === 'function') ui.openChoice(key);
+        } else if (key === 'dates' && typeof ui.openDates === 'function') {
+            ui.openDates();
+        } else if (key === 'nights' && typeof ui.openNights === 'function') {
+            ui.openNights();
+        } else if (key === 'tourists' && typeof ui.openTourists === 'function') {
+            ui.openTourists();
+        }
+    };
+
     TourSearchWizard.prototype.validateCurrent = function () {
+        if (this.step === 1) {
+            var c = this.countrySel && String(this.countrySel.value || '').trim();
+            if (!c) {
+                this.shake(qs('[data-th-search-open="country"]', this.root));
+                this.openStepModal(1);
+                return false;
+            }
+        }
         if (this.step === 2) {
-            var dep = this.depSel && String(this.depSel.value || '').trim();
-            if (!dep) {
-                this.shake(this.depSel);
+            if (!hasDateRange()) {
+                this.shake(qs('[data-th-search-open="dates"]', this.root));
+                this.openStepModal(2);
                 return false;
             }
         }
         if (this.step === 3) {
-            var c = this.countrySel && String(this.countrySel.value || '').trim();
-            if (!c) {
-                this.shake(this.countrySel);
+            if (!hasNightsRange()) {
+                this.shake(qs('[data-th-search-open="nights"]', this.root));
+                this.openStepModal(3);
+                return false;
+            }
+        }
+        if (this.step === 5) {
+            var dep = this.depSel && String(this.depSel.value || '').trim();
+            if (!dep) {
+                this.shake(qs('[data-th-search-open="departure"]', this.root));
+                this.openStepModal(5);
                 return false;
             }
         }
@@ -127,14 +204,13 @@
     TourSearchWizard.prototype.shake = function (el) {
         if (!el) return;
         el.focus && el.focus();
-        var field = el.closest ? el.closest('.tv-sc-field, .th-wizard__field') : null;
-        var target = field || el;
+        var target = el.closest ? (el.closest('.th-coral-search__field, .tv-sc-field') || el) : el;
         target.classList.add('th-wizard--shake');
         setTimeout(function () { target.classList.remove('th-wizard--shake'); }, 420);
     };
 
     TourSearchWizard.prototype.go = function (step, silent) {
-        step = Math.max(1, Math.min(4, step));
+        step = Math.max(1, Math.min(STEP_COUNT, step));
         this.step = step;
         this.root.setAttribute('data-step', String(step));
 
@@ -156,98 +232,31 @@
             else btn.removeAttribute('hidden');
         });
 
-        this.refreshSummary();
+        this.updateStepbar(step);
         try {
-            document.dispatchEvent(new CustomEvent('th:wizard-step', { detail: { step: step, key: STEPS[step - 1] ? STEPS[step - 1].key : '' } }));
+            document.body.classList.toggle('th-wizard-active', step >= 1 && step <= STEP_COUNT);
+            document.dispatchEvent(new CustomEvent('th:wizard-step', { detail: { step: step, key: STEP_LABELS[step - 1] || '' } }));
         } catch (eEv) {}
+
         if (!silent) {
-            var active = qs('.th-wizard__panel.is-active .th-wizard__panel-title', this.root);
-            if (active) active.focus && active.focus();
+            var activeField = qs('.th-wizard__panel.is-active [data-th-search-open]', this.root);
+            if (activeField) activeField.focus && activeField.focus();
         }
     };
 
-    TourSearchWizard.prototype.bindSummaryChipClicks = function () {
-        var self = this;
-        if (!this.summaryEl || this.summaryEl.dataset.thwChipBound) return;
-        this.summaryEl.dataset.thwChipBound = '1';
-        this.summaryEl.addEventListener('click', function (e) {
-            var chip = e.target.closest('[data-thw-chip]');
-            if (!chip) return;
-            e.preventDefault();
-            var action = chip.getAttribute('data-thw-chip');
-            if (action === 'dates') {
-                self.go(1);
-                if (typeof window.__thWizardOpenDatePopup === 'function') {
-                    window.__thWizardOpenDatePopup();
-                } else {
-                    var datesBtn = document.getElementById('tv-sc-dates-summary');
-                    if (datesBtn) datesBtn.click();
-                }
-            } else if (action === 'nights') {
-                self.go(1);
-                if (typeof window.__thWizardOpenNightsPopup === 'function') {
-                    window.__thWizardOpenNightsPopup();
-                } else {
-                    var nightsBtn = document.getElementById('tv-nights-summary');
-                    if (nightsBtn) nightsBtn.click();
-                }
-            } else if (action === 'departure') {
-                self.go(2);
-                if (self.depSel) self.depSel.focus && self.depSel.focus();
-            } else if (action === 'country') {
-                self.go(3);
-                if (self.countrySel) self.countrySel.focus && self.countrySel.focus();
-            } else if (action === 'who') {
-                self.go(4);
-                if (typeof window.__thWizardOpenTouristsPopup === 'function') {
-                    window.__thWizardOpenTouristsPopup();
-                } else {
-                    var tr = document.getElementById('tv-tourists-trigger');
-                    if (tr) tr.click();
-                }
-            }
-        });
+    TourSearchWizard.prototype.updateStepbar = function (step) {
+        var labelEl = document.getElementById('th-wizard-step-label');
+        var fillEl = document.querySelector('[data-thw-progress]');
+        var name = STEP_LABELS[step - 1] || '';
+        if (labelEl) labelEl.textContent = step + ' из ' + STEP_COUNT + ' · ' + name;
+        if (fillEl) fillEl.style.width = String(Math.round((step / STEP_COUNT) * 100)) + '%';
     };
 
     TourSearchWizard.prototype.refreshSummary = function () {
-        if (!this.summaryEl) return;
-        var chips = [];
-        var dates = (this.datesDisplay && this.datesDisplay.textContent || '').trim();
-        if (dates && dates !== 'Даты') {
-            chips.push({ icon: 'fa-calendar-alt', text: dates, action: 'dates' });
+        if (window.THSearchUI && typeof window.THSearchUI.refreshLabels === 'function') {
+            window.THSearchUI.refreshLabels();
         }
-        var nights = (this.nightsText && this.nightsText.textContent || '').trim();
-        if (nights) {
-            chips.push({ icon: 'fa-moon', text: nights, action: 'nights' });
-        }
-        var dep = textOfSelect(this.depSel);
-        if (dep && this.depSel && this.depSel.value) {
-            chips.push({ icon: 'fa-plane-departure', text: dep, action: 'departure' });
-        }
-        var country = textOfSelect(this.countrySel);
-        if (country && this.countrySel && this.countrySel.value) {
-            chips.push({ icon: 'fa-globe', text: country, action: 'country' });
-        }
-        var who = (this.touristsText && this.touristsText.textContent || '').trim();
-        if (who) {
-            chips.push({ icon: 'fa-users', text: who, action: 'who' });
-        }
-
-        this.summaryEl.innerHTML = chips.map(function (c) {
-            return '<button type="button" class="th-wizard__chip" data-thw-chip="' + c.action + '"' +
-                ' aria-label="Изменить: ' + escapeHtml(c.text) + '">' +
-                '<i class="fas ' + c.icon + '" aria-hidden="true"></i>' +
-                '<span class="th-wizard__chip-text">' + escapeHtml(c.text) + '</span></button>';
-        }).join('');
     };
-
-    function escapeHtml(s) {
-        return String(s)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    }
 
     function initHomeWizard() {
         var root = document.getElementById('tour-search-section');

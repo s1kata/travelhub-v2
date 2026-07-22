@@ -67,7 +67,12 @@ $current_page = 'home';
     $page_description = 'Туры и горящие туры от Travel Hub: подбор отелей, перелётов, виз, страхования и трансферов. Путешествия по всему миру с персональным консьержем. Ответим за 15 минут.';
     $page_keywords = 'туры, путешествия, горящие туры, премиум туры, эксклюзивные туры, отели, перелёты, визы, страхование, трансферы, турагентство, Travel Hub, отдых, туризм';
     // Путь от корня домена; seo_head превратит в абсолютный URL для Open Graph
-    $page_image = '/frontend/window/img/hero/e978c0767c0fe7bc778596c86b2b54f3%201.png';
+    $page_image = '/frontend/window/img/hero/home-hero-1280.webp';
+    $hero_img_base = '/frontend/window/img/hero/home-hero';
+    $hero_img_srcset = $hero_img_base . '-640.webp 640w, '
+        . $hero_img_base . '-960.webp 960w, '
+        . $hero_img_base . '-1280.webp 1280w, '
+        . $hero_img_base . '-1920.webp 1920w';
     $page_type = 'website';
     $page_lang = $lang;
 
@@ -123,7 +128,9 @@ $current_page = 'home';
     <link rel="preconnect" href="https://firebaseinstallations.googleapis.com">
     <link rel="preconnect" href="https://maps.yastatic.net">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="preload" href="/backend/api/hero-image.php?w=1920" as="image" fetchpriority="high">
+    <link rel="preload" href="<?php echo htmlspecialchars($hero_img_base . '-960.webp', ENT_QUOTES, 'UTF-8'); ?>" as="image"
+          imagesrcset="<?php echo htmlspecialchars($hero_img_srcset, ENT_QUOTES, 'UTF-8'); ?>" imagesizes="100vw"
+          fetchpriority="high" type="image/webp">
     
     <!-- Отложенная загрузка некритических стилей -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" media="print" onload="this.media='all'">
@@ -132,21 +139,23 @@ $current_page = 'home';
     <link rel="stylesheet" href="/frontend/css/tokens.css?v=2">
     <link rel="stylesheet" href="/frontend/css/responsive.css?v=17" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="/frontend/css/responsive.css?v=17"></noscript>
-    <link rel="stylesheet" href="/frontend/css/design-system.css?v=12">
-    <link rel="stylesheet" href="/frontend/css/redesign.css?v=22">
-    <link rel="stylesheet" href="/frontend/css/v2-theme.css?v=1">
-    <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=3">
+    <link rel="stylesheet" href="/frontend/css/design-system.css?v=14">
+    <link rel="stylesheet" href="/frontend/css/redesign.css?v=30">
+    <link rel="stylesheet" href="/frontend/css/v2-theme.css?v=4">
+    <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=11">
+    <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=6">
     <link rel="stylesheet" href="/frontend/css/th-hard-funnel.css?v=4">
     <link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=7">
     <link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=5">
     <link rel="stylesheet" href="/frontend/css/yandex-mobile.css?v=6">
-    <link rel="stylesheet" href="/frontend/css/pages/home.css?v=4">
+    <link rel="stylesheet" href="/frontend/css/pages/home.css?v=6">
     <link rel="stylesheet" href="/frontend/css/th-sheet.css?v=2">
     <?php include __DIR__ . '/../backend/components/mobile_site_head.php'; ?>
     <link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=2">
     <script>window.__TH_YM_ID=<?php echo json_encode((string)$th_ym_id, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
     <script src="/frontend/js/v2-theme.js?v=1" defer></script>
-    <script src="/frontend/js/tour-search-wizard.js?v=3" defer></script>
+    <script src="/frontend/js/tour-search-wizard.js?v=12" defer></script>
+    <script src="/frontend/js/th-coral-search.js?v=6" defer></script>
     <script src="/frontend/js/th-lead-capture.js?v=2" defer></script>
     <script src="/frontend/js/th-mobile.js?v=13" defer></script>
     <script src="/frontend/js/th-modal.js?v=2" defer></script>
@@ -198,204 +207,249 @@ $current_page = 'home';
 
     <!-- Hero: полноэкранный фон + поиск в карточке (на мобильных — контент от верха; с md — по центру hero) -->
     <section class="home-hero-section relative flex flex-col justify-start md:justify-center pt-24 pb-12 sm:pt-28 sm:pb-16 md:pb-20 overflow-x-hidden">
-        <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&amp;q=80&amp;auto=format&amp;fit=crop"
-                 srcset="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=960&amp;q=80&amp;auto=format&amp;fit=crop 960w, https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&amp;q=80&amp;auto=format&amp;fit=crop 1920w"
+        <img src="<?php echo htmlspecialchars($hero_img_base . '-960.webp', ENT_QUOTES, 'UTF-8'); ?>"
+                 srcset="<?php echo htmlspecialchars($hero_img_srcset, ENT_QUOTES, 'UTF-8'); ?>"
                  sizes="100vw"
                  alt="Бирюзовое море и песчаный пляж"
                  class="hero-background-img"
                  width="1920"
-                 height="1080"
+                 height="1280"
                  loading="eager"
                  fetchpriority="high"
                  decoding="async"
-                 data-fallback1="/frontend/window/img/hero/e978c0767c0fe7bc778596c86b2b54f3%201.png"
-                 data-fallback2="/frontend/window/img/сейшелы/a605d9c888f456b0bd001f4b3ef79d68.jpg"
-                 data-fallback3="https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1920&amp;q=80"
-                 onerror="if(this.dataset.fallback1){this.removeAttribute('srcset');this.src=this.dataset.fallback1;this.dataset.fallback1='';}else if(this.dataset.fallback2){this.src=this.dataset.fallback2;this.dataset.fallback2='';}else if(this.dataset.fallback3){this.onerror=null;this.src=this.dataset.fallback3.replace('&amp;','&');}">
+                 data-fallback="<?php echo htmlspecialchars($hero_img_base . '-1280.webp', ENT_QUOTES, 'UTF-8'); ?>"
+                 onload="this.classList.add('is-ready');var s=this.closest('.home-hero-section');if(s)s.classList.add('hero-bg-ready');"
+                 onerror="if(this.dataset.fallback){this.removeAttribute('srcset');this.src=this.dataset.fallback;this.dataset.fallback='';this.classList.add('is-ready');}">
         <div class="hero-overlay"></div>
 
         <div class="th-container home-hero-inner mx-auto px-4 sm:px-6 md:px-8 relative z-10 w-full flex flex-col flex-1 min-h-0 justify-start md:justify-center items-center">
-            <div class="w-full max-w-3xl mx-auto text-center hero-content mb-6 sm:mb-8 md:mb-10">
+            <div class="w-full max-w-4xl mx-auto text-center hero-content mb-6 sm:mb-8 md:mb-10">
                 <p class="heading-font text-white/90 text-sm sm:text-base font-semibold tracking-[0.18em] uppercase mb-3 drop-shadow-[0_1px_10px_rgba(0,0,0,0.35)]">Travel Hub</p>
                 <h1 class="heading-font text-[2rem] sm:text-4xl md:text-5xl lg:text-[2.5rem] font-bold text-white mb-4 leading-[1.2] tracking-tight drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)]">
-                    Найдите тур за 4 простых шага
+                    Найдите тур за минуту
                 </h1>
-                <p class="text-[15px] sm:text-lg md:text-xl text-white/95 max-w-2xl mx-auto leading-relaxed drop-shadow-[0_1px_12px_rgba(0,0,0,0.35)]">
-                    Когда → откуда → куда → кто едет. Фильтры — на шаге «Куда».
+                <p class="text-[15px] sm:text-lg text-white/90 max-w-xl mx-auto leading-relaxed drop-shadow-[0_1px_12px_rgba(0,0,0,0.35)]">
+                    Куда · когда · ночи · туристы · откуда
                 </p>
             </div>
 
             <!-- ===================================================
-                 ПОИСКОВИК-ВИЗАРД v2 (ID полей сохранены для Tourvisor JS)
+                 CORAL-STYLE ПОЭТАПНЫЙ ПОИСК (#tv-* для Tourvisor)
+                 5 шагов: Куда → Когда → Ночи → Туристы → Откуда
                  =================================================== -->
-            <div id="tour-search-section" class="tv-sc-shell th-wizard w-full" data-th-wizard="home" data-step="1" data-start-step="1">
+            <div id="tour-search-section" class="tv-sc-shell th-coral-search th-coral-wizard th-wizard w-full" data-th-wizard="home" data-step="1" data-start-step="1">
                 <?php
                 if (!function_exists('th_departure_default_id')) {
                     require_once __DIR__ . '/../backend/config/departure_defaults.php';
                 }
+                $th_def_dep_name = htmlspecialchars(th_departure_default_name(), ENT_QUOTES, 'UTF-8');
                 ?>
-                <div class="th-wizard__head">
-                    <h2 class="th-wizard__title">Подбор тура</h2>
-                    <p class="th-wizard__sub">Ответьте на 4 коротких вопроса — и увидите предложения</p>
-                </div>
 
-                <nav class="th-wizard__progress" aria-label="Шаги поиска">
-                    <button type="button" class="th-wizard__dot is-active" data-thw-goto="1" aria-current="step">
-                        <span class="th-wizard__dot-num">1</span>
-                        <span class="th-wizard__dot-label">Когда</span>
+                <nav class="th-coral-wizard__rail" aria-label="Шаги поиска">
+                    <button type="button" class="th-coral-wizard__rail-item is-active" data-thw-goto="1" aria-current="step">
+                        <span class="th-coral-search__label">Куда</span>
+                        <span class="th-coral-wizard__rail-value is-placeholder" data-th-label="country">Страна</span>
                     </button>
-                    <button type="button" class="th-wizard__dot" data-thw-goto="2">
-                        <span class="th-wizard__dot-num">2</span>
-                        <span class="th-wizard__dot-label">Откуда</span>
+                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="2">
+                        <span class="th-coral-search__label">Когда</span>
+                        <span class="th-coral-wizard__rail-value is-placeholder" data-th-label="dates">Даты</span>
                     </button>
-                    <button type="button" class="th-wizard__dot" data-thw-goto="3">
-                        <span class="th-wizard__dot-num">3</span>
-                        <span class="th-wizard__dot-label">Куда</span>
+                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="3">
+                        <span class="th-coral-search__label">Ночи</span>
+                        <span class="th-coral-wizard__rail-value" data-th-label="nights">6–9 ночей</span>
                     </button>
-                    <button type="button" class="th-wizard__dot" data-thw-goto="4">
-                        <span class="th-wizard__dot-num">4</span>
-                        <span class="th-wizard__dot-label">Кто</span>
+                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="4">
+                        <span class="th-coral-search__label">Туристы</span>
+                        <span class="th-coral-wizard__rail-value" data-th-label="tourists">2 взрослых</span>
+                    </button>
+                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="5">
+                        <span class="th-coral-search__label">Откуда</span>
+                        <span class="th-coral-wizard__rail-value" data-th-label="departure"><?php echo $th_def_dep_name; ?></span>
                     </button>
                 </nav>
 
-                <div class="th-wizard__summary" id="th-wizard-summary" aria-live="polite"></div>
+                <div class="th-wizard__stepbar" aria-live="polite">
+                    <div class="th-wizard__stepbar-track" aria-hidden="true">
+                        <span class="th-wizard__stepbar-fill" data-thw-progress style="width:20%"></span>
+                    </div>
+                    <p class="th-wizard__stepbar-label" id="th-wizard-step-label">1 из 5 · Куда</p>
+                </div>
+
+                <nav class="th-wizard__progress sr-only" aria-label="Шаги поиска">
+                    <button type="button" class="th-wizard__dot is-active" data-thw-goto="1" aria-current="step"><span class="th-wizard__dot-num">1</span></button>
+                    <button type="button" class="th-wizard__dot" data-thw-goto="2"><span class="th-wizard__dot-num">2</span></button>
+                    <button type="button" class="th-wizard__dot" data-thw-goto="3"><span class="th-wizard__dot-num">3</span></button>
+                    <button type="button" class="th-wizard__dot" data-thw-goto="4"><span class="th-wizard__dot-num">4</span></button>
+                    <button type="button" class="th-wizard__dot" data-thw-goto="5"><span class="th-wizard__dot-num">5</span></button>
+                </nav>
 
                 <div class="th-wizard__panels">
-                    <!-- Шаг 1: когда -->
                     <div class="th-wizard__panel is-active" data-panel="1">
-                        <h3 class="th-wizard__panel-title" tabindex="-1">Когда и на сколько?</h3>
-                        <p class="th-wizard__panel-hint">Период вылета и сколько ночей в отеле</p>
-                        <div class="th-wizard__when-grid">
-                            <div class="tv-sc-field tv-sc-field--pop" id="tv-sc-dates-field">
-                                <span class="tv-sc-field-label" aria-hidden="true">Когда</span>
-                                <button type="button" class="tv-sc-trigger" id="tv-sc-dates-btn"
-                                        aria-haspopup="true" aria-expanded="false" aria-controls="tv-sc-date-popup"
-                                        aria-label="Даты вылета">
-                                    <i class="fas fa-calendar-alt tv-sc-ico" aria-hidden="true"></i>
-                                    <span id="tv-sc-dates-display">Даты</span>
-                                    <i class="fas fa-chevron-down tv-sc-chevron" aria-hidden="true"></i>
-                                </button>
-                                <div id="tv-dates-wrap" class="tv-sc-fp-hidden" aria-hidden="true">
-                                    <input type="text" id="tv-dates" class="tv-search-control"
-                                           placeholder="Выберите период" data-input readonly autocomplete="off">
-                                </div>
-                            </div>
-                            <div class="tv-sc-field tv-sc-field--pop" id="tv-nights-trigger">
-                                <span class="tv-sc-field-label" aria-hidden="true">Ночей</span>
-                                <button type="button" class="tv-sc-trigger" id="tv-nights-summary" aria-haspopup="true"
-                                        aria-label="Количество ночей">
-                                    <i class="far fa-moon tv-sc-ico" aria-hidden="true"></i>
-                                    <span id="tv-nights-summary-text">7–14 ночей</span>
-                                    <i class="fas fa-chevron-down tv-sc-chevron" aria-hidden="true"></i>
-                                </button>
-                            </div>
-                        </div>
+                        <button type="button" class="th-coral-search__field th-coral-search__field--step" data-th-search-open="country" aria-label="Куда">
+                            <span class="th-coral-search__field-inner">
+                                <span class="th-coral-search__label">Куда</span>
+                                <span class="th-coral-search__value is-placeholder" data-th-label="country">Выберите страну</span>
+                            </span>
+                            <i class="fas fa-chevron-right th-coral-search__chevron" aria-hidden="true"></i>
+                        </button>
                         <div class="th-wizard__nav">
                             <button type="button" class="th-wizard__back" data-thw-back hidden>Назад</button>
-                            <button type="button" class="th-wizard__next" data-thw-next>Далее <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+                            <button type="button" class="th-wizard__next" data-thw-next>Далее</button>
                         </div>
                     </div>
 
-                    <!-- Шаг 2: откуда -->
                     <div class="th-wizard__panel" data-panel="2" hidden>
-                        <h3 class="th-wizard__panel-title" tabindex="-1">Откуда летим?</h3>
-                        <p class="th-wizard__panel-hint">Город вылета</p>
-                        <div class="tv-sc-field tv-sc-field--sel tv-sc-field--departure">
-                            <span class="tv-sc-field-label" aria-hidden="true">Город вылета</span>
-                            <i class="fas fa-plane-departure tv-sc-ico" aria-hidden="true"></i>
-                            <select id="tv-departure" name="departureId" class="tv-sc-select tv-select" aria-label="Город вылета">
-                                <option value="<?php echo (int) th_departure_default_id(); ?>"><?php echo htmlspecialchars(th_departure_default_name(), ENT_QUOTES, 'UTF-8'); ?></option>
-                            </select>
-                        </div>
+                        <button type="button" class="th-coral-search__field th-coral-search__field--step" data-th-search-open="dates" aria-label="Когда">
+                            <span class="th-coral-search__field-inner">
+                                <span class="th-coral-search__label">Когда</span>
+                                <span class="th-coral-search__value is-placeholder" data-th-label="dates">Выберите даты</span>
+                            </span>
+                            <i class="fas fa-chevron-right th-coral-search__chevron" aria-hidden="true"></i>
+                        </button>
                         <div class="th-wizard__nav">
                             <button type="button" class="th-wizard__back" data-thw-back>Назад</button>
-                            <button type="button" class="th-wizard__next" data-thw-next>Далее <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+                            <button type="button" class="th-wizard__next" data-thw-next>Далее</button>
                         </div>
                     </div>
 
-                    <!-- Шаг 3: куда + фильтры -->
                     <div class="th-wizard__panel" data-panel="3" hidden>
-                        <h3 class="th-wizard__panel-title" tabindex="-1">Куда хотим?</h3>
-                        <p class="th-wizard__panel-hint">Страна отдыха и доп. параметры</p>
-                        <div class="tv-sc-field tv-sc-field--sel">
-                            <span class="tv-sc-field-label" aria-hidden="true">Страна</span>
-                            <i class="fas fa-globe tv-sc-ico" aria-hidden="true"></i>
-                            <select id="tv-country" name="countryId" class="tv-sc-select tv-select" aria-label="Страна отдыха">
-                                <option value="">Страна</option>
-                            </select>
-                        </div>
-                        <div class="tv-sc-field tv-sc-field--filters th-wizard__legacy-fields" aria-hidden="true">
-                            <button type="button" id="tv-filters-modal-open" class="tv-sc-trigger tv-filters-modal-open-btn"
-                                    aria-haspopup="dialog" aria-controls="tv-filters-modal" aria-expanded="false">
-                                <span class="tv-sc-ico" aria-hidden="true">⚙</span>
-                                <span class="tv-sc-filters-label">Фильтры</span>
-                            </button>
-                        </div>
-                        <div class="th-wizard__advanced">
-                            <button type="button" class="th-wizard__advanced-btn" id="th-wizard-open-filters">
-                                Доп. параметры (звёзды, питание, бюджет)
-                            </button>
-                        </div>
+                        <button type="button" class="th-coral-search__field th-coral-search__field--step" data-th-search-open="nights" aria-label="Сколько ночей">
+                            <span class="th-coral-search__field-inner">
+                                <span class="th-coral-search__label">Ночей</span>
+                                <span class="th-coral-search__value" data-th-label="nights">6–9 ночей</span>
+                            </span>
+                            <i class="fas fa-chevron-right th-coral-search__chevron" aria-hidden="true"></i>
+                        </button>
                         <div class="th-wizard__nav">
                             <button type="button" class="th-wizard__back" data-thw-back>Назад</button>
-                            <button type="button" class="th-wizard__next" data-thw-next>Далее <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+                            <button type="button" class="th-wizard__next" data-thw-next>Далее</button>
                         </div>
                     </div>
 
-                    <!-- Шаг 4: кто + поиск -->
                     <div class="th-wizard__panel" data-panel="4" hidden>
-                        <h3 class="th-wizard__panel-title" tabindex="-1">Кто едет?</h3>
-                        <p class="th-wizard__panel-hint">Состав туристов — и можно искать</p>
-                        <div class="tv-sc-field tv-sc-field--pop" id="tv-tourists-trigger">
-                            <span class="tv-sc-field-label" aria-hidden="true">Туристы</span>
-                            <button type="button" class="tv-sc-trigger" id="tv-tourists-summary" aria-haspopup="true"
-                                    aria-label="Количество туристов">
-                                <i class="fas fa-users tv-sc-ico" aria-hidden="true"></i>
-                                <span id="tv-tourists-summary-text">2 взрослых</span>
-                                <i class="fas fa-chevron-down tv-sc-chevron" aria-hidden="true"></i>
-                            </button>
-                        </div>
+                        <button type="button" class="th-coral-search__field th-coral-search__field--step" data-th-search-open="tourists" aria-label="Туристы">
+                            <span class="th-coral-search__field-inner">
+                                <span class="th-coral-search__label">Туристы</span>
+                                <span class="th-coral-search__value" data-th-label="tourists">2 взрослых</span>
+                            </span>
+                            <i class="fas fa-chevron-right th-coral-search__chevron" aria-hidden="true"></i>
+                        </button>
                         <div class="th-wizard__nav">
                             <button type="button" class="th-wizard__back" data-thw-back>Назад</button>
-                            <button id="tv-search-btn" type="button" class="button button-primary tv-sc-search-btn">
+                            <button type="button" class="th-wizard__next" data-thw-next>Далее</button>
+                        </div>
+                    </div>
+
+                    <div class="th-wizard__panel" data-panel="5" hidden>
+                        <button type="button" class="th-coral-search__field th-coral-search__field--step" data-th-search-open="departure" aria-label="Откуда">
+                            <span class="th-coral-search__field-inner">
+                                <span class="th-coral-search__label">Откуда</span>
+                                <span class="th-coral-search__value" data-th-label="departure"><?php echo $th_def_dep_name; ?></span>
+                            </span>
+                            <i class="fas fa-chevron-right th-coral-search__chevron" aria-hidden="true"></i>
+                        </button>
+                        <div class="th-wizard__nav">
+                            <button type="button" class="th-wizard__back" data-thw-back>Назад</button>
+                            <button id="tv-search-btn" type="button" class="th-coral-search__search-btn button button-primary tv-sc-search-btn">
                                 <i class="fas fa-search" aria-hidden="true"></i>
-                                <span class="tv-sc-search-text">Найти туры</span>
+                                <span class="tv-sc-search-text">Найти</span>
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Legacy row hidden — IDs moved into panels; keep empty marker for old CSS hooks -->
+                <div class="th-coral-wizard__filters-wrap">
+                    <button type="button" class="th-coral-wizard__filters-btn" id="th-wizard-toggle-filters"
+                            aria-expanded="false" aria-controls="th-wizard-filters-panel">
+                        <i class="fas fa-sliders-h" aria-hidden="true"></i>
+                        <span>Фильтры</span>
+                    </button>
+                    <div class="th-wizard__extra-filters" id="th-wizard-filters-panel" hidden aria-label="Дополнительные фильтры">
+                        <div class="th-wizard__extra-filters-grid">
+                            <div class="tv-sc-field tv-sc-field--sel th-wizard__filter-field">
+                                <span class="tv-sc-field-label">Питание</span>
+                                <select id="tv-meal" class="tv-sc-select tv-select tv-filter-field" aria-label="Питание">
+                                    <option value="">Любое</option>
+                                </select>
+                            </div>
+                            <div class="tv-sc-field tv-sc-field--sel th-wizard__filter-field">
+                                <span class="tv-sc-field-label">Курорт</span>
+                                <select id="tv-region" class="tv-sc-select tv-select tv-filter-field" aria-label="Курорт">
+                                    <option value="">Любой</option>
+                                </select>
+                            </div>
+                            <div class="tv-sc-field tv-sc-field--sel th-wizard__filter-field">
+                                <span class="tv-sc-field-label">Звёзды</span>
+                                <select id="tv-category" class="tv-sc-select tv-select tv-filter-field" aria-label="Категория отеля">
+                                    <option value="">Любая</option>
+                                    <option value="3">3★+</option>
+                                    <option value="4">4★+</option>
+                                    <option value="5">5★</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="button" class="th-coral-wizard__filters-advanced" id="th-wizard-open-filters">
+                            <i class="fas fa-cog" aria-hidden="true"></i>
+                            Бюджет и услуги отеля
+                        </button>
+                        <button type="button" id="tv-filters-modal-open" class="sr-only" aria-hidden="true" tabindex="-1"
+                                aria-haspopup="dialog" aria-controls="tv-filters-modal" aria-expanded="false">Фильтры</button>
+                    </div>
+                </div>
+
+                <div class="th-coral-search__native" aria-hidden="true">
+                    <select id="tv-departure" name="departureId" class="tv-select" tabindex="-1">
+                        <option value="<?php echo (int) th_departure_default_id(); ?>"><?php echo $th_def_dep_name; ?></option>
+                    </select>
+                    <select id="tv-country" name="countryId" class="tv-select" tabindex="-1">
+                        <option value="">Страна</option>
+                    </select>
+                    <div id="tv-sc-dates-field">
+                        <button type="button" id="tv-sc-dates-btn" aria-haspopup="dialog" aria-expanded="false"
+                                aria-controls="tv-sc-date-popup" tabindex="-1">
+                            <span id="tv-sc-dates-display">Даты</span>
+                        </button>
+                        <div id="tv-dates-wrap" class="tv-sc-fp-hidden">
+                            <input type="text" id="tv-dates" class="tv-search-control"
+                                   placeholder="Выберите период" data-input readonly autocomplete="off" tabindex="-1">
+                        </div>
+                    </div>
+                    <div id="tv-nights-trigger">
+                        <button type="button" id="tv-nights-summary" tabindex="-1" aria-hidden="true">
+                            <span id="tv-nights-summary-text">6–9 ночей</span>
+                        </button>
+                    </div>
+                    <div id="tv-tourists-trigger">
+                        <button type="button" id="tv-tourists-summary" tabindex="-1">
+                            <span id="tv-tourists-summary-text">2 взрослых</span>
+                        </button>
+                    </div>
+                </div>
+
                 <div class="tv-sc-row th-wizard__legacy-fields" id="tv-sc-main-row" aria-hidden="true"></div>
 
                 <!-- ─── ПОПАП: ТУРИСТЫ ─── -->
-                <!-- JS toggles class "hidden". CSS позиционирует как popup когда не hidden -->
                 <div id="tv-tourists-block" class="hidden tv-sc-tourists-popup">
                     <div class="tv-sc-popup-hd">
                         <span class="tv-sc-popup-title">Туристы</span>
                         <button type="button" id="tv-tourists-close-btn" class="tv-sc-x-btn" aria-label="Закрыть">✕</button>
                     </div>
-                    <!-- Взрослые: счётчик +/– -->
                     <div class="tv-sc-counter-row">
                         <span class="tv-sc-counter-label">Взрослые</span>
                         <div class="tv-sc-counter-ctrl">
-                            <button type="button" id="tv-adults-minus"
-                                    class="tv-sc-cnt-btn" aria-label="Меньше">
+                            <button type="button" id="tv-adults-minus" class="tv-sc-cnt-btn" aria-label="Меньше">
                                 <i class="fas fa-minus"></i>
                             </button>
                             <span class="tv-sc-cnt-val" id="tv-adults-value">2</span>
-                            <button type="button" id="tv-adults-plus"
-                                    class="tv-sc-cnt-btn" aria-label="Больше">
+                            <button type="button" id="tv-adults-plus" class="tv-sc-cnt-btn" aria-label="Больше">
                                 <i class="fas fa-plus"></i>
                             </button>
                         </div>
                     </div>
-                    <!-- Дети -->
                     <div id="tv-children-rows" class="tv-sc-children-rows"></div>
                     <button type="button" id="tv-add-child-btn" class="tv-sc-add-child">
                         <i class="fas fa-plus"></i> Добавить ребёнка
                     </button>
-                    <!-- Пикер возраста -->
                     <div id="tv-child-age-picker" class="hidden tv-sc-age-picker">
                         <p class="tv-sc-age-hint">Возраст ребёнка</p>
                         <div id="tv-child-age-grid" class="tv-sc-age-grid"></div>
@@ -409,36 +463,20 @@ $current_page = 'home';
                     </button>
                 </div>
 
-                <!-- ─── ПОПАП: ДАТЫ (пресеты спереди, календарь за «Свои даты») ─── -->
-                <div id="tv-sc-date-popup" class="tv-sc-date-popup tv-sc-date-popup--v2 tv-sc-date-popup--simple" style="display:none"
+                <!-- ─── ПОПАП: ДАТЫ ─── -->
+                <div id="tv-sc-date-popup" class="tv-sc-date-popup tv-sc-date-popup--v2 tv-sc-date-popup--cal-only" style="display:none"
                      role="dialog" aria-label="Когда вылетаете" aria-modal="true">
                     <div class="tv-sc-popup-hd">
                         <div class="tv-sc-popup-hd__text">
                             <span class="tv-sc-popup-title">Когда вылетаете?</span>
-                            <p class="tv-sc-popup-sub">Нажмите одну кнопку — и готово</p>
+                            <p class="tv-sc-popup-sub">Период возможного вылета</p>
                         </div>
                         <button type="button" class="tv-sc-x-btn"
                                 data-sc-close="tv-sc-date-popup" aria-label="Закрыть">✕</button>
                     </div>
                     <p id="tv-sc-dates-preview" class="tv-sc-dates-preview" aria-live="polite"></p>
-
-                    <button type="button" id="tv-sc-dates-custom-toggle" class="tv-sc-exact-dates tv-sc-exact-dates--top" aria-expanded="false" aria-controls="tv-sc-cal-panel">
-                        <i class="fas fa-calendar-day" aria-hidden="true"></i> Свои даты
-                    </button>
-
-                    <div class="tv-sc-date-chips tv-sc-date-chips--quick" id="tv-sc-date-chips-row">
-                        <button type="button" class="tv-sc-chip tv-sc-chip--lg active" data-date-preset="14d" aria-pressed="true">
-                            <span class="tv-sc-chip__main">Ближайшие 2 недели</span>
-                        </button>
-                        <button type="button" class="tv-sc-chip tv-sc-chip--lg" data-date-preset="week">
-                            <span class="tv-sc-chip__main">Неделя</span>
-                        </button>
-                    </div>
-
-                    <div class="tv-sc-date-chips tv-sc-date-chips--months" id="tv-sc-date-months-row"></div>
-
-                    <div id="tv-sc-cal-panel" class="tv-sc-cal-panel" hidden>
-                        <p id="tv-sc-dates-step" class="tv-sc-dates-step" aria-live="polite">Нажмите день начала, потом конец</p>
+                    <div id="tv-sc-cal-panel" class="tv-sc-cal-panel">
+                        <p id="tv-sc-dates-step" class="tv-sc-dates-step" aria-live="polite">Выберите период вылета (от и до)</p>
                         <div id="tv-sc-cal-container" class="tv-sc-cal-container"></div>
                         <button type="button" id="tv-sc-dates-apply" class="tv-sc-apply-btn tv-sc-apply-btn--sticky">
                             <i class="fas fa-check mr-1" aria-hidden="true"></i>Готово
@@ -446,7 +484,6 @@ $current_page = 'home';
                     </div>
                 </div>
 
-                <!-- Overlay для попапов на мобиле -->
                 <div id="tv-sc-overlay" class="tv-sc-overlay" style="display:none" aria-hidden="true"></div>
 
             </div>
@@ -1085,6 +1122,132 @@ $current_page = 'home';
         let tvDatePicker = null;
         var tvNightsFrom = 6;
         var tvNightsTo = 9;
+        var TV_DEFAULT_NIGHTS_FROM = 6;
+        var TV_DEFAULT_NIGHTS_TO = 9;
+
+        function findDefaultCountry(countries) {
+            if (!Array.isArray(countries) || !countries.length) return null;
+            return countries.find(function (c) {
+                return (c.name || '').toLowerCase().indexOf('египет') >= 0 || c.id == 1;
+            }) || countries.find(function (c) {
+                return (c.name || '').toLowerCase().indexOf('турци') >= 0 || c.id == 12 || c.id == 4;
+            }) || countries[0];
+        }
+
+        function sortCountriesWithDefaultFirst(countries) {
+            var list = (countries || []).slice();
+            var def = findDefaultCountry(list);
+            if (!def) return list;
+            return [def].concat(list.filter(function (c) {
+                return String(c.id) !== String(def.id);
+            }));
+        }
+
+        function setDefaultNightsRange() {
+            window.tvNightsFrom = TV_DEFAULT_NIGHTS_FROM;
+            window.tvNightsTo = TV_DEFAULT_NIGHTS_TO;
+            tvNightsFrom = TV_DEFAULT_NIGHTS_FROM;
+            tvNightsTo = TV_DEFAULT_NIGHTS_TO;
+            var summaryText = document.getElementById('tv-nights-summary-text');
+            if (summaryText) summaryText.textContent = TV_DEFAULT_NIGHTS_FROM + '–' + TV_DEFAULT_NIGHTS_TO + ' ночей';
+        }
+        window.setDefaultNightsRange = setDefaultNightsRange;
+
+        function updateDateDisplayOnly(d0, d1) {
+            if (!d0 || !d1) return;
+            var dispEl = document.getElementById('tv-sc-dates-display');
+            if (dispEl) {
+                var pad = function (n) { return String(n).padStart(2, '0'); };
+                var range = pad(d0.getDate()) + '.' + pad(d0.getMonth() + 1) + '–' +
+                    pad(d1.getDate()) + '.' + pad(d1.getMonth() + 1);
+                var nf = typeof tvNightsFrom !== 'undefined' ? tvNightsFrom : TV_DEFAULT_NIGHTS_FROM;
+                var nt = typeof tvNightsTo !== 'undefined' ? tvNightsTo : TV_DEFAULT_NIGHTS_TO;
+                if (nf === nt) {
+                    dispEl.textContent = range + ' · ' + tvNightsWord(nf);
+                } else {
+                    dispEl.textContent = range + ' · ' + nf + '–' + nt + ' ночей';
+                }
+            }
+            try {
+                if (window.THTourSearchWizard && typeof window.THTourSearchWizard.refreshSummary === 'function') {
+                    window.THTourSearchWizard.refreshSummary();
+                }
+            } catch (eDisp) {}
+        }
+        window.updateDateDisplayOnly = updateDateDisplayOnly;
+
+        function getDefaultDateWindow() {
+            if (window.THDatePresets && typeof window.THDatePresets.getDefaultRange === 'function') {
+                return window.THDatePresets.getDefaultRange();
+            }
+            if (window.THDatePresets && typeof window.THDatePresets.getRange === 'function') {
+                return window.THDatePresets.getRange('14d');
+            }
+            var d1 = new Date();
+            d1.setHours(0, 0, 0, 0);
+            var d2 = new Date(d1);
+            d2.setDate(d2.getDate() + 14);
+            return [d1, d2];
+        }
+        window.getDefaultDateWindow = getDefaultDateWindow;
+
+        function applyDefaultDateWindow() {
+            var range = getDefaultDateWindow();
+            var d1 = range[0];
+            var d2 = range[1];
+            setDefaultNightsRange();
+            if (window.tvDatePicker && typeof window.tvDatePicker.setDate === 'function') {
+                window.tvDatePicker.setDate([d1, d2], true);
+            } else {
+                var datesInp = document.getElementById('tv-dates');
+                if (datesInp) {
+                    var pad = function (n) { return String(n).padStart(2, '0'); };
+                    datesInp.value = pad(d1.getDate()) + '-' + pad(d1.getMonth() + 1) + '-' + d1.getFullYear() +
+                        ' — ' + pad(d2.getDate()) + '-' + pad(d2.getMonth() + 1) + '-' + d2.getFullYear();
+                }
+            }
+            updateDateDisplayOnly(d1, d2);
+        }
+        window.applyDefaultDateWindow = applyDefaultDateWindow;
+
+        function tvNightsWord(n) {
+            n = parseInt(n, 10) || 0;
+            if (n === 1) return '1 ночь';
+            if (n >= 2 && n <= 4) return n + ' ночи';
+            return n + ' ночей';
+        }
+        window.tvNightsWord = tvNightsWord;
+
+        function syncNightsFromDates(d0, d1) {
+            if (!d0 || !d1) return;
+            var nights = Math.max(1, Math.round((d1.getTime() - d0.getTime()) / 86400000));
+            window.tvNightsFrom = nights;
+            window.tvNightsTo = nights;
+            tvNightsFrom = nights;
+            tvNightsTo = nights;
+            var summaryText = document.getElementById('tv-nights-summary-text');
+            if (summaryText) summaryText.textContent = tvNightsWord(nights);
+            var dispEl = document.getElementById('tv-sc-dates-display');
+            if (dispEl) {
+                var pad = function (n) { return String(n).padStart(2, '0'); };
+                dispEl.textContent = pad(d0.getDate()) + '.' + pad(d0.getMonth() + 1) + '–' +
+                    pad(d1.getDate()) + '.' + pad(d1.getMonth() + 1) + ' · ' + tvNightsWord(nights);
+            }
+            try {
+                if (window.THTourSearchWizard && typeof window.THTourSearchWizard.refreshSummary === 'function') {
+                    window.THTourSearchWizard.refreshSummary();
+                }
+            } catch (eSum2) {}
+        }
+        window.syncNightsFromDates = syncNightsFromDates;
+
+        function advanceWizardAfterDates() {
+            try {
+                if (window.THTourSearchWizard && window.THTourSearchWizard.step === 2) {
+                    window.THTourSearchWizard.go(3);
+                }
+            } catch (eAdv) {}
+        }
         /** Состав туристов для поиска и карточек: должен быть вне DOMContentLoaded — performTvSearch/renderTvResults вызываются снаружи */
         var tvAdultsCount = 2;
         var tvChildrenAges = [];
@@ -1173,15 +1336,19 @@ $current_page = 'home';
             });
             const pMeal = refsPromises ? refsPromises.meals : tvFetch('meals');
 
-            const today = new Date();
-            const defaultFrom = new Date(today);
-            const defaultTo = new Date(today); defaultTo.setDate(today.getDate() + 14);
             function initTvDatePicker() {
+                var defRange = getDefaultDateWindow();
+                var defaultFrom = defRange[0];
+                var defaultTo = defRange[1];
                 if (!datesInp) return;
                 if (typeof flatpickr !== 'function') return;
                 try {
                     if (tvDatePicker) return;
-                    tvDatePicker = flatpickr(datesInp, { mode: 'range', dateFormat: 'd-m-Y', locale: 'ru', allowInput: false, clickOpens: true, minDate: today, defaultDate: [defaultFrom, defaultTo], disableMobile: true });
+                    var minPick = new Date();
+                    minPick.setHours(0, 0, 0, 0);
+                    var maxPick = new Date(minPick);
+                    maxPick.setFullYear(maxPick.getFullYear() + 1);
+                    tvDatePicker = flatpickr(datesInp, { mode: 'range', dateFormat: 'd-m-Y', locale: 'ru', allowInput: false, clickOpens: true, minDate: minPick, maxDate: maxPick, defaultDate: [defaultFrom, defaultTo], disableMobile: true, monthSelectorType: 'static', onReady: function () { if (typeof window.tvCalendarRefreshUI === 'function') window.tvCalendarRefreshUI(tvDatePicker); }, onMonthChange: function () { if (typeof window.tvCalendarRefreshUI === 'function') window.tvCalendarRefreshUI(tvDatePicker); }, onYearChange: function () { if (typeof window.tvCalendarRefreshUI === 'function') window.tvCalendarRefreshUI(tvDatePicker); } });
                     if (tvDatePicker) {
                         try { window.tvDatePicker = tvDatePicker; } catch (e) {}
                         datesInp.addEventListener('focus', function() { tvDatePicker.open(); });
@@ -1189,13 +1356,21 @@ $current_page = 'home';
                         if (wrap) wrap.addEventListener('click', function(e) { e.preventDefault(); datesInp.focus(); tvDatePicker.open(); });
                         var dispEl = document.getElementById('tv-sc-dates-display');
                         if (dispEl && tvDatePicker.selectedDates && tvDatePicker.selectedDates.length >= 2) {
-                            dispEl.textContent = fmtCompactRange(tvDatePicker.selectedDates[0], tvDatePicker.selectedDates[1]);
+                            setDefaultNightsRange();
+                            updateDateDisplayOnly(tvDatePicker.selectedDates[0], tvDatePicker.selectedDates[1]);
                         }
                     }
                 } catch (_) {}
             }
             initTvDatePicker();
-            if (!tvDatePicker && datesInp) window.addEventListener('load', initTvDatePicker);
+            if (!tvDatePicker && datesInp) {
+                window.addEventListener('load', function () {
+                    initTvDatePicker();
+                    var disp = document.getElementById('tv-sc-dates-display');
+                    var emptyDates = !disp || !disp.textContent.trim() || disp.textContent.trim() === 'Даты';
+                    if (emptyDates && !window.__tvRestoringFromBack) applyDefaultDateWindow();
+                });
+            }
 
             var rDep, rCountries, rMeal;
             try {
@@ -1273,15 +1448,12 @@ $current_page = 'home';
             ensureDepartureSelected();
 
             if (rCountries.success && Array.isArray(rCountries.data) && rCountries.data.length > 0) {
-                let countries = rCountries.data;
-                const turkey = countries.find(c => (c.name || '').toLowerCase().includes('турци') || c.id == 12 || c.id == 4);
-                if (turkey) {
-                    countries = [turkey, ...countries.filter(c => c.id !== turkey.id && c.id !== (turkey.id === 12 ? 4 : 12))];
-                }
+                let countries = sortCountriesWithDefaultFirst(rCountries.data);
+                const defaultCountry = findDefaultCountry(countries);
                 countrySel.innerHTML = '<option value="">— Страна —</option>' + countries.map(c =>
                     `<option value="${c.id}">${c.name || ''}</option>`
                 ).join('');
-                countrySel.value = turkey ? turkey.id : (countries[0]?.id || '');
+                countrySel.value = defaultCountry ? defaultCountry.id : (countries[0]?.id || '');
                 if (!depSel.value) {
                     var samId = defaultDepartureIdStr();
                     var sam = departuresList.find(function(d) { return String(d.id) === String(samId); })
@@ -1294,6 +1466,10 @@ $current_page = 'home';
                 }
                 ensureDepartureSelected();
                 if (countrySel.value && depSel.value) countrySel.dispatchEvent(new Event('change'));
+                else if (!window.__tvRestoringFromBack) applyDefaultDateWindow();
+                if (window.THTourSearchWizard && typeof window.THTourSearchWizard.refreshSummary === 'function') {
+                    window.THTourSearchWizard.refreshSummary();
+                }
                 console.log('%c[API → сайт] Данные с API применены: страны', 'color: #22c55e', countries.length, 'стран', countries.slice(0, 5).map(c => c.name));
             } else if (rCountries.success && Array.isArray(rCountries.data)) {
                 countrySel.innerHTML = '<option value="">— Нет стран —</option>';
@@ -1319,9 +1495,7 @@ $current_page = 'home';
             regionSel.innerHTML = '<option value="">Любой</option>';
 
             if (rCountries.success && Array.isArray(rCountries.data)) {
-                countriesList = rCountries.data;
-                const turkey = countriesList.find(c => (c.name || '').toLowerCase().includes('турци') || c.id == 12 || c.id == 4);
-                if (turkey) countriesList = [turkey, ...countriesList.filter(c => c.id !== turkey.id && c.id !== (turkey.id === 12 ? 4 : 12))];
+                countriesList = sortCountriesWithDefaultFirst(rCountries.data);
             }
 
             function resolveHomePopularDepartureId() {
@@ -1505,31 +1679,24 @@ $current_page = 'home';
                     console.log('[Фильтры] Ошибка regions:', rReg.error || 'пустой ответ', '— курорты временно недоступны');
                 }
                 loadAdvancedFilters(cid);
-                const rDates = await tvFetch('dates', { departureId: did, countryId: cid });
-                if (rDates.success && Array.isArray(rDates.data) && rDates.data.length > 0) {
-                    const first = rDates.data[0];
-                    if (typeof first === 'string') {
-                        const d1 = new Date(String(first).replace(/-/g, '/') + 'T12:00:00');
-                        const d2 = new Date(d1);
-                        if (!isNaN(d1.getTime())) {
-                            d2.setDate(d1.getDate() + 23);
-                            if (tvDatePicker) tvDatePicker.setDate([d1, d2]);
-                        }
-                    }
-                } else {
-                    const d1 = new Date();
-                    const d2 = new Date(); d2.setDate(d2.getDate() + 14);
-                    if (tvDatePicker) tvDatePicker.setDate([d1, d2]);
-                }
+                applyDefaultDateWindow();
             });
             if (countrySel.value) loadAdvancedFilters(countrySel.value);
 
-            document.getElementById('tv-search-btn').addEventListener('click', function() { performTvSearch(true); });
+            function onSearchBtnClick() {
+                if (window.THTourSearchWizard && typeof window.THTourSearchWizard.validateCurrent === 'function') {
+                    if (!window.THTourSearchWizard.validateCurrent()) return;
+                }
+                if (typeof performTvSearch === 'function') {
+                    performTvSearch(true);
+                }
+            }
+            var searchBtn = document.getElementById('tv-search-btn');
+            if (searchBtn) searchBtn.addEventListener('click', onSearchBtnClick);
             document.getElementById('tv-sort').addEventListener('change', applyTvSort);
             document.getElementById('tv-load-more-btn').addEventListener('click', () => loadMoreTvResults());
-            
-            tvNightsFrom = 7;
-            tvNightsTo = 14;
+
+            setDefaultNightsRange();
             var tvNightsPopup = document.getElementById('tv-nights-popup');
             if (tvNightsPopup && tvNightsPopup.parentNode !== document.body) {
                 document.body.appendChild(tvNightsPopup);
@@ -1543,6 +1710,11 @@ $current_page = 'home';
                     tvNightsPopup.style.display = 'none';
                     tvNightsPopup.setAttribute('aria-hidden', 'true');
                 }
+            }
+            function notifyWizardNightsDone() {
+                try {
+                    document.dispatchEvent(new CustomEvent('th:wizard-nights-done'));
+                } catch (eN) {}
             }
             function updateTvNightsSummary() {
                 var el = document.getElementById('tv-nights-summary-text');
@@ -1653,7 +1825,10 @@ $current_page = 'home';
                 window.tvNightsTo = tvNightsTo;
                 renderTvNightsGrid();
                 updateTvNightsSummary();
-                if (done) setTimeout(closeTvNightsPopup, 220);
+                if (done) setTimeout(function () {
+                    closeTvNightsPopup();
+                    notifyWizardNightsDone();
+                }, 220);
             });
             document.getElementById('tv-nights-apply').addEventListener('click', function() {
                 if (tvNightsFrom > 28) tvNightsFrom = 28;
@@ -1663,6 +1838,7 @@ $current_page = 'home';
                 window.tvNightsTo = tvNightsTo;
                 updateTvNightsSummary();
                 closeTvNightsPopup();
+                notifyWizardNightsDone();
             });
             tvNightsPopup && tvNightsPopup.addEventListener('click', function(e) {
                 if (e.target === tvNightsPopup) document.getElementById('tv-nights-apply').click();
@@ -1741,7 +1917,7 @@ $current_page = 'home';
                 if (tvAdultsCount < 6) { tvAdultsCount++; updateTouristsSummary(); }
             });
             tvAddChildBtn?.addEventListener('click', function() {
-                if (tvChildrenAges.length < 3) { tvChildrenAges.push(0); renderChildrenRows(); updateTouristsSummary(); }
+                if (tvChildrenAges.length < 3) { tvChildrenAges.push(7); renderChildrenRows(); updateTouristsSummary(); }
             });
             document.getElementById('tv-tourists-apply')?.addEventListener('click', function() {
                 if (document.getElementById('tv-remember-tourists')?.checked) {
@@ -1912,6 +2088,11 @@ $current_page = 'home';
                     var trp = new URLSearchParams(window.location.search).get('tv_restore');
                     hasRestoreParam = trp === '1' || String(trp || '').toLowerCase() === 'true';
                 } catch (eTrp) {}
+                if (!hasRestoreParam && !window.__tvRestoringFromBack) {
+                    var dispDates = document.getElementById('tv-sc-dates-display');
+                    var datesUnset = !dispDates || !dispDates.textContent.trim() || dispDates.textContent.trim() === 'Даты';
+                    if (datesUnset) applyDefaultDateWindow();
+                }
                 var restoredFromSnap = tryRestoreTvMainSearchFromSnapshot(function() {
                     updateTouristsSummary();
                     renderChildrenRows();
@@ -1927,6 +2108,9 @@ $current_page = 'home';
                 } else if (!hasRestoreParam) {
                     window.__tvRestoringFromBack = false;
                 }
+            }
+            if (window.THTourSearchWizard && typeof window.THTourSearchWizard.refreshSummary === 'function') {
+                window.THTourSearchWizard.refreshSummary();
             }
         });
 
@@ -2148,8 +2332,18 @@ $current_page = 'home';
                 dateTo = sel.length >= 2 ? flatpickr.formatDate(sel[1], 'Y-m-d') : flatpickr.formatDate(new Date(sel[0].getTime() + 30*864e5), 'Y-m-d');
             }
             if (!dateFrom || !dateTo) {
-                alert('Выберите даты вылета и возвращения в календаре.');
-                return;
+                var defWin = getDefaultDateWindow();
+                if (typeof flatpickr !== 'undefined' && flatpickr.formatDate) {
+                    dateFrom = flatpickr.formatDate(defWin[0], 'Y-m-d');
+                    dateTo = flatpickr.formatDate(defWin[1], 'Y-m-d');
+                } else {
+                    var padYmd = function (d) {
+                        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                    };
+                    dateFrom = padYmd(defWin[0]);
+                    dateTo = padYmd(defWin[1]);
+                }
+                applyDefaultDateWindow();
             }
             
             const params = new URLSearchParams({
@@ -2157,8 +2351,8 @@ $current_page = 'home';
                 departureId: dep,
                 countryId: country,
                 dateFrom, dateTo,
-                nightsFrom: nFrom || 7,
-                nightsTo: nTo || 14,
+                nightsFrom: nFrom || 6,
+                nightsTo: nTo || 9,
                 adults,
                 currency: 'RUB'
             });
@@ -3045,35 +3239,8 @@ $current_page = 'home';
     <div id="tv-filters-modal-overlay" class="tv-filters-modal-overlay" aria-hidden="true"></div>
     <div id="tv-filters-modal" class="tv-filters-modal" role="dialog" aria-modal="true" aria-labelledby="tv-filters-modal-h" hidden>
         <button type="button" id="tv-filters-modal-close" class="tv-filters-modal__close" aria-label="Закрыть">×</button>
-        <h2 id="tv-filters-modal-h" class="tv-filters-modal__title">Фильтры</h2>
-        <div class="tv-filters-modal__field">
-            <label class="tv-filters-modal__lbl" for="tv-meal">Питание</label>
-            <select id="tv-meal" class="tv-filters-modal__select tv-select tv-filter-field">
-                <option value="">Любое</option>
-            </select>
-        </div>
-        <div class="tv-filters-modal__field">
-            <label class="tv-filters-modal__lbl" for="tv-region">Курорт</label>
-            <select id="tv-region" class="tv-filters-modal__select tv-select tv-filter-field">
-                <option value="">Любой</option>
-            </select>
-        </div>
-        <div class="tv-filters-modal__field">
-            <span class="tv-filters-modal__lbl th-filter-stars-label" id="tv-filters-stars-lbl">Звёздность</span>
-            <div class="tv-filters-modal__stars" role="group" aria-labelledby="tv-filters-stars-lbl">
-                <button type="button" class="tv-filters-modal__star-chip is-active" data-tv-stars="" aria-pressed="true">Все</button>
-                <button type="button" class="tv-filters-modal__star-chip" data-tv-stars="3" aria-pressed="false">3★</button>
-                <button type="button" class="tv-filters-modal__star-chip" data-tv-stars="4" aria-pressed="false">4★</button>
-                <button type="button" class="tv-filters-modal__star-chip" data-tv-stars="5" aria-pressed="false">5★</button>
-            </div>
-            <label for="tv-category" class="sr-only">Звёздность (значение для поиска)</label>
-            <select id="tv-category" class="tv-filters-modal__category-sr tv-select tv-filter-field" aria-hidden="true" tabindex="-1">
-                <option value="">Любая</option>
-                <option value="3">3★</option>
-                <option value="4">4★</option>
-                <option value="5">5★</option>
-            </select>
-        </div>
+        <h2 id="tv-filters-modal-h" class="tv-filters-modal__title">Расширенные фильтры</h2>
+        <p class="tv-filters-modal__intro">Питание, курорт и звёзды — в форме поиска ниже. Здесь — бюджет и линия пляжа.</p>
         <div class="tv-filters-modal__field">
             <span class="tv-filters-modal__lbl">Береговая линия</span>
             <div class="tv-filters-modal__stars tv-filters-modal__beach" role="group" aria-label="Береговая линия">
@@ -3114,10 +3281,306 @@ $current_page = 'home';
         function fmtLabel(d) {
             return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0');
         }
+        /** Лейбл с годом — для превью в попапе календаря */
+        function fmtLabelFull(d) {
+            return fmtLabel(d) + '.' + d.getFullYear();
+        }
         /** Компактный диапазон для узкой кнопки (без пробелов вокруг тире) */
         function fmtCompactRange(d0, d1) {
             if (!d0 || !d1) return '';
             return fmtLabel(d0) + '–' + fmtLabel(d1);
+        }
+
+        /** Мин. дата — сегодня (локальная полночь). */
+        function tvCalendarMinDate() {
+            var d = new Date();
+            d.setHours(0, 0, 0, 0);
+            return d;
+        }
+
+        /** Макс. дата — ровно +1 год от сегодня (можно бронировать на следующий год). */
+        function tvCalendarMaxDate() {
+            var d = tvCalendarMinDate();
+            d.setFullYear(d.getFullYear() + 1);
+            return d;
+        }
+
+        function tvCalendarApplyBounds(fp) {
+            if (!fp || typeof fp.set !== 'function') return;
+            var minD = tvCalendarMinDate();
+            var maxD = tvCalendarMaxDate();
+            fp.set('minDate', minD);
+            fp.set('maxDate', maxD);
+            if (typeof fp.redraw === 'function') fp.redraw();
+            tvCalendarRefreshUI(fp);
+        }
+
+        function tvCalendarMonthLonghand() {
+            try {
+                if (typeof flatpickr !== 'undefined' && flatpickr.l10n && flatpickr.l10n.ru && flatpickr.l10n.ru.months) {
+                    return flatpickr.l10n.ru.months.longhand;
+                }
+            } catch (eMonths) {}
+            return ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        }
+
+        /** Все месяцы от min до max (включая следующий год). */
+        function tvCalendarPeriodOptions(minD, maxD) {
+            var labels = tvCalendarMonthLonghand();
+            var opts = [];
+            var cur = new Date(minD.getFullYear(), minD.getMonth(), 1);
+            var end = new Date(maxD.getFullYear(), maxD.getMonth(), 1);
+            while (cur.getTime() <= end.getTime()) {
+                opts.push({
+                    key: cur.getFullYear() + '-' + cur.getMonth(),
+                    label: labels[cur.getMonth()] + ' ' + cur.getFullYear()
+                });
+                cur.setMonth(cur.getMonth() + 1);
+            }
+            return opts;
+        }
+
+        /** Заменяет узкий список месяцев flatpickr на «Месяц Год» на весь диапазон бронирования. */
+        function tvCalendarEnhanceNav(fp) {
+            if (!fp || !fp.calendarContainer) return;
+            var minD = fp.config.minDate;
+            var maxD = fp.config.maxDate;
+            if (!minD || !maxD) return;
+
+            tvCalendarBindNavArrows(fp);
+
+            var monthNav = fp.calendarContainer.querySelector('.flatpickr-month');
+            if (!monthNav) return;
+            var currentMonthDiv = monthNav.querySelector('.flatpickr-current-month');
+            if (!currentMonthDiv) return;
+
+            var nativeMonth = currentMonthDiv.querySelector('.flatpickr-monthDropdown-months:not(.tv-cal-period-select)');
+            if (nativeMonth) nativeMonth.style.display = 'none';
+            var nativeYear = currentMonthDiv.querySelector('.numInputWrapper');
+            if (nativeYear) nativeYear.style.display = 'none';
+            var staticMonth = currentMonthDiv.querySelector('.cur-month');
+            if (staticMonth) staticMonth.style.display = 'none';
+
+            var opts = tvCalendarPeriodOptions(minD, maxD);
+            var optsKey = String(minD.getTime()) + '-' + String(maxD.getTime());
+            var select = currentMonthDiv.querySelector('.tv-cal-period-select');
+            if (!select) {
+                select = document.createElement('select');
+                select.className = 'tv-cal-period-select flatpickr-monthDropdown-months';
+                select.setAttribute('aria-label', 'Месяц и год');
+                currentMonthDiv.insertBefore(select, currentMonthDiv.firstChild);
+                select.addEventListener('change', function () {
+                    var parts = String(select.value || '').split('-');
+                    if (parts.length < 2) return;
+                    var y = parseInt(parts[0], 10);
+                    var m = parseInt(parts[1], 10);
+                    if (isNaN(y) || isNaN(m)) return;
+                    if (typeof fp.jumpToDate === 'function') {
+                        fp.jumpToDate(new Date(y, m, 1), false);
+                    }
+                    tvCalendarRefreshUI(fp);
+                });
+            }
+
+            if (select.dataset.optsKey !== optsKey) {
+                select.innerHTML = '';
+                opts.forEach(function (o) {
+                    var opt = document.createElement('option');
+                    opt.value = o.key;
+                    opt.textContent = o.label;
+                    select.appendChild(opt);
+                });
+                select.dataset.optsKey = optsKey;
+            }
+
+            var selectedKey = fp.currentYear + '-' + fp.currentMonth;
+            if (select.value !== selectedKey) select.value = selectedKey;
+        }
+
+        /** Стрелки ‹ › для листания месяцев */
+        function tvCalendarBindNavArrows(fp) {
+            if (!fp || !fp.calendarContainer) return;
+            var monthsWrap = fp.calendarContainer.querySelector('.flatpickr-months');
+            if (!monthsWrap) return;
+
+            monthsWrap.style.display = 'flex';
+            monthsWrap.style.alignItems = 'center';
+            monthsWrap.style.gap = '2px';
+
+            function ensureArrow(cls, label, delta) {
+                var btn = monthsWrap.querySelector('.' + cls);
+                if (!btn) {
+                    btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = cls + ' tv-cal-nav-btn';
+                    btn.setAttribute('aria-label', label);
+                    btn.innerHTML = delta < 0 ? '&#8249;' : '&#8250;';
+                    if (delta < 0) {
+                        monthsWrap.insertBefore(btn, monthsWrap.firstChild);
+                    } else {
+                        monthsWrap.appendChild(btn);
+                    }
+                }
+                if (btn.dataset.tvCalNavBound) return;
+                btn.dataset.tvCalNavBound = '1';
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var y = fp.currentYear;
+                    var m = fp.currentMonth + delta;
+                    if (typeof fp.jumpToDate === 'function') {
+                        fp.jumpToDate(new Date(y, m, 1), false);
+                    } else if (typeof fp.changeMonth === 'function') {
+                        fp.changeMonth(delta, false);
+                    }
+                    window.setTimeout(function () { tvCalendarRefreshUI(fp); }, 0);
+                });
+            }
+
+            ensureArrow('tv-cal-nav-prev', 'Предыдущий месяц', -1);
+            ensureArrow('tv-cal-nav-next', 'Следующий месяц', 1);
+
+            /* Скрыть дублирующие нативные стрелки flatpickr */
+            monthsWrap.querySelectorAll('.flatpickr-prev-month, .flatpickr-next-month').forEach(function (el) {
+                el.style.display = 'none';
+            });
+
+            tvCalendarUpdateNavDisabled(fp);
+        }
+
+        function tvCalendarUpdateNavDisabled(fp) {
+            if (!fp || !fp.calendarContainer) return;
+            var prevBtn = fp.calendarContainer.querySelector('.tv-cal-nav-prev');
+            var nextBtn = fp.calendarContainer.querySelector('.tv-cal-nav-next');
+            if (!prevBtn || !nextBtn) return;
+            var minD = fp.config.minDate;
+            var maxD = fp.config.maxDate;
+            var cur = new Date(fp.currentYear, fp.currentMonth, 1);
+            var prevDisabled = minD && cur <= new Date(minD.getFullYear(), minD.getMonth(), 1);
+            var showMonths = fp.config.showMonths || 1;
+            var lastVisible = new Date(fp.currentYear, fp.currentMonth + showMonths - 1, 1);
+            var nextDisabled = maxD && lastVisible >= new Date(maxD.getFullYear(), maxD.getMonth(), 1);
+            prevBtn.disabled = !!prevDisabled;
+            nextBtn.disabled = !!nextDisabled;
+            prevBtn.classList.toggle('is-disabled', !!prevDisabled);
+            nextBtn.classList.toggle('is-disabled', !!nextDisabled);
+        }
+
+        function tvCalendarFixLayout(fp) {
+            if (!fp || !fp.calendarContainer) return;
+            var cal = fp.calendarContainer;
+            cal.style.width = '100%';
+            cal.style.maxWidth = '100%';
+            cal.querySelectorAll('.flatpickr-innerContainer, .flatpickr-rContainer, .flatpickr-days, .dayContainer').forEach(function (el) {
+                el.style.width = '100%';
+                el.style.maxWidth = '100%';
+                el.style.minWidth = '0';
+            });
+        }
+
+        function tvCalendarJumpToSelection(fp) {
+            if (!fp || typeof fp.jumpToDate !== 'function') return;
+            var sel = fp.selectedDates;
+            if (sel && sel.length >= 1) fp.jumpToDate(sel[0], false);
+        }
+
+        function tvCalendarDecorateMonths(fp) {
+            if (!fp || !fp.calendarContainer) return;
+            var cal = fp.calendarContainer;
+            var showMonths = fp.config.showMonths || 1;
+            cal.classList.toggle('tv-cal-layout-multi', showMonths > 1);
+
+            cal.querySelectorAll('.tv-cal-month-column').forEach(function (col) {
+                var dc = col.querySelector('.dayContainer');
+                if (dc && col.parentNode) {
+                    col.parentNode.insertBefore(dc, col);
+                    col.remove();
+                }
+            });
+            cal.querySelectorAll('.tv-cal-month-caption, .tv-cal-weekdays-row').forEach(function (el) {
+                el.remove();
+            });
+
+            var monthsHeader = cal.querySelector('.flatpickr-months');
+            if (monthsHeader) {
+                monthsHeader.classList.toggle('tv-cal-months-header--solo', showMonths > 1);
+            }
+
+            var sharedWd = cal.querySelector('.flatpickr-weekdays');
+            if (sharedWd) {
+                sharedWd.classList.toggle('tv-cal-weekdays--hidden', showMonths > 1);
+            }
+
+            var daysWrap = cal.querySelector('.flatpickr-days');
+            if (!daysWrap) return;
+
+            var dayContainers = Array.prototype.slice.call(daysWrap.querySelectorAll(':scope > .dayContainer'));
+            if (!dayContainers.length) return;
+
+            var labels = tvCalendarMonthLonghand();
+            var weekdayShort = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+            try {
+                if (typeof flatpickr !== 'undefined' && flatpickr.l10n && flatpickr.l10n.ru && flatpickr.l10n.ru.weekdays) {
+                    weekdayShort = flatpickr.l10n.ru.weekdays.shorthand || weekdayShort;
+                }
+            } catch (eWd) {}
+
+            function wrapMonthColumn(dc, monthDate, hideSharedWeekdays) {
+                var col = document.createElement('div');
+                col.className = 'tv-cal-month-column';
+
+                var cap = document.createElement('div');
+                cap.className = 'tv-cal-month-caption';
+                cap.textContent = labels[monthDate.getMonth()] + ' ' + monthDate.getFullYear();
+
+                var wd = document.createElement('div');
+                wd.className = 'tv-cal-weekdays-row';
+                wd.setAttribute('aria-hidden', 'true');
+                weekdayShort.forEach(function (name) {
+                    var span = document.createElement('span');
+                    span.className = 'tv-cal-weekday';
+                    span.textContent = name;
+                    wd.appendChild(span);
+                });
+
+                daysWrap.insertBefore(col, dc);
+                col.appendChild(cap);
+                col.appendChild(wd);
+                col.appendChild(dc);
+
+                if (hideSharedWeekdays && sharedWd) {
+                    sharedWd.classList.add('tv-cal-weekdays--hidden');
+                }
+            }
+
+            if (showMonths <= 1) {
+                daysWrap.classList.remove('tv-cal-days-grid');
+                wrapMonthColumn(dayContainers[0], new Date(fp.currentYear, fp.currentMonth, 1), true);
+                return;
+            }
+
+            daysWrap.classList.add('tv-cal-days-grid');
+
+            dayContainers.forEach(function (dc, idx) {
+                wrapMonthColumn(dc, new Date(fp.currentYear, fp.currentMonth + idx, 1), false);
+            });
+        }
+
+        function tvCalendarRefreshUI(fp) {
+            tvCalendarFixLayout(fp);
+            tvCalendarEnhanceNav(fp);
+            tvCalendarDecorateMonths(fp);
+            tvCalendarUpdateNavDisabled(fp);
+        }
+        window.tvCalendarEnhanceNav = tvCalendarEnhanceNav;
+        window.tvCalendarRefreshUI = tvCalendarRefreshUI;
+
+        function tvCalendarShowMonths() {
+            try {
+                return window.matchMedia('(min-width: 640px)').matches ? 2 : 1;
+            } catch (e) {
+                return 1;
+            }
         }
 
         /** Возвращает [from, to] для пресета */
@@ -3195,28 +3658,18 @@ $current_page = 'home';
             var display      = document.getElementById('tv-sc-dates-display');
             var preview      = document.getElementById('tv-sc-dates-preview');
             var stepEl       = document.getElementById('tv-sc-dates-step');
-            var chipsRow     = document.getElementById('tv-sc-date-chips-row');
-            var monthsRow    = document.getElementById('tv-sc-date-months-row');
             var calPanel     = document.getElementById('tv-sc-cal-panel');
             var calContainer = document.getElementById('tv-sc-cal-container');
-            var customToggle = document.getElementById('tv-sc-dates-custom-toggle');
             var datesInp     = document.getElementById('tv-dates');
+            var wizardRoot   = document.getElementById('tour-search-section');
+            var isWizardMode = !!(wizardRoot && wizardRoot.classList.contains('th-wizard'));
             if (!triggerBtn || !popup) return;
 
-            var isOpen = false;
-            var calOpen = false;
-            var mountCalTries = 0;
-            var closeTimer = null;
+            popup.classList.add('tv-sc-date-popup--cal-only');
+            if (isWizardMode) popup.classList.add('tv-sc-date-popup--wizard-cal');
 
-            function clearChipActive() {
-                [chipsRow, monthsRow].forEach(function (row) {
-                    if (!row) return;
-                    row.querySelectorAll('.tv-sc-chip, .tv-date-preset-chip').forEach(function (c) {
-                        c.classList.remove('active');
-                        c.setAttribute('aria-pressed', 'false');
-                    });
-                });
-            }
+            var isOpen = false;
+            var mountCalTries = 0;
 
             function setStep(msg) {
                 if (stepEl) stepEl.textContent = msg || '';
@@ -3224,23 +3677,14 @@ $current_page = 'home';
 
             function updateDateLabels(d0, d1) {
                 if (!d0 || !d1) return;
-                var verbose = fmtLabel(d0) + ' — ' + fmtLabel(d1);
-                if (display) display.textContent = fmtCompactRange(d0, d1);
-                if (preview) preview.textContent = 'Выбрано: ' + verbose;
-            }
-
-            function setCustomToggleLabel(open) {
-                if (!customToggle) return;
-                customToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-                customToggle.innerHTML = open
-                    ? '<i class="fas fa-chevron-up" aria-hidden="true"></i> Скрыть календарь'
-                    : '<i class="fas fa-calendar-day" aria-hidden="true"></i> Свои даты';
-            }
-
-            function hideCustomCalendar() {
-                calOpen = false;
-                if (calPanel) calPanel.hidden = true;
-                setCustomToggleLabel(false);
+                var verbose = fmtLabelFull(d0) + ' — ' + fmtLabelFull(d1);
+                var nf = typeof tvNightsFrom !== 'undefined' ? tvNightsFrom : TV_DEFAULT_NIGHTS_FROM;
+                var nt = typeof tvNightsTo !== 'undefined' ? tvNightsTo : TV_DEFAULT_NIGHTS_TO;
+                var nightsLabel = nf === nt ? tvNightsWord(nf) : (nf + '–' + nt + ' ночей');
+                if (preview) preview.textContent = 'Период вылета: ' + verbose + ' · ' + nightsLabel;
+                if (typeof window.updateDateDisplayOnly === 'function') {
+                    window.updateDateDisplayOnly(d0, d1);
+                }
             }
 
             function applyDates(dates, opts) {
@@ -3248,6 +3692,7 @@ $current_page = 'home';
                 if (!dates || dates.length < 2) return;
                 if (window.tvDatePicker && typeof window.tvDatePicker.setDate === 'function') {
                     window.tvDatePicker.setDate(dates, true);
+                    tvCalendarApplyBounds(window.tvDatePicker);
                 } else if (datesInp) {
                     datesInp.value = fmtDate(dates[0]) + ' — ' + fmtDate(dates[1]);
                     try { datesInp.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
@@ -3255,50 +3700,8 @@ $current_page = 'home';
                 if (window.tvDatePickerInline && typeof window.tvDatePickerInline.setDate === 'function') {
                     try { window.tvDatePickerInline.setDate(dates, false); } catch (e2) {}
                 }
+                if (typeof window.setDefaultNightsRange === 'function') window.setDefaultNightsRange();
                 updateDateLabels(dates[0], dates[1]);
-                if (opts.autoClose) {
-                    if (closeTimer) clearTimeout(closeTimer);
-                    closeTimer = setTimeout(closePopup, opts.delay != null ? opts.delay : 260);
-                }
-            }
-
-            function bindPresetChip(chip) {
-                chip.addEventListener('click', function () {
-                    var key = chip.getAttribute('data-date-preset') || chip.getAttribute('data-preset');
-                    var dates = presetDates(key);
-                    clearChipActive();
-                    chip.classList.add('active');
-                    chip.setAttribute('aria-pressed', 'true');
-                    hideCustomCalendar();
-                    applyDates(dates, { autoClose: true, delay: 220 });
-                });
-            }
-
-            /* Месяцы — крупные кнопки */
-            if (monthsRow) {
-                monthsRow.innerHTML = '';
-                var months = (window.THDatePresets && window.THDatePresets.monthPresets)
-                    ? window.THDatePresets.monthPresets(4)
-                    : [];
-                if (!months.length) {
-                    var names = ['Этот месяц', 'След. месяц', '+2 мес.', '+3 мес.'];
-                    for (var mi = 0; mi < 4; mi++) {
-                        months.push({ key: 'm' + mi, label: names[mi], short: names[mi] });
-                    }
-                }
-                months.forEach(function (p) {
-                    var btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = 'tv-sc-chip tv-sc-chip--lg';
-                    btn.setAttribute('data-date-preset', p.key);
-                    btn.setAttribute('aria-pressed', 'false');
-                    btn.innerHTML = '<span class="tv-sc-chip__main">' + (p.label || p.short) + '</span>';
-                    monthsRow.appendChild(btn);
-                    bindPresetChip(btn);
-                });
-            }
-            if (chipsRow) {
-                chipsRow.querySelectorAll('.tv-sc-chip[data-date-preset]').forEach(bindPresetChip);
             }
 
             function syncInlineFromMain() {
@@ -3328,6 +3731,9 @@ $current_page = 'home';
                     return;
                 }
                 mountCalTries = 0;
+                var minDate = tvCalendarMinDate();
+                var maxDate = tvCalendarMaxDate();
+                var showMonths = tvCalendarShowMonths();
                 if (!window.tvDatePickerInline) {
                     var inlineInput = document.createElement('input');
                     inlineInput.type = 'text';
@@ -3339,60 +3745,66 @@ $current_page = 'home';
                         mode: 'range',
                         dateFormat: 'd-m-Y',
                         locale: 'ru',
-                        minDate: 'today',
-                        showMonths: 1,
+                        minDate: minDate,
+                        maxDate: maxDate,
+                        showMonths: showMonths,
+                        monthSelectorType: 'static',
+                        onReady: function () { tvCalendarRefreshUI(window.tvDatePickerInline); },
+                        onMonthChange: function () { tvCalendarRefreshUI(window.tvDatePickerInline); },
+                        onYearChange: function () { tvCalendarRefreshUI(window.tvDatePickerInline); },
                         onChange: function (selectedDates) {
                             if (selectedDates.length === 1) {
-                                if (preview) preview.textContent = 'С: ' + fmtLabel(selectedDates[0]);
-                                setStep('Теперь нажмите день конца');
+                                if (preview) preview.textContent = 'С: ' + fmtLabelFull(selectedDates[0]);
+                                setStep('Теперь выберите конец периода вылета');
                                 return;
                             }
                             if (selectedDates.length === 2) {
-                                clearChipActive();
-                                applyDates(selectedDates, { autoClose: true, delay: 280 });
+                                updateDateLabels(selectedDates[0], selectedDates[1]);
+                                setStep('Нажмите «Готово» · ночей: 6–9');
                             }
                         }
                     });
+                } else {
+                    tvCalendarApplyBounds(window.tvDatePickerInline);
+                    if (window.tvDatePickerInline.config.showMonths !== showMonths) {
+                        window.tvDatePickerInline.set('showMonths', showMonths);
+                    }
                 }
                 syncInlineFromMain();
-                setStep('Нажмите день начала, потом конец');
-            }
-
-            function showCustomCalendar() {
-                calOpen = true;
-                if (calPanel) calPanel.hidden = false;
-                setCustomToggleLabel(true);
-                mountCalTries = 0;
-                requestAnimationFrame(function () { mountInlineCalendar(); });
-            }
-
-            if (customToggle) {
-                customToggle.addEventListener('click', function () {
-                    if (calOpen) hideCustomCalendar();
-                    else showCustomCalendar();
-                });
+                tvCalendarJumpToSelection(window.tvDatePickerInline);
+                tvCalendarRefreshUI(window.tvDatePickerInline);
+                setStep('Выберите период вылета (от и до) · ночей в туре: 6–9');
             }
 
             function openPopup() {
                 if (isOpen) { closePopup(); return; }
-                if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
                 isOpen = true;
-                hideCustomCalendar();
+                mountCalTries = 0;
                 popup.style.display = 'block';
                 popup.classList.add('is-open');
                 triggerBtn.setAttribute('aria-expanded', 'true');
                 showOverlay(closePopup);
-                if (window.tvDatePicker && window.tvDatePicker.selectedDates && window.tvDatePicker.selectedDates.length >= 2) {
-                    updateDateLabels(window.tvDatePicker.selectedDates[0], window.tvDatePicker.selectedDates[1]);
-                } else if (preview) {
-                    preview.textContent = '';
-                }
+                requestAnimationFrame(function () {
+                    mountInlineCalendar();
+                    requestAnimationFrame(function () {
+                        var fp = window.tvDatePickerInline;
+                        if (fp) {
+                            syncInlineFromMain();
+                            tvCalendarJumpToSelection(fp);
+                            tvCalendarRefreshUI(fp);
+                        }
+                        if (window.tvDatePicker && window.tvDatePicker.selectedDates && window.tvDatePicker.selectedDates.length >= 2) {
+                            updateDateLabels(window.tvDatePicker.selectedDates[0], window.tvDatePicker.selectedDates[1]);
+                        } else if (preview) {
+                            preview.textContent = '';
+                        }
+                    });
+                });
             }
             function closePopup() {
                 isOpen = false;
                 popup.style.display = 'none';
                 popup.classList.remove('is-open');
-                hideCustomCalendar();
                 triggerBtn.setAttribute('aria-expanded', 'false');
                 hideOverlay();
             }
@@ -3417,14 +3829,14 @@ $current_page = 'home';
                             display.textContent = val;
                         }
                     }
-                    clearChipActive();
                 });
             }
 
             document.addEventListener('click', function (e) {
                 if (!isOpen) return;
                 var field = document.getElementById('tv-sc-dates-field');
-                if (field && !field.contains(e.target) && !popup.contains(e.target)) {
+                var coralTrigger = e.target && e.target.closest && e.target.closest('[data-th-search-open="dates"]');
+                if (field && !field.contains(e.target) && !popup.contains(e.target) && !coralTrigger) {
                     closePopup();
                 }
             });
@@ -3432,7 +3844,21 @@ $current_page = 'home';
             var closeBtn = popup.querySelector('[data-sc-close]');
             if (closeBtn) closeBtn.addEventListener('click', closePopup);
             var applyBtn = document.getElementById('tv-sc-dates-apply');
-            if (applyBtn) applyBtn.addEventListener('click', closePopup);
+            if (applyBtn) {
+                applyBtn.addEventListener('click', function () {
+                    var inl = window.tvDatePickerInline;
+                    var picked = inl && inl.selectedDates ? inl.selectedDates : null;
+                    if (!picked || picked.length < 2) {
+                        setStep('Выберите день вылета и день возвращения');
+                        return;
+                    }
+                    applyDates(picked, { autoClose: false });
+                    if (isWizardMode) {
+                        advanceWizardAfterDates();
+                    }
+                    closePopup();
+                });
+            }
 
             window.__thWizardOpenDatePopup = openPopup;
         }
@@ -3473,7 +3899,8 @@ $current_page = 'home';
             /* Закрытие по клику вне попапа */
             document.addEventListener('click', function(e) {
                 if (touristsBlock.classList.contains('hidden')) return;
-                if (!touristsBlock.contains(e.target) && !trigger.contains(e.target)) {
+                var coralTrigger = e.target && e.target.closest && e.target.closest('[data-th-search-open="tourists"]');
+                if (!touristsBlock.contains(e.target) && !trigger.contains(e.target) && !coralTrigger) {
                     closeTotourists();
                 }
             });
@@ -3850,7 +4277,7 @@ $current_page = 'home';
                     from.setDate(today.getDate() + 1);
                     to.setDate(today.getDate() + 7);
                 } else if (preset === '14d') {
-                    from.setDate(today.getDate() + 1);
+                    from.setTime(today.getTime());
                     to.setDate(today.getDate() + 14);
                 } else if (preset === 'endmay') {
                     var y = today.getFullYear();

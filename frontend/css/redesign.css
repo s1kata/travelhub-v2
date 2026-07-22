@@ -1673,6 +1673,54 @@
     order: -1;
     flex-shrink: 0;
 }
+.tv-sc-date-popup--wizard-cal #tv-sc-date-chips-row,
+.tv-sc-date-popup--wizard-cal #tv-sc-date-months-row,
+.tv-sc-date-popup--wizard-cal #tv-sc-dates-custom-toggle {
+    display: none !important;
+}
+.tv-sc-date-popup--cal-only {
+    width: min(680px, 96vw);
+    max-height: min(92vh, 720px);
+    padding: 18px 18px calc(14px + env(safe-area-inset-bottom, 0px));
+}
+.tv-sc-date-popup--cal-only .tv-sc-dates-preview {
+    min-height: 1.25rem;
+    margin-bottom: 8px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(93, 169, 164, 0.1);
+    border: 1px solid rgba(93, 169, 164, 0.22);
+    font-weight: 700;
+    font-size: 0.9375rem;
+    line-height: 1.35;
+    color: #457F7B;
+    text-align: center;
+}
+.tv-sc-date-popup--cal-only .tv-sc-dates-step {
+    margin-bottom: 10px;
+    font-size: 0.875rem;
+    color: #64748b;
+}
+.tv-sc-date-popup--cal-only #tv-sc-cal-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+}
+.tv-sc-date-popup--wizard-cal #tv-sc-cal-panel,
+.tv-sc-date-popup--cal-only #tv-sc-cal-panel[hidden] {
+    display: block !important;
+}
+.tv-sc-date-popup--wizard-cal #tv-sc-cal-panel {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+}
+.tv-sc-date-popup--wizard-cal #tv-sc-cal-panel[hidden] {
+    display: block !important;
+}
 .tv-sc-date-popup--simple .tv-sc-exact-dates:hover {
     background: rgba(93, 169, 164, 0.14);
     opacity: 1;
@@ -1745,12 +1793,335 @@
 
 /* Контейнер inline-календаря */
 .tv-sc-cal-container {
-    margin-top: 10px;
+    margin-top: 0;
+    width: 100%;
+    overflow: hidden;
 }
 .tv-sc-cal-container .flatpickr-calendar {
     position: static !important;
     box-shadow: none !important;
+    border-radius: 14px !important;
+    border: 1px solid rgba(93, 169, 164, 0.18) !important;
+    width: 100% !important;
+    max-width: 100%;
+    margin: 0 auto;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-calendar {
+    background: #fff;
+    border-radius: 16px !important;
+    border: 1px solid rgba(93, 169, 164, 0.2) !important;
+    overflow: hidden;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-months {
+    padding: 8px 44px;
+    border-radius: 0;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px;
+    position: relative;
+    background: #5DA9A4 !important;
+    overflow: visible;
+}
+/* Нативные стрелки flatpickr дублируют наши — скрываем */
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-prev-month,
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-next-month {
+    display: none !important;
+}
+.tv-sc-cal-container .tv-cal-nav-btn {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 0 !important;
+    margin: 0;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff !important;
+    font-size: 1.45rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    position: absolute !important;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    box-sizing: border-box;
+}
+.tv-sc-cal-container .tv-cal-nav-prev {
+    left: 6px;
+}
+.tv-sc-cal-container .tv-cal-nav-next {
+    right: 6px;
+}
+.tv-sc-cal-container .tv-cal-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.32);
+}
+.tv-sc-cal-container .tv-cal-nav-btn:disabled,
+.tv-sc-cal-container .tv-cal-nav-btn.is-disabled {
+    opacity: 0.35 !important;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-month {
+    height: auto;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 0;
+    min-width: 0;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-current-month {
+    position: static;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    padding: 0 4px;
+    left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-weekdays {
+    padding: 8px 6px 4px;
+    background: #fff !important;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-weekday {
+    color: #64748b !important;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: transparent !important;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-days,
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .dayContainer {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+}
+.tv-sc-cal-container .tv-cal-period-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 10px;
+    color: #fff !important;
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.2;
+    padding: 8px 32px 8px 12px;
+    width: auto;
+    min-width: 160px;
+    max-width: calc(100% - 72px);
+    margin: 0 auto;
+    cursor: pointer;
+    text-align: center;
+    text-align-last: center;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23ffffff' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+}
+.tv-sc-cal-container .tv-cal-period-select option {
+    color: #1e293b;
+    background: #fff;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day {
+    flex: 1 0 14.2857% !important;
+    max-width: 14.2857% !important;
+    width: 14.2857% !important;
+    height: 42px !important;
+    line-height: 42px !important;
+    margin: 2px 0 !important;
     border-radius: 10px !important;
+    color: #1e293b !important;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    border: 1px solid transparent;
+    box-sizing: border-box;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day.today {
+    border-color: rgba(93, 169, 164, 0.55) !important;
+    color: #457F7B !important;
+    font-weight: 700;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day.prevMonthDay:not(.disabled),
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day.nextMonthDay:not(.disabled) {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day.disabled,
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day.notAllowed {
+    color: #cbd5e1 !important;
+    background: transparent !important;
+    opacity: 1 !important;
+    cursor: not-allowed;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day.selected,
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day.startRange,
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day.endRange {
+    background: #5DA9A4 !important;
+    border-color: #5DA9A4 !important;
+    color: #fff !important;
+    font-weight: 700 !important;
+    z-index: 2;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day.inRange {
+    background: rgba(93, 169, 164, 0.16) !important;
+    border-color: transparent !important;
+    color: #1e553f !important;
+    border-radius: 0 !important;
+    box-shadow: -5px 0 0 rgba(93, 169, 164, 0.16), 5px 0 0 rgba(93, 169, 164, 0.16) !important;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day.startRange {
+    border-radius: 10px 0 0 10px !important;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day.endRange {
+    border-radius: 0 10px 10px 0 !important;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day.startRange.endRange {
+    border-radius: 10px !important;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day:hover:not(.disabled):not(.selected):not(.startRange):not(.endRange):not(.inRange) {
+    background: rgba(93, 169, 164, 0.12) !important;
+    border-color: rgba(93, 169, 164, 0.35) !important;
+    color: #457F7B !important;
+}
+
+/* ── Календарь: понятное разделение месяцев ── */
+.tv-sc-cal-container .flatpickr-calendar.tv-cal-layout-multi {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.tv-sc-cal-container .flatpickr-months.tv-cal-months-header--solo .flatpickr-month:not(:first-child) {
+    display: none !important;
+}
+
+.tv-sc-cal-container .flatpickr-weekdays.tv-cal-weekdays--hidden {
+    display: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.tv-sc-cal-container .flatpickr-days.tv-cal-days-grid {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    width: 100% !important;
+    padding: 0 6px 10px !important;
+    box-sizing: border-box !important;
+}
+
+.tv-sc-cal-container .tv-cal-month-column {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: #f8fafb;
+    border: 1.5px solid rgba(26, 26, 64, 0.1);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(26, 26, 64, 0.06);
+}
+
+.tv-sc-cal-container .tv-cal-month-caption {
+    padding: 10px 8px 8px;
+    text-align: center;
+    font-family: Outfit, 'Work Sans', system-ui, sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #1A1A40;
+    background: linear-gradient(180deg, rgba(93, 169, 164, 0.16) 0%, rgba(93, 169, 164, 0.06) 100%);
+    border-bottom: 1px solid rgba(93, 169, 164, 0.22);
+    letter-spacing: -0.01em;
+}
+
+.tv-sc-cal-container .tv-cal-weekdays-row {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0;
+    padding: 6px 4px 4px;
+    background: #fff;
+    border-bottom: 1px solid rgba(26, 26, 64, 0.06);
+}
+
+.tv-sc-cal-container .tv-cal-weekday {
+    text-align: center;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.tv-sc-cal-container .tv-cal-month-column .dayContainer {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 4px 2px 6px !important;
+    background: #fff !important;
+    box-sizing: border-box !important;
+}
+
+.tv-sc-cal-container .tv-cal-month-column .flatpickr-day.prevMonthDay:not(.disabled),
+.tv-sc-cal-container .tv-cal-month-column .flatpickr-day.nextMonthDay:not(.disabled),
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day.prevMonthDay:not(.disabled),
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day.nextMonthDay:not(.disabled) {
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+@media (max-width: 639px) {
+    .tv-sc-cal-container .flatpickr-days.tv-cal-days-grid {
+        flex-direction: column !important;
+        gap: 12px !important;
+        padding: 0 4px 8px !important;
+    }
+
+    .tv-sc-cal-container .tv-cal-month-caption {
+        font-size: 1rem;
+        padding: 12px 10px 10px;
+    }
+}
+
+.tv-sc-date-popup--cal-only .tv-sc-apply-btn--sticky {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    min-height: 52px;
+    margin-top: 2px;
+    padding: 14px 20px;
+    border-radius: 14px;
+    font-size: 1.0625rem;
+    font-weight: 800;
+    position: static;
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.35);
+}
+@media (min-width: 640px) {
+    .tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day {
+        height: 44px !important;
+        line-height: 44px !important;
+    }
+}
+@media (max-width: 767px) {
+    .tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day {
+        height: 44px !important;
+        line-height: 44px !important;
+    }
+    .tv-sc-date-popup--cal-only .tv-sc-apply-btn--sticky {
+        min-height: 54px;
+    }
 }
 
 /* Скрытый #tv-dates-wrap (flatpickr DOM) */
@@ -2314,45 +2685,45 @@
     .home-hero-inner #tour-search-section.tv-sc-shell {
         max-width: min(68rem, 100%);
     }
-    .home-hero-inner #tv-sc-main-row.tv-sc-row {
+    .home-hero-inner #tour-search-section:not(.th-coral-search) #tv-sc-main-row.tv-sc-row {
         justify-content: flex-start;
         flex-wrap: nowrap;
         gap: 8px;
     }
-    .home-hero-inner .tv-sc-field--sel {
+    .home-hero-inner #tour-search-section:not(.th-coral-search) .tv-sc-field--sel {
         flex: 1 1 0;
         max-width: none;
         min-width: 0;
     }
-    .home-hero-inner .tv-sc-field--departure {
+    .home-hero-inner #tour-search-section:not(.th-coral-search) .tv-sc-field--departure {
         flex: 1.05 1 0;
     }
-    .home-hero-inner .tv-sc-field--pop {
+    .home-hero-inner #tour-search-section:not(.th-coral-search) .tv-sc-field--pop {
         flex: 0 0 auto;
         max-width: none;
         min-width: 0;
     }
-    .home-hero-inner #tv-sc-dates-field {
+    .home-hero-inner #tour-search-section:not(.th-coral-search) #tv-sc-dates-field {
         flex: 0 0 156px;
         width: 156px;
     }
-    .home-hero-inner #tv-nights-trigger {
+    .home-hero-inner #tour-search-section:not(.th-coral-search) #tv-nights-trigger {
         flex: 0 0 148px;
         width: 148px;
     }
-    .home-hero-inner #tv-tourists-trigger {
+    .home-hero-inner #tour-search-section:not(.th-coral-search) #tv-tourists-trigger {
         flex: 0 0 124px;
         width: 124px;
     }
-    .home-hero-inner .tv-sc-field--filters {
+    .home-hero-inner #tour-search-section:not(.th-coral-search) .tv-sc-field--filters {
         flex: 0 0 auto;
     }
-    .home-hero-inner .tv-sc-search-btn {
+    .home-hero-inner #tour-search-section:not(.th-coral-search) .tv-sc-search-btn {
         flex: 0 0 auto;
         margin-left: auto;
         padding: 0 18px !important;
     }
-    .home-hero-inner .tv-sc-trigger {
+    .home-hero-inner #tour-search-section:not(.th-coral-search) .tv-sc-trigger {
         padding: 0 10px;
         font-size: 0.875rem;
         gap: 5px;
@@ -2361,15 +2732,15 @@
 
 /* Узкий десктоп: чуть шире поля дат/туристов */
 @media (min-width: 1280px) {
-    .home-hero-inner #tv-sc-dates-field {
+    .home-hero-inner #tour-search-section:not(.th-coral-search) #tv-sc-dates-field {
         flex-basis: 164px;
         width: 164px;
     }
-    .home-hero-inner #tv-tourists-trigger {
+    .home-hero-inner #tour-search-section:not(.th-coral-search) #tv-tourists-trigger {
         flex-basis: 158px;
         width: 158px;
     }
-    .home-hero-inner .tv-sc-trigger {
+    .home-hero-inner #tour-search-section:not(.th-coral-search) .tv-sc-trigger {
         font-size: 0.9375rem;
         padding: 0 12px;
         gap: 6px;
@@ -3132,6 +3503,10 @@ body.th-promo-open { overflow: hidden; }
     align-items: center;
     gap: 10px;
     max-width: min(calc(100vw - 24px), 420px);
+    max-height: 48px;
+    overflow: hidden;
+    white-space: nowrap;
+    flex-wrap: nowrap;
     padding: 10px 16px 10px 14px;
     background: linear-gradient(135deg, #FFF5F5 0%, #ffedd5 100%);
     border: 1px solid #fdba74;
@@ -3144,6 +3519,18 @@ body.th-promo-open { overflow: hidden; }
     font-weight: 700;
     color: #9a3412;
     transition: box-shadow 0.2s, transform 0.15s;
+}
+
+.th-promo-popup:not(.th-promo-popup--collapsed) .th-promo-popup__tab {
+    display: none !important;
+}
+
+body.th-home-funnel-top.th-wizard-active:not(.th-home-scrolled) .th-promo-popup--collapsed .th-promo-popup__tab,
+body.th-modal-open .th-promo-popup--collapsed .th-promo-popup__tab,
+body.th-abandon-open .th-promo-popup--collapsed .th-promo-popup__tab {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
 .th-promo-popup__tab:hover {
     box-shadow: 0 10px 32px rgba(255, 107, 107, 0.32);
@@ -3551,6 +3938,13 @@ body.th-promo-page.th-promo-tab-bottom.th-promo-tab-visible {
 /* ── Статус-бар промокода (после закрытия попапа) ── */
 body.th-promo-page .promo-status,
 body.th-promo-page.th-promo-status-visible .promo-status {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+body.th-home-funnel-top.th-wizard-active:not(.th-home-scrolled) .promo-status,
+body.th-modal-open .promo-status,
+body.th-abandon-open .promo-status {
     display: none !important;
     visibility: hidden !important;
     pointer-events: none !important;

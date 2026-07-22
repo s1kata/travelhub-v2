@@ -342,10 +342,18 @@
     }
 
     .th-wizard__advanced-btn {
-        min-height: 44px !important;
-        padding: 10px 8px !important;
-        font-size: 0.85rem !important;
-        line-height: 1.35 !important;
+        width: 100% !important;
+        min-height: 46px !important;
+        padding: 0.65rem 1rem !important;
+        font-size: 0.8125rem !important;
+        line-height: 1.25 !important;
+        border-radius: 12px !important;
+        text-decoration: none !important;
+    }
+
+    .th-wizard__advanced {
+        margin-top: 0.75rem !important;
+        text-align: stretch !important;
     }
 
     /* ─── Попапы поиска: даты / туристы / overlay ─── */
@@ -504,6 +512,59 @@
     .th-promo-popup__promo-timer,
     .th-promo-popup__timer-wrap {
         margin: 12px 0 !important;
+    }
+
+    /* Промо: компактная плашка, не перекрывает wizard и попапы */
+    .th-promo-popup__tab {
+        max-height: 44px !important;
+        min-height: 0 !important;
+        height: auto !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+        align-items: center !important;
+        flex-wrap: nowrap !important;
+        border-radius: 999px !important;
+    }
+
+    .th-promo-popup:not(.th-promo-popup--collapsed) .th-promo-popup__tab {
+        display: none !important;
+    }
+
+    body.th-home-funnel-top.th-wizard-active:not(.th-home-scrolled) .th-promo-popup--collapsed .th-promo-popup__tab,
+    body.th-home-funnel-top.th-wizard-active:not(.th-home-scrolled) .promo-status,
+    body.th-modal-open .th-promo-popup--collapsed .th-promo-popup__tab,
+    body.th-modal-open .promo-status,
+    body.th-promo-open .th-promo-popup--collapsed .th-promo-popup__tab,
+    body.th-abandon-open .th-promo-popup--collapsed .th-promo-popup__tab,
+    body.th-abandon-open .promo-status {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+
+    body.th-promo-open .th-promo-popup__sheet {
+        max-height: min(78vh, calc(var(--th-vvh, 100vh) - 64px)) !important;
+    }
+
+    .promo-status {
+        left: 12px !important;
+        right: 12px !important;
+        max-width: calc(100vw - 24px) !important;
+    }
+
+    .promo-status__inner {
+        max-height: 52px !important;
+        overflow: hidden !important;
+        border-radius: 999px !important;
+        padding: 8px 12px !important;
+    }
+
+    .th-app-banner-promo,
+    .th-app-banner-note {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
     }
 
 

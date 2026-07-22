@@ -498,9 +498,12 @@
     z-index: 1000;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    padding: 12px 40px;
+    justify-content: flex-start;
+    gap: 0;
+    padding: 10px clamp(16px, 3vw, 40px);
+    min-height: 56px;
+    box-sizing: border-box;
+    border-bottom: 1px solid transparent;
     background: rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -520,10 +523,11 @@
 
 #site-header .header__nav {
     display: flex;
-    gap: 24px;
+    gap: clamp(12px, 1.8vw, 24px);
     align-items: center;
-    justify-content: center;
-    flex: 1;
+    justify-content: flex-start;
+    flex: 0 1 auto;
+    margin-left: clamp(16px, 2.5vw, 36px);
 }
 
 #site-header .header__nav a {
@@ -554,10 +558,17 @@
     outline: none;
 }
 
+#site-header .th-promo-header-slot {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
 #site-header .header__actions {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     align-items: center;
+    flex-shrink: 0;
+    margin-left: auto;
 }
 
 #site-header .header__actions .button {
@@ -603,6 +614,7 @@
     height: 48px;
     padding: 0;
     margin: 0;
+    flex-shrink: 0;
     border: 1px solid rgba(255, 255, 255, 0.55);
     border-radius: 14px;
     background: linear-gradient(152deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.08) 100%);
@@ -703,8 +715,17 @@
     #site-header .header__actions {
         display: none;
     }
+    #site-header .th-promo-header-slot {
+        display: none !important;
+    }
     #site-header .header__burger {
         display: inline-flex;
+        margin-left: auto;
+        order: 10;
+    }
+    #site-header .header__logo {
+        flex: 0 1 auto;
+        min-width: 0;
     }
 }
 

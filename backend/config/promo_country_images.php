@@ -21,6 +21,7 @@ return [
     'Испания' => 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=800',
     'Кипр' => 'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800',
     'Вьетнам' => 'https://images.unsplash.com/photo-1528127269322-539801943592?w=800',
+    'Фукуок' => 'https://images.unsplash.com/photo-1559592416-7c4e7b5b5b5b?w=800',
     'Черногория' => 'https://images.unsplash.com/photo-1569949230765-ebf84fecbcb8?w=800',
     'Сейшелы' => 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800',
     'Маврикий' => 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800',

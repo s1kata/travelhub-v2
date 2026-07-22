@@ -15,7 +15,7 @@ if (!defined('TRAVELHUB_DS_HEAD')) {
 <?php if (!defined('TH_RESPONSIVE_LOADED')): ?>
 <link rel="stylesheet" href="/frontend/css/responsive.css?v=17">
 <?php endif; ?>
-<link rel="stylesheet" href="/frontend/css/design-system.css?v=12">
+<link rel="stylesheet" href="/frontend/css/design-system.css?v=14">
 <link rel="stylesheet" href="/frontend/css/redesign.css?v=24">
 <link rel="stylesheet" href="/frontend/css/v2-theme.css?v=1">
 <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=2">
