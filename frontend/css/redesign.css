@@ -1905,6 +1905,12 @@
     min-width: 100% !important;
     max-width: 100% !important;
 }
+.tv-sc-cal-container .dayContainer {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+    box-sizing: border-box !important;
+}
 .tv-sc-cal-container .tv-cal-period-select {
     appearance: none;
     -webkit-appearance: none;

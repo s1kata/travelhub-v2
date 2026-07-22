@@ -140,10 +140,10 @@ $current_page = 'home';
     <link rel="stylesheet" href="/frontend/css/responsive.css?v=17" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="/frontend/css/responsive.css?v=17"></noscript>
     <link rel="stylesheet" href="/frontend/css/design-system.css?v=14">
-    <link rel="stylesheet" href="/frontend/css/redesign.css?v=30">
+    <link rel="stylesheet" href="/frontend/css/redesign.css?v=31">
     <link rel="stylesheet" href="/frontend/css/v2-theme.css?v=4">
     <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=11">
-    <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=6">
+    <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=8">
     <link rel="stylesheet" href="/frontend/css/th-hard-funnel.css?v=4">
     <link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=7">
     <link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=5">
@@ -154,8 +154,8 @@ $current_page = 'home';
     <link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=2">
     <script>window.__TH_YM_ID=<?php echo json_encode((string)$th_ym_id, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
     <script src="/frontend/js/v2-theme.js?v=1" defer></script>
-    <script src="/frontend/js/tour-search-wizard.js?v=12" defer></script>
-    <script src="/frontend/js/th-coral-search.js?v=6" defer></script>
+    <script src="/frontend/js/tour-search-wizard.js?v=13" defer></script>
+    <script src="/frontend/js/th-coral-search.js?v=8" defer></script>
     <script src="/frontend/js/th-lead-capture.js?v=2" defer></script>
     <script src="/frontend/js/th-mobile.js?v=13" defer></script>
     <script src="/frontend/js/th-modal.js?v=2" defer></script>
@@ -368,19 +368,34 @@ $current_page = 'home';
                         <div class="th-wizard__extra-filters-grid">
                             <div class="tv-sc-field tv-sc-field--sel th-wizard__filter-field">
                                 <span class="tv-sc-field-label">Питание</span>
-                                <select id="tv-meal" class="tv-sc-select tv-select tv-filter-field" aria-label="Питание">
+                                <button type="button" class="th-wizard__filter-trigger" data-th-filter-open="meal"
+                                        aria-haspopup="dialog" aria-controls="th-search-meal-sheet">
+                                    <span class="th-wizard__filter-value" data-th-filter-label="meal">Любое</span>
+                                    <i class="fas fa-chevron-down th-wizard__filter-chevron" aria-hidden="true"></i>
+                                </button>
+                                <select id="tv-meal" class="tv-sc-select tv-select tv-filter-field th-wizard__filter-native" aria-label="Питание" tabindex="-1">
                                     <option value="">Любое</option>
                                 </select>
                             </div>
                             <div class="tv-sc-field tv-sc-field--sel th-wizard__filter-field">
                                 <span class="tv-sc-field-label">Курорт</span>
-                                <select id="tv-region" class="tv-sc-select tv-select tv-filter-field" aria-label="Курорт">
+                                <button type="button" class="th-wizard__filter-trigger" data-th-filter-open="region"
+                                        aria-haspopup="dialog" aria-controls="th-search-region-sheet">
+                                    <span class="th-wizard__filter-value" data-th-filter-label="region">Любой</span>
+                                    <i class="fas fa-chevron-down th-wizard__filter-chevron" aria-hidden="true"></i>
+                                </button>
+                                <select id="tv-region" class="tv-sc-select tv-select tv-filter-field th-wizard__filter-native" aria-label="Курорт" tabindex="-1">
                                     <option value="">Любой</option>
                                 </select>
                             </div>
                             <div class="tv-sc-field tv-sc-field--sel th-wizard__filter-field">
                                 <span class="tv-sc-field-label">Звёзды</span>
-                                <select id="tv-category" class="tv-sc-select tv-select tv-filter-field" aria-label="Категория отеля">
+                                <button type="button" class="th-wizard__filter-trigger" data-th-filter-open="category"
+                                        aria-haspopup="dialog" aria-controls="th-search-category-sheet">
+                                    <span class="th-wizard__filter-value" data-th-filter-label="category">Любая</span>
+                                    <i class="fas fa-chevron-down th-wizard__filter-chevron" aria-hidden="true"></i>
+                                </button>
+                                <select id="tv-category" class="tv-sc-select tv-select tv-filter-field th-wizard__filter-native" aria-label="Категория отеля" tabindex="-1">
                                     <option value="">Любая</option>
                                     <option value="3">3★+</option>
                                     <option value="4">4★+</option>
@@ -459,7 +474,7 @@ $current_page = 'home';
                         <span>Запомнить</span>
                     </label>
                     <button type="button" id="tv-tourists-apply" class="tv-sc-apply-btn">
-                        <i class="fas fa-check mr-1"></i>Выбрать
+                        <i class="fas fa-check mr-1"></i>Применить
                     </button>
                 </div>
 
@@ -479,7 +494,7 @@ $current_page = 'home';
                         <p id="tv-sc-dates-step" class="tv-sc-dates-step" aria-live="polite">Выберите период вылета (от и до)</p>
                         <div id="tv-sc-cal-container" class="tv-sc-cal-container"></div>
                         <button type="button" id="tv-sc-dates-apply" class="tv-sc-apply-btn tv-sc-apply-btn--sticky">
-                            <i class="fas fa-check mr-1" aria-hidden="true"></i>Готово
+                            <i class="fas fa-check mr-1" aria-hidden="true"></i>Применить
                         </button>
                     </div>
                 </div>
@@ -1491,6 +1506,9 @@ $current_page = 'home';
                 console.warn('[API → сайт] Питание: данные с API не получены, подставлен fallback. Причина:', rMeal && rMeal.error ? rMeal.error : (rMeal && rMeal.success === false ? 'success=false' : 'нет данных'));
                 console.log('[Фильтры] Ошибка meals: использован fallback', mealFallback.length, 'записей');
             }
+            if (window.THSearchUI && typeof window.THSearchUI.refreshFilterLabels === 'function') {
+                window.THSearchUI.refreshFilterLabels();
+            }
 
             regionSel.innerHTML = '<option value="">Любой</option>';
 
@@ -1678,6 +1696,9 @@ $current_page = 'home';
                     console.warn('[API → сайт] Курорты: пусто или ошибка, оставлен «Любой»');
                     console.log('[Фильтры] Ошибка regions:', rReg.error || 'пустой ответ', '— курорты временно недоступны');
                 }
+                if (window.THSearchUI && typeof window.THSearchUI.refreshFilterLabels === 'function') {
+                    window.THSearchUI.refreshFilterLabels();
+                }
                 loadAdvancedFilters(cid);
                 applyDefaultDateWindow();
             });
@@ -1704,9 +1725,12 @@ $current_page = 'home';
             var tvNightsGrid = document.getElementById('tv-nights-grid');
             var tvNightsQuick = document.getElementById('tv-nights-quick');
             var tvNightsSelectFrom = true;
+            var draftNightsFrom = tvNightsFrom;
+            var draftNightsTo = tvNightsTo;
             function closeTvNightsPopup() {
                 if (tvNightsPopup) {
                     tvNightsPopup.classList.add('hidden');
+                    tvNightsPopup.classList.remove('is-open');
                     tvNightsPopup.style.display = 'none';
                     tvNightsPopup.setAttribute('aria-hidden', 'true');
                 }
@@ -1731,20 +1755,17 @@ $current_page = 'home';
                         : 'Теперь нажмите число «до»';
                 }
             }
-            function applyTvNightsQuick(from, to, autoClose) {
-                tvNightsFrom = from;
-                tvNightsTo = to;
+            function applyTvNightsQuick(from, to) {
+                draftNightsFrom = from;
+                draftNightsTo = to;
                 tvNightsSelectFrom = true;
-                window.tvNightsFrom = from;
-                window.tvNightsTo = to;
-                renderTvNightsGrid();
-                updateTvNightsSummary();
-                if (autoClose) closeTvNightsPopup();
+                renderTvNightsGrid(true);
+                updateTvNightsDraftHint();
             }
             if (tvNightsQuick) {
                 if (window.THDatePresets && typeof window.THDatePresets.renderNightsChips === 'function') {
                     window.THDatePresets.renderNightsChips(tvNightsQuick, function (from, to) {
-                        applyTvNightsQuick(from, to, true);
+                        applyTvNightsQuick(from, to);
                     });
                 } else {
                     [[7, 7, '7 ночей'], [7, 10, '7–10'], [10, 14, '10–14'], [14, 21, '14–21']].forEach(function (p) {
@@ -1752,51 +1773,60 @@ $current_page = 'home';
                         b.type = 'button';
                         b.className = 'tv-nights-quick__chip';
                         b.textContent = p[2];
-                        b.addEventListener('click', function () { applyTvNightsQuick(p[0], p[1], true); });
+                        b.addEventListener('click', function () { applyTvNightsQuick(p[0], p[1]); });
                         tvNightsQuick.appendChild(b);
                     });
                 }
             }
-            function renderTvNightsGrid() {
+            function updateTvNightsDraftHint() {
+                var hintEl = document.getElementById('tv-nights-hint');
+                var fromLbl = document.getElementById('tv-nights-from-label');
+                var toLbl = document.getElementById('tv-nights-to-label');
+                if (fromLbl) fromLbl.textContent = draftNightsFrom;
+                if (toLbl) toLbl.textContent = draftNightsTo;
+                if (hintEl) {
+                    hintEl.textContent = tvNightsSelectFrom
+                        ? 'Свой диапазон: нажмите число «от»'
+                        : 'Теперь нажмите число «до»';
+                }
+                var preview = document.getElementById('tv-nights-draft-preview');
+                if (preview) {
+                    function nWord(n) { return n % 10 === 1 && n % 100 !== 11 ? 'ночь' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'ночи' : 'ночей'); }
+                    preview.textContent = draftNightsFrom === draftNightsTo
+                        ? (draftNightsFrom + ' ' + nWord(draftNightsFrom))
+                        : (draftNightsFrom + '–' + draftNightsTo + ' ' + nWord(draftNightsTo));
+                }
+            }
+            function renderTvNightsGrid(useDraft) {
                 if (!tvNightsGrid) return;
+                var fromN = useDraft ? draftNightsFrom : tvNightsFrom;
+                var toN = useDraft ? draftNightsTo : tvNightsTo;
                 tvNightsGrid.querySelectorAll('.tv-nights-cell').forEach(function(btn) {
                     var n = parseInt(btn.getAttribute('data-n'), 10);
-                    var lbl = btn.querySelector('.cell-label');
-                    btn.style.backgroundColor = '';
-                    btn.style.color = '';
-                    btn.style.border = '';
-                    btn.classList.remove('text-white');
-                    btn.classList.add('bg-slate-100', 'text-slate-700');
-                    if (lbl) lbl.classList.add('opacity-0');
-                    if (n === tvNightsFrom) {
-                        btn.classList.remove('bg-slate-100', 'text-slate-700');
-                        btn.style.backgroundColor = '#1A1A40';
-                        btn.style.color = '#fff';
-                        btn.style.border = '2px solid #2a8ad4';
-                        btn.classList.add('text-white');
-                        if (lbl) lbl.classList.remove('opacity-0');
-                    } else if (n === tvNightsTo && tvNightsTo !== tvNightsFrom) {
-                        btn.classList.remove('bg-slate-100', 'text-slate-700');
-                        btn.style.backgroundColor = '#1e6bb8';
-                        btn.style.color = '#fff';
-                        btn.style.border = '2px solid #185a9e';
-                        btn.classList.add('text-white');
-                        if (lbl) lbl.classList.remove('opacity-0');
-                    } else if (n > tvNightsFrom && n < tvNightsTo) {
-                        btn.classList.remove('bg-slate-100', 'text-slate-700');
-                        btn.style.backgroundColor = 'rgba(121, 188, 183, 0.5)';
-                        btn.style.color = '#0c4a6e';
-                        btn.classList.add('text-sky-800');
-                        if (lbl) lbl.classList.remove('opacity-0');
+                    btn.classList.remove('is-from', 'is-to', 'is-in-range', 'text-white');
+                    if (n === fromN) {
+                        btn.classList.add('is-from', 'text-white');
+                    } else if (n === toN && toN !== fromN) {
+                        btn.classList.add('is-to', 'text-white');
+                    } else if (n > fromN && n < toN) {
+                        btn.classList.add('is-in-range');
                     }
                 });
             }
             function openTvNightsPopup() {
+                draftNightsFrom = tvNightsFrom;
+                draftNightsTo = tvNightsTo;
                 tvNightsSelectFrom = true;
-                updateTvNightsSummary();
-                renderTvNightsGrid();
-                if (tvNightsPopup) { tvNightsPopup.classList.remove('hidden'); tvNightsPopup.style.display = 'flex'; tvNightsPopup.setAttribute('aria-hidden', 'false'); }
+                updateTvNightsDraftHint();
+                renderTvNightsGrid(true);
+                if (tvNightsPopup) {
+                    tvNightsPopup.classList.remove('hidden');
+                    tvNightsPopup.classList.add('is-open');
+                    tvNightsPopup.style.display = 'flex';
+                    tvNightsPopup.setAttribute('aria-hidden', 'false');
+                }
             }
+            window.__thWizardOpenNightsPopup = openTvNightsPopup;
             var tvNightsTrigger = document.getElementById('tv-nights-trigger');
             var tvNightsSummaryBtn = document.getElementById('tv-nights-summary');
             if (tvNightsTrigger) tvNightsTrigger.addEventListener('click', openTvNightsPopup);
@@ -1806,34 +1836,28 @@ $current_page = 'home';
                 if (!btn) return;
                 var n = parseInt(btn.getAttribute('data-n'), 10);
                 if (n < 1 || n > 28) return;
-                var done = false;
                 if (tvNightsSelectFrom) {
-                    tvNightsFrom = n;
-                    tvNightsTo = n;
+                    draftNightsFrom = n;
+                    draftNightsTo = n;
                     tvNightsSelectFrom = false;
                 } else {
-                    if (n < tvNightsFrom) {
-                        tvNightsTo = tvNightsFrom;
-                        tvNightsFrom = n;
+                    if (n < draftNightsFrom) {
+                        draftNightsTo = draftNightsFrom;
+                        draftNightsFrom = n;
                     } else {
-                        tvNightsTo = n;
+                        draftNightsTo = n;
                     }
                     tvNightsSelectFrom = true;
-                    done = true;
                 }
-                window.tvNightsFrom = tvNightsFrom;
-                window.tvNightsTo = tvNightsTo;
-                renderTvNightsGrid();
-                updateTvNightsSummary();
-                if (done) setTimeout(function () {
-                    closeTvNightsPopup();
-                    notifyWizardNightsDone();
-                }, 220);
+                renderTvNightsGrid(true);
+                updateTvNightsDraftHint();
             });
             document.getElementById('tv-nights-apply').addEventListener('click', function() {
-                if (tvNightsFrom > 28) tvNightsFrom = 28;
-                if (tvNightsTo > 28) tvNightsTo = 28;
-                if (tvNightsTo < tvNightsFrom) tvNightsTo = tvNightsFrom;
+                if (draftNightsFrom > 28) draftNightsFrom = 28;
+                if (draftNightsTo > 28) draftNightsTo = 28;
+                if (draftNightsTo < draftNightsFrom) draftNightsTo = draftNightsFrom;
+                tvNightsFrom = draftNightsFrom;
+                tvNightsTo = draftNightsTo;
                 window.tvNightsFrom = tvNightsFrom;
                 window.tvNightsTo = tvNightsTo;
                 updateTvNightsSummary();
@@ -1841,8 +1865,11 @@ $current_page = 'home';
                 notifyWizardNightsDone();
             });
             tvNightsPopup && tvNightsPopup.addEventListener('click', function(e) {
-                if (e.target === tvNightsPopup) document.getElementById('tv-nights-apply').click();
+                if (e.target === tvNightsPopup || (e.target.classList && e.target.classList.contains('th-nights-sheet__backdrop'))) {
+                    closeTvNightsPopup();
+                }
             });
+            if (tvNightsPopup) tvNightsPopup.dataset.fallbackBound = '1';
             updateTvNightsSummary();
             
             // Блок ТУРИСТЫ: tvAdultsCount / tvChildrenAges объявлены выше (общая область с performTvSearch)
@@ -2999,46 +3026,43 @@ $current_page = 'home';
                 var popup = document.getElementById('tv-nights-popup');
                 var popupCard = document.getElementById('tv-nights-popup-card');
                 var grid = document.getElementById('tv-nights-grid');
-                var summaryText = document.getElementById('tv-nights-summary-text');
                 var applyBtn = document.getElementById('tv-nights-apply');
                 if (!trigger || !popup || !grid || !applyBtn) return;
                 if (popup.dataset.fallbackBound === '1') return;
                 popup.dataset.fallbackBound = '1';
                 var selectFrom = true;
-                var nightsFrom = Number.isFinite(parseInt(window.tvNightsFrom, 10)) ? parseInt(window.tvNightsFrom, 10) : 7;
-                var nightsTo = Number.isFinite(parseInt(window.tvNightsTo, 10)) ? parseInt(window.tvNightsTo, 10) : 14;
+                var nightsFrom = Number.isFinite(parseInt(window.tvNightsFrom, 10)) ? parseInt(window.tvNightsFrom, 10) : 6;
+                var nightsTo = Number.isFinite(parseInt(window.tvNightsTo, 10)) ? parseInt(window.tvNightsTo, 10) : 9;
 
-                function syncState() {
-                    window.tvNightsFrom = nightsFrom;
-                    window.tvNightsTo = nightsTo;
-                    if (summaryText) {
-                        summaryText.textContent = nightsFrom === nightsTo ? String(nightsFrom) : (nightsFrom + ' — ' + nightsTo);
+                function nWord(n) {
+                    return n % 10 === 1 && n % 100 !== 11 ? 'ночь' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'ночи' : 'ночей');
+                }
+
+                function updatePreview() {
+                    var preview = document.getElementById('tv-nights-draft-preview');
+                    if (preview) {
+                        preview.textContent = nightsFrom === nightsTo
+                            ? (nightsFrom + ' ' + nWord(nightsFrom))
+                            : (nightsFrom + '–' + nightsTo + ' ' + nWord(nightsTo));
+                    }
+                    var hintEl = document.getElementById('tv-nights-hint');
+                    if (hintEl) {
+                        hintEl.textContent = selectFrom
+                            ? 'Свой диапазон: нажмите число «от»'
+                            : 'Теперь нажмите число «до»';
                     }
                 }
 
                 function paintGrid() {
-                    var cells = grid.querySelectorAll('.tv-nights-cell');
-                    cells.forEach(function (cell) {
+                    grid.querySelectorAll('.tv-nights-cell').forEach(function (cell) {
                         var n = parseInt(cell.getAttribute('data-n'), 10);
-                        cell.style.pointerEvents = 'auto';
-                        cell.classList.remove('text-white');
-                        cell.style.backgroundColor = '';
-                        cell.style.color = '';
-                        cell.style.border = '';
+                        cell.classList.remove('is-from', 'is-to', 'is-in-range', 'text-white');
                         if (n === nightsFrom) {
-                            cell.style.backgroundColor = '#1A1A40';
-                            cell.style.color = '#ffffff';
-                            cell.style.border = '2px solid #10102E';
-                            cell.classList.add('text-white');
+                            cell.classList.add('is-from', 'text-white');
                         } else if (n === nightsTo && nightsTo !== nightsFrom) {
-                            cell.style.backgroundColor = '#1e6bb8';
-                            cell.style.color = '#ffffff';
-                            cell.style.border = '2px solid #185a9e';
-                            cell.classList.add('text-white');
+                            cell.classList.add('is-to', 'text-white');
                         } else if (n > nightsFrom && n < nightsTo) {
-                            cell.style.backgroundColor = 'rgba(93, 169, 164, 0.2)';
-                            cell.style.color = '#312e81';
-                            cell.style.border = '1px solid rgba(93, 169, 164, 0.32)';
+                            cell.classList.add('is-in-range');
                         }
                     });
                 }
@@ -3048,21 +3072,41 @@ $current_page = 'home';
                         e.preventDefault();
                         e.stopPropagation();
                     }
-                    popup.style.zIndex = '10050';
-                    popup.style.pointerEvents = 'auto';
+                    nightsFrom = Number.isFinite(parseInt(window.tvNightsFrom, 10)) ? parseInt(window.tvNightsFrom, 10) : 6;
+                    nightsTo = Number.isFinite(parseInt(window.tvNightsTo, 10)) ? parseInt(window.tvNightsTo, 10) : 9;
+                    popup.style.zIndex = '10260';
                     popup.classList.remove('hidden');
+                    popup.classList.add('is-open');
                     popup.style.display = 'flex';
                     popup.setAttribute('aria-hidden', 'false');
                     if (popupCard) popupCard.style.pointerEvents = 'auto';
                     selectFrom = true;
-                    syncState();
+                    updatePreview();
                     paintGrid();
                 }
 
                 function closePopup() {
                     popup.classList.add('hidden');
+                    popup.classList.remove('is-open');
                     popup.style.display = 'none';
                     popup.setAttribute('aria-hidden', 'true');
+                }
+
+                function commitNights() {
+                    if (nightsFrom > 28) nightsFrom = 28;
+                    if (nightsTo > 28) nightsTo = 28;
+                    if (nightsTo < nightsFrom) nightsTo = nightsFrom;
+                    window.tvNightsFrom = nightsFrom;
+                    window.tvNightsTo = nightsTo;
+                    var summaryText = document.getElementById('tv-nights-summary-text');
+                    if (summaryText) {
+                        summaryText.textContent = nightsFrom === nightsTo
+                            ? (nightsFrom + ' ' + nWord(nightsFrom))
+                            : (nightsFrom + '–' + nightsTo + ' ' + nWord(nightsTo));
+                    }
+                    try {
+                        document.dispatchEvent(new CustomEvent('th:wizard-nights-done'));
+                    } catch (eN) {}
                 }
 
                 window.__thWizardOpenNightsPopup = openPopup;
@@ -3090,7 +3134,7 @@ $current_page = 'home';
                         }
                         selectFrom = true;
                     }
-                    syncState();
+                    updatePreview();
                     paintGrid();
                 }
                 grid.addEventListener('click', function (e) {
@@ -3100,16 +3144,20 @@ $current_page = 'home';
                 grid.querySelectorAll('.tv-nights-cell').forEach(function (btn) {
                     btn.addEventListener('touchend', function (e) { handleCellSelect(btn, e); }, { passive: false });
                 });
-                applyBtn.addEventListener('click', closePopup);
+                applyBtn.addEventListener('click', function () {
+                    commitNights();
+                    closePopup();
+                });
+                popup.querySelectorAll('[data-th-nights-close]').forEach(function (el) {
+                    el.addEventListener('click', closePopup);
+                });
                 popup.addEventListener('click', function (e) {
-                    if (e.target === popup) closePopup();
+                    if (e.target === popup || e.target.classList.contains('th-nights-sheet__backdrop')) closePopup();
                 });
                 if (popupCard) {
                     popupCard.addEventListener('click', function (e) { e.stopPropagation(); });
                     popupCard.addEventListener('touchend', function (e) { e.stopPropagation(); }, { passive: true });
                 }
-                syncState();
-                paintGrid();
             }
 
             if (document.readyState === 'loading') {
@@ -3120,25 +3168,38 @@ $current_page = 'home';
         })();
     </script>
     <!-- Модалка «Ночей» вне hero/карточки: иначе overflow/transform/backdrop в предках обрезают fixed в WebKit/Яндекс.Браузер -->
-    <div id="tv-nights-popup" class="hidden fixed inset-0 flex items-center justify-center p-4 backdrop-blur-[2px]" aria-hidden="true">
-        <div id="tv-nights-popup-card" class="tv-nights-popup-card bg-white rounded-2xl shadow-2xl w-full min-w-0 p-6 border border-gray-100 mx-auto" role="dialog" aria-label="Сколько ночей в отеле">
-            <h3 class="heading-font text-lg font-bold text-slate-900 m-0 mb-1">Сколько ночей?</h3>
-            <p class="text-sm text-slate-500 m-0 mb-3">Один тап — или свой диапазон ниже</p>
-            <div id="tv-nights-quick" class="tv-nights-quick mb-4" aria-label="Быстрый выбор ночей"></div>
-            <p id="tv-nights-hint" class="text-xs text-slate-500 mb-2">Свой диапазон: сначала «от», потом «до»</p>
-            <div id="tv-nights-grid" class="tv-nights-grid gap-2 mb-4">
-                <?php for ($n = 1; $n <= 28; $n++): ?>
-                <button type="button" class="tv-nights-cell min-w-0 min-h-[2.75rem] px-0 py-1 rounded-[10px] text-sm font-semibold transition-colors flex flex-col items-center justify-center gap-0 leading-none bg-gray-100 text-slate-700 hover:bg-indigo-100 hover:text-indigo-800" data-n="<?php echo $n; ?>">
-                    <span class="cell-num"><?php echo $n; ?></span>
-                    <span class="cell-label text-[10px] opacity-0 leading-tight"><?php
-                        if ($n === 1) echo 'ночь';
-                        elseif ($n >= 2 && $n <= 4) echo 'ночи';
-                        else echo 'ночей';
-                    ?></span>
+    <div id="tv-nights-popup" class="th-nights-sheet hidden" aria-hidden="true">
+        <div class="th-nights-sheet__backdrop" data-th-nights-close></div>
+        <div id="tv-nights-popup-card" class="th-nights-sheet__panel" role="dialog" aria-label="Сколько ночей в отеле">
+            <div class="th-nights-sheet__head">
+                <div class="th-nights-sheet__head-main">
+                    <span class="th-nights-sheet__eyebrow">Travel Hub</span>
+                    <span class="th-nights-sheet__title">Сколько ночей?</span>
+                </div>
+                <button type="button" class="th-nights-sheet__close" data-th-nights-close aria-label="Закрыть">
+                    <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
-                <?php endfor; ?>
             </div>
-            <button type="button" id="tv-nights-apply" class="button button-primary w-full py-3.5 text-base font-bold min-h-[52px]">Готово</button>
+            <div class="th-nights-sheet__body">
+                <p id="tv-nights-draft-preview" class="th-nights-sheet__preview" aria-live="polite">6–9 ночей</p>
+                <div id="tv-nights-quick" class="tv-nights-quick" aria-label="Быстрый выбор ночей"></div>
+                <p id="tv-nights-hint" class="th-nights-sheet__hint">Свой диапазон: сначала «от», потом «до»</p>
+                <div id="tv-nights-grid" class="tv-nights-grid th-nights-sheet__grid">
+                    <?php for ($n = 1; $n <= 28; $n++): ?>
+                    <button type="button" class="tv-nights-cell" data-n="<?php echo $n; ?>">
+                        <span class="cell-num"><?php echo $n; ?></span>
+                        <span class="cell-label"><?php
+                            if ($n === 1) echo 'ночь';
+                            elseif ($n >= 2 && $n <= 4) echo 'ночи';
+                            else echo 'ночей';
+                        ?></span>
+                    </button>
+                    <?php endfor; ?>
+                </div>
+            </div>
+            <button type="button" id="tv-nights-apply" class="th-nights-sheet__apply">
+                <i class="fas fa-check" aria-hidden="true"></i> Применить
+            </button>
         </div>
     </div>
     <?php include __DIR__ . '/../backend/components/performance_scripts.php'; ?>
@@ -3555,7 +3616,7 @@ $current_page = 'home';
 
             if (showMonths <= 1) {
                 daysWrap.classList.remove('tv-cal-days-grid');
-                wrapMonthColumn(dayContainers[0], new Date(fp.currentYear, fp.currentMonth, 1), true);
+                if (sharedWd) sharedWd.classList.remove('tv-cal-weekdays--hidden');
                 return;
             }
 

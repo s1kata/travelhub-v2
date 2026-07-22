@@ -505,8 +505,41 @@
 .th-search-choice-sheet__list {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding: 0.5rem 0.65rem 1rem;
-    flex: 1;
+    padding: 0.5rem 0.65rem 0.75rem;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.th-search-choice-sheet__apply {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    width: 100%;
+    min-height: 52px;
+    padding: 0.85rem 1rem;
+    margin: 0;
+    border: none;
+    border-top: 1px solid rgba(26, 26, 64, 0.08);
+    border-radius: 0;
+    background: var(--thcs-coral);
+    color: #fff;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    box-sizing: border-box;
+}
+
+.th-search-choice-sheet__apply:hover {
+    background: var(--thcs-coral-hover);
+}
+
+@media (min-width: 768px) {
+    .th-search-choice-sheet__apply {
+        border-radius: 0 0 20px 20px;
+    }
 }
 
 .th-search-choice-sheet__item {
@@ -824,6 +857,74 @@ body > #tv-tourists-block:not(.hidden) {
     box-shadow: 0 0 0 3px rgba(93, 169, 164, 0.15) !important;
 }
 
+.th-coral-wizard .th-wizard__filter-native {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+    padding: 0 !important;
+    margin: -1px !important;
+}
+
+.th-wizard__filter-field {
+    position: relative;
+}
+
+.th-wizard__filter-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.55rem 0.75rem;
+    border: 1.5px solid rgba(26, 26, 64, 0.12);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--thcs-navy);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.th-wizard__filter-trigger:hover,
+.th-wizard__filter-trigger:focus-visible {
+    border-color: rgba(93, 169, 164, 0.45);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(93, 169, 164, 0.12);
+}
+
+.th-wizard__filter-value {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.th-wizard__filter-value.is-placeholder {
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.th-wizard__filter-chevron {
+    flex-shrink: 0;
+    font-size: 0.6875rem;
+    color: var(--thcs-teal);
+    opacity: 0.85;
+}
+
+.th-search-filter-sheet .th-search-choice-sheet__list {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
 /* Модалка расширенных фильтров — v2 */
 #tv-filters-modal-overlay {
     backdrop-filter: blur(4px);
@@ -902,13 +1003,246 @@ body > #tv-tourists-block:not(.hidden) {
 }
 
 #tv-nights-popup-card {
-    border: 1px solid rgba(93, 169, 164, 0.22);
-    box-shadow: 0 20px 50px rgba(26, 26, 64, 0.2);
+    border: none;
+    box-shadow: none;
 }
 
-#tv-nights-popup-card > h3,
-#tv-nights-popup-card .heading-font {
+/* Nights modal — Travel Hub v2 */
+.th-nights-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 10260;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.24s ease, visibility 0.24s ease;
+    font-family: 'Work Sans', Inter, system-ui, sans-serif;
+}
+
+.th-nights-sheet.is-open {
+    pointer-events: auto;
+    opacity: 1;
+    visibility: visible;
+}
+
+.th-nights-sheet__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(26, 26, 64, 0.52);
+    backdrop-filter: blur(6px);
+}
+
+.th-nights-sheet__panel {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-height: min(90vh, calc(var(--th-vvh, 100vh) - 12px));
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    border: 1px solid rgba(93, 169, 164, 0.2);
+    box-shadow: 0 -12px 48px rgba(26, 26, 64, 0.22);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: translateY(16px);
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.th-nights-sheet.is-open .th-nights-sheet__panel {
+    transform: translateY(0);
+}
+
+@media (min-width: 768px) {
+    .th-nights-sheet {
+        align-items: center;
+        padding: 20px;
+    }
+
+    .th-nights-sheet__panel {
+        width: min(100%, 420px);
+        max-height: min(88vh, 640px);
+        border-radius: 20px;
+        transform: translateY(10px) scale(0.98);
+    }
+
+    .th-nights-sheet.is-open .th-nights-sheet__panel {
+        transform: translateY(0) scale(1);
+    }
+}
+
+.th-nights-sheet__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem 1rem 0.85rem;
+    background: linear-gradient(135deg, #1A1A40 0%, #24305e 55%, #366360 100%);
+    flex-shrink: 0;
+}
+
+.th-nights-sheet__head-main {
+    min-width: 0;
+}
+
+.th-nights-sheet__eyebrow {
+    display: block;
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.72);
+    margin-bottom: 0.2rem;
+}
+
+.th-nights-sheet__title {
+    display: block;
+    font-family: Outfit, 'Work Sans', system-ui, sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.02em;
+}
+
+.th-nights-sheet__close {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.th-nights-sheet__close:hover {
+    background: rgba(255, 255, 255, 0.24);
+}
+
+.th-nights-sheet__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0.85rem 1rem 0.5rem;
+}
+
+.th-nights-sheet__preview {
+    margin: 0 0 0.65rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 12px;
+    background: rgba(93, 169, 164, 0.12);
+    border: 1px solid rgba(93, 169, 164, 0.28);
     color: #1A1A40;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.th-nights-sheet__hint {
+    margin: 0 0 0.5rem;
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.th-nights-sheet__grid {
+    display: grid !important;
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    gap: 0.35rem !important;
+    margin-bottom: 0.25rem;
+}
+
+.th-nights-sheet__grid .tv-nights-cell {
+    min-width: 0;
+    min-height: 2.65rem;
+    padding: 0.2rem 0;
+    border: 1.5px solid transparent;
+    border-radius: 10px;
+    background: #f1f5f9;
+    color: #334155;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    line-height: 1.1;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.th-nights-sheet__grid .tv-nights-cell .cell-label {
+    font-size: 0.5625rem;
+    opacity: 0;
+    line-height: 1;
+}
+
+.th-nights-sheet__grid .tv-nights-cell.is-from,
+.th-nights-sheet__grid .tv-nights-cell.is-to {
+    background: #1A1A40;
+    border-color: #1A1A40;
+    color: #fff;
+}
+
+.th-nights-sheet__grid .tv-nights-cell.is-to {
+    background: #366360;
+    border-color: #366360;
+}
+
+.th-nights-sheet__grid .tv-nights-cell.is-in-range {
+    background: rgba(93, 169, 164, 0.22);
+    border-color: rgba(93, 169, 164, 0.35);
+    color: #1A1A40;
+}
+
+.th-nights-sheet__grid .tv-nights-cell.is-from .cell-label,
+.th-nights-sheet__grid .tv-nights-cell.is-to .cell-label,
+.th-nights-sheet__grid .tv-nights-cell.is-in-range .cell-label {
+    opacity: 1;
+}
+
+.th-nights-sheet__grid .tv-nights-cell:hover:not(.is-from):not(.is-to) {
+    background: rgba(93, 169, 164, 0.14);
+    color: #1A1A40;
+}
+
+.th-nights-sheet__apply {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    width: 100%;
+    min-height: 52px;
+    padding: 0.85rem 1rem;
+    margin: 0;
+    border: none;
+    border-top: 1px solid rgba(26, 26, 64, 0.08);
+    border-radius: 0;
+    background: var(--thcs-coral);
+    color: #fff;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    box-sizing: border-box;
+}
+
+.th-nights-sheet__apply:hover {
+    background: var(--thcs-coral-hover);
+}
+
+@media (min-width: 768px) {
+    .th-nights-sheet__apply {
+        border-radius: 0 0 20px 20px;
+    }
 }
 
 @media (max-width: 479px) {

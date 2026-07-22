@@ -109,11 +109,6 @@
         if (this.countrySel) {
             this.countrySel.addEventListener('change', function () {
                 self.refreshSummary();
-                if (self.step === 1 && self.countrySel.value) {
-                    setTimeout(function () {
-                        if (self.validateCurrent()) self.go(2);
-                    }, 280);
-                }
             });
         }
 

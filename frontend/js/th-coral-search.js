@@ -7,6 +7,12 @@
 
     var HISTORY_KEY = 'th_search_history_v1';
     var HISTORY_MAX = 3;
+    var FILTER_TYPES = ['meal', 'region', 'category'];
+    var FILTER_META = {
+        meal: { title: 'Питание', placeholder: 'Любое', search: true },
+        region: { title: 'Курорт', placeholder: 'Любой', search: true },
+        category: { title: 'Звёзды отеля', placeholder: 'Любая', search: false }
+    };
 
     function qs(sel, root) {
         return (root || document).querySelector(sel);
@@ -53,9 +59,13 @@
         this.labelTourists = qs('[data-th-label="tourists"]', root);
         this.labelDeparture = qs('[data-th-label="departure"]', root);
         this.openModalId = null;
+        this.filterDraft = {};
+        this.choiceDraft = {};
         this.buildChoiceModals();
+        this.buildFilterModals();
         this.bind();
         this.refreshLabels();
+        this.refreshFilterLabels();
         this.renderHistory();
     }
 
@@ -83,13 +93,174 @@
                 '<input type="search" placeholder="' + (type === 'country' ? 'Найти страну…' : 'Найти город…') + '" autocomplete="off" data-th-search-input="' + type + '">' +
                 '</div>' +
                 '<div class="th-search-choice-sheet__list" data-th-list="' + type + '"></div>' +
+                '<button type="button" class="th-search-choice-sheet__apply" data-th-choice-apply="' + type + '">' +
+                '<i class="fas fa-check" aria-hidden="true"></i> Применить</button>' +
                 '</div>';
             document.body.appendChild(sheet);
             sheet.querySelector('[data-th-search-input="' + type + '"]').addEventListener('input', function () {
                 self.renderChoiceList(type, this.value);
             });
             qsa('[data-th-close="' + type + '"]', sheet).forEach(function (el) {
-                el.addEventListener('click', function () { self.closeChoice(type); });
+                el.addEventListener('click', function () { self.closeChoice(type, true); });
+            });
+            var choiceApply = sheet.querySelector('[data-th-choice-apply="' + type + '"]');
+            if (choiceApply) {
+                choiceApply.addEventListener('click', function () { self.commitChoice(type); });
+            }
+        });
+    };
+
+    THSearchUI.prototype.getFilterSelect = function (type) {
+        return document.getElementById('tv-' + type);
+    };
+
+    THSearchUI.prototype.buildFilterModals = function () {
+        var self = this;
+        FILTER_TYPES.forEach(function (type) {
+            var meta = FILTER_META[type];
+            var sheet = document.createElement('div');
+            sheet.id = 'th-search-' + type + '-sheet';
+            sheet.className = 'th-search-choice-sheet th-search-filter-sheet hidden';
+            sheet.setAttribute('role', 'dialog');
+            sheet.setAttribute('aria-modal', 'true');
+            var searchBlock = meta.search
+                ? '<div class="th-search-choice-sheet__search">' +
+                '<i class="fas fa-search th-search-choice-sheet__search-ico" aria-hidden="true"></i>' +
+                '<input type="search" placeholder="Найти…" autocomplete="off" data-th-filter-search="' + type + '">' +
+                '</div>'
+                : '';
+            sheet.innerHTML =
+                '<div class="th-search-choice-sheet__backdrop" data-th-filter-close="' + type + '"></div>' +
+                '<div class="th-search-choice-sheet__panel">' +
+                '<div class="th-search-choice-sheet__head">' +
+                '<div class="th-search-choice-sheet__head-main">' +
+                '<span class="th-search-choice-sheet__eyebrow">Travel Hub</span>' +
+                '<span class="th-search-choice-sheet__title">' + meta.title + '</span>' +
+                '</div>' +
+                '<button type="button" class="th-search-choice-sheet__close" data-th-filter-close="' + type + '" aria-label="Закрыть">' +
+                '<i class="fas fa-times" aria-hidden="true"></i></button>' +
+                '</div>' +
+                searchBlock +
+                '<div class="th-search-choice-sheet__list" data-th-filter-list="' + type + '"></div>' +
+                '<button type="button" class="th-search-choice-sheet__apply" data-th-filter-apply="' + type + '">' +
+                '<i class="fas fa-check" aria-hidden="true"></i> Применить</button>' +
+                '</div>';
+            document.body.appendChild(sheet);
+
+            var searchInp = sheet.querySelector('[data-th-filter-search="' + type + '"]');
+            if (searchInp) {
+                searchInp.addEventListener('input', function () {
+                    self.renderFilterList(type, this.value);
+                });
+            }
+            qsa('[data-th-filter-close="' + type + '"]', sheet).forEach(function (el) {
+                el.addEventListener('click', function () { self.closeFilter(type, true); });
+            });
+            var applyBtn = sheet.querySelector('[data-th-filter-apply="' + type + '"]');
+            if (applyBtn) {
+                applyBtn.addEventListener('click', function () { self.applyFilter(type); });
+            }
+        });
+    };
+
+    THSearchUI.prototype.renderFilterList = function (type, filter) {
+        var listEl = document.querySelector('[data-th-filter-list="' + type + '"]');
+        var sel = this.getFilterSelect(type);
+        if (!listEl || !sel) return;
+
+        var q = String(filter || '').toLowerCase().trim();
+        var items = [];
+        for (var i = 0; i < sel.options.length; i++) {
+            var opt = sel.options[i];
+            var id = String(opt.value || '');
+            var name = (opt.textContent || '').trim() || FILTER_META[type].placeholder;
+            if (q && name.toLowerCase().indexOf(q) === -1) continue;
+            items.push({ id: id, name: name });
+        }
+
+        if (!items.length) {
+            listEl.innerHTML = '<p class="th-search-choice-sheet__empty">Ничего не найдено</p>';
+            return;
+        }
+
+        var current = String(this.filterDraft[type] != null ? this.filterDraft[type] : sel.value || '');
+        listEl.innerHTML = items.map(function (it) {
+            var selCls = it.id === current ? ' is-selected' : '';
+            var check = it.id === current ? '<i class="fas fa-check th-search-choice-sheet__item-check" aria-hidden="true"></i>' : '';
+            return '<button type="button" class="th-search-choice-sheet__item' + selCls + '" data-id="' + escapeHtml(it.id) + '">' +
+                '<span class="th-search-choice-sheet__item-text">' + escapeHtml(it.name) + '</span>' + check + '</button>';
+        }).join('');
+
+        var self = this;
+        listEl.querySelectorAll('.th-search-choice-sheet__item').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                self.filterDraft[type] = btn.getAttribute('data-id');
+                self.renderFilterList(type, filter);
+            });
+        });
+    };
+
+    THSearchUI.prototype.applyFilter = function (type) {
+        var sel = this.getFilterSelect(type);
+        if (!sel) return;
+        var draft = this.filterDraft[type];
+        if (draft == null) draft = sel.value || '';
+        sel.value = draft;
+        try { sel.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {
+            if (typeof Event === 'function') {
+                var ev = document.createEvent('Event');
+                ev.initEvent('change', true, true);
+                sel.dispatchEvent(ev);
+            }
+        }
+        this.refreshFilterLabels();
+        this.closeFilter(type, false);
+    };
+
+    THSearchUI.prototype.openFilter = function (type) {
+        var sheet = document.getElementById('th-search-' + type + '-sheet');
+        var sel = this.getFilterSelect(type);
+        if (!sheet || !sel) return;
+        this.closeAll();
+        this.filterDraft[type] = sel.value || '';
+        sheet.classList.remove('hidden');
+        sheet.classList.add('is-open');
+        this.openModalId = 'filter:' + type;
+        document.body.classList.add('th-modal-open');
+        if (window.THMobile && typeof window.THMobile.lockScroll === 'function') {
+            window.THMobile.lockScroll(true);
+        }
+        this.renderFilterList(type, '');
+        var inp = sheet.querySelector('[data-th-filter-search="' + type + '"]');
+        if (inp) {
+            inp.value = '';
+            setTimeout(function () { try { inp.focus(); } catch (e) {} }, 80);
+        }
+    };
+
+    THSearchUI.prototype.closeFilter = function (type, revert) {
+        var sheet = document.getElementById('th-search-' + type + '-sheet');
+        if (!sheet) return;
+        if (revert) delete this.filterDraft[type];
+        sheet.classList.add('hidden');
+        sheet.classList.remove('is-open');
+        if (this.openModalId === 'filter:' + type) this.openModalId = null;
+        if (!this.isAnyPopupOpen()) {
+            document.body.classList.remove('th-modal-open');
+            if (window.THMobile && typeof window.THMobile.lockScroll === 'function') {
+                window.THMobile.lockScroll(false);
+            }
+        }
+    };
+
+    THSearchUI.prototype.refreshFilterLabels = function () {
+        var self = this;
+        FILTER_TYPES.forEach(function (type) {
+            var sel = self.getFilterSelect(type);
+            var label = textOfSelect(sel) || FILTER_META[type].placeholder;
+            qsa('[data-th-filter-label="' + type + '"]', self.root).forEach(function (el) {
+                el.textContent = label;
+                el.classList.toggle('is-placeholder', !sel || !String(sel.value || '').trim());
             });
         });
     };
@@ -115,7 +286,7 @@
             return;
         }
 
-        var current = String(sel.value || '');
+        var current = String(this.choiceDraft[type] != null ? this.choiceDraft[type] : sel.value || '');
         listEl.innerHTML = items.map(function (it) {
             var selCls = it.id === current ? ' is-selected' : '';
             var check = it.id === current ? '<i class="fas fa-check th-search-choice-sheet__item-check" aria-hidden="true"></i>' : '';
@@ -124,14 +295,18 @@
         }).join('');
 
         var self = this;
+        var searchInp = document.querySelector('[data-th-search-input="' + type + '"]');
+        var filterQ = searchInp ? searchInp.value : filter;
         listEl.querySelectorAll('.th-search-choice-sheet__item').forEach(function (btn) {
             btn.addEventListener('click', function () {
-                self.applyChoice(type, btn.getAttribute('data-id'));
+                self.choiceDraft[type] = btn.getAttribute('data-id');
+                self.renderChoiceList(type, filterQ);
             });
         });
     };
 
-    THSearchUI.prototype.applyChoice = function (type, id) {
+    THSearchUI.prototype.commitChoice = function (type) {
+        var id = this.choiceDraft[type];
         var sel = type === 'country' ? this.countrySel : this.depSel;
         if (!sel || !id) return;
         sel.value = id;
@@ -143,14 +318,21 @@
             }
         }
         this.refreshLabels();
-        this.closeChoice(type);
+        this.closeChoice(type, false);
         this.clearFieldError(type === 'country' ? 'country' : 'departure');
+    };
+
+    THSearchUI.prototype.applyChoice = function (type, id) {
+        this.choiceDraft[type] = id;
+        this.commitChoice(type);
     };
 
     THSearchUI.prototype.openChoice = function (type) {
         var sheet = document.getElementById('th-search-' + type + '-sheet');
+        var sel = type === 'country' ? this.countrySel : this.depSel;
         if (!sheet) return;
         this.closeAll();
+        this.choiceDraft[type] = sel ? (sel.value || '') : '';
         sheet.classList.remove('hidden');
         sheet.classList.add('is-open');
         this.openModalId = type;
@@ -168,19 +350,22 @@
         if (overlay) {
             var self = this;
             overlay.style.display = 'block';
-            overlay._onClose = function () { self.closeChoice(type); };
+            overlay._onClose = function () { self.closeChoice(type, true); };
         }
     };
 
-    THSearchUI.prototype.closeChoice = function (type) {
+    THSearchUI.prototype.closeChoice = function (type, revert) {
         var sheet = document.getElementById('th-search-' + type + '-sheet');
         if (!sheet) return;
+        if (revert) delete this.choiceDraft[type];
         sheet.classList.add('hidden');
         sheet.classList.remove('is-open');
         if (this.openModalId === type) this.openModalId = null;
-        document.body.classList.remove('th-modal-open');
-        if (window.THMobile && typeof window.THMobile.lockScroll === 'function') {
-            window.THMobile.lockScroll(false);
+        if (!this.isAnyPopupOpen()) {
+            document.body.classList.remove('th-modal-open');
+            if (window.THMobile && typeof window.THMobile.lockScroll === 'function') {
+                window.THMobile.lockScroll(false);
+            }
         }
         var overlay = document.getElementById('tv-sc-overlay');
         if (overlay && !this.isAnyPopupOpen()) {
@@ -194,6 +379,8 @@
         if (dp && dp.style.display !== 'none' && dp.style.display !== '') return true;
         var tb = document.getElementById('tv-tourists-block');
         if (tb && !tb.classList.contains('hidden')) return true;
+        var np = document.getElementById('tv-nights-popup');
+        if (np && np.classList.contains('is-open')) return true;
         if (qsa('.th-search-choice-sheet.is-open').length) return true;
         return false;
     };
@@ -205,7 +392,11 @@
                 sheet.classList.add('hidden');
                 sheet.classList.remove('is-open');
             }
-        });
+            delete this.choiceDraft[t];
+        }, this);
+        FILTER_TYPES.forEach(function (t) {
+            this.closeFilter(t, true);
+        }, this);
         this.openModalId = null;
     };
 
@@ -433,6 +624,14 @@
             });
         });
 
+        qsa('[data-th-filter-open]', this.root).forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                var type = btn.getAttribute('data-th-filter-open');
+                if (type) self.openFilter(type);
+            });
+        });
+
         var filtersBtn = document.getElementById('th-coral-open-filters');
         if (filtersBtn) {
             filtersBtn.addEventListener('click', function (e) {
@@ -444,6 +643,10 @@
         ['change', 'input'].forEach(function (ev) {
             if (self.depSel) self.depSel.addEventListener(ev, function () { self.refreshLabels(); });
             if (self.countrySel) self.countrySel.addEventListener(ev, function () { self.refreshLabels(); });
+            FILTER_TYPES.forEach(function (type) {
+                var sel = self.getFilterSelect(type);
+                if (sel) sel.addEventListener(ev, function () { self.refreshFilterLabels(); });
+            });
         });
 
         var observeTargets = [this.datesDisplay, this.touristsText].filter(Boolean);
@@ -470,7 +673,11 @@
             if (e.key !== 'Escape') return;
             ['country', 'departure'].forEach(function (t) {
                 var sheet = document.getElementById('th-search-' + t + '-sheet');
-                if (sheet && sheet.classList.contains('is-open')) self.closeChoice(t);
+                if (sheet && sheet.classList.contains('is-open')) self.closeChoice(t, true);
+            });
+            FILTER_TYPES.forEach(function (t) {
+                var sheet = document.getElementById('th-search-' + t + '-sheet');
+                if (sheet && sheet.classList.contains('is-open')) self.closeFilter(t, true);
             });
         });
     };
