@@ -44,6 +44,10 @@ if (!defined('TH_LEAD_CAPTURE_JS')) {
 <script>
 (function () {
   try { document.body.classList.add('has-th-lead-bar'); } catch (e) {}
+  var bar = document.querySelector('[data-th-site-lead-bar]');
+  if (bar && bar.parentNode !== document.body) {
+    try { document.body.appendChild(bar); } catch (eBar) {}
+  }
   document.addEventListener('click', function (e) {
     var el = e.target && e.target.closest ? e.target.closest('[data-th-track]') : null;
     if (!el || !window.THLeadCapture) return;

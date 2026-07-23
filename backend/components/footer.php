@@ -75,6 +75,7 @@ $thc = th_contacts();
         <div class="mt-12 flex flex-col items-center justify-between gap-4 border-t border-slate-800/90 pt-8 text-xs text-slate-500 sm:flex-row">
             <p>© <?php echo date('Y'); ?> Travel Hub. Все права защищены.</p>
             <div class="flex flex-wrap items-center justify-center gap-6">
+                <a href="/frontend/window/consent.php" class="transition hover:text-indigo-400">Согласие на обработку ПД</a>
                 <a href="/frontend/window/privacy.php" class="transition hover:text-indigo-400">Политика конфиденциальности</a>
                 <a href="/frontend/window/terms.php" class="transition hover:text-indigo-400">Пользовательское соглашение</a>
             </div>
@@ -111,6 +112,4 @@ if (!defined('TH_PROMO_TIMER_INCLUDED')) {
 <?php
 require_once __DIR__ . '/yandex_metrika.php';
 th_yandex_metrika_print_snippet();
-require_once __DIR__ . '/umnico_widget.php';
-th_umnico_chat_print_snippet();
 ?>

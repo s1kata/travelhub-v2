@@ -20,8 +20,8 @@
     RewriteRule ^frontend/window/offices/samara-funsun\.php$ /frontend/window/offices/office.php?slug=samara-funsun [R=301,L,QSA]
     RewriteRule ^frontend/window/offices/samara-funsun-gudok\.php$ /frontend/window/offices/office.php?slug=samara-funsun-gudok [R=301,L,QSA]
     RewriteRule ^frontend/window/offices/samara-anex-moskovskoe\.php$ /frontend/window/offices/office.php?slug=samara-anex-moskovskoe [R=301,L,QSA]
-    # ТЦ «Апельсин» закрыт / нет в актуальном списке
-    RewriteRule ^frontend/window/offices/samara-anex-apelsin\.php$ /frontend/window/offices/samara-offices.php [R=301,L]
+    # ТЦ «Апельсин»: Anex Tour
+    RewriteRule ^frontend/window/offices/samara-anex-apelsin\.php$ /frontend/window/offices/office.php?slug=samara-anex-apelsin [R=301,L,QSA]
     RewriteRule ^frontend/window/offices/samara-coral\.php$ /frontend/window/offices/office.php?slug=samara-coral [R=301,L,QSA]
     RewriteRule ^frontend/window/offices/samara-coral-elite\.php$ /frontend/window/offices/samara-offices.php [R=301,L]
     RewriteRule ^frontend/window/offices/moscow-coral-elite\.php$ /frontend/window/offices/office.php?slug=moscow-coral-elite [R=301,L,QSA]

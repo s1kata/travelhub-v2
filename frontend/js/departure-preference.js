@@ -80,6 +80,25 @@
     return n;
   }
 
+  function syncGlobalDeparture(id, name) {
+    window.TH_DEPARTURE = {
+      id: String(normalizeDepartureId(id)),
+      name: String(name || defaultDeparture().name || 'Самара')
+    };
+  }
+
+  function readFromSelect(el) {
+    if (!el || el.tagName !== 'SELECT') return null;
+    var sid = String(el.value || '').trim();
+    if (!sid) return null;
+    var opt = el.options[el.selectedIndex];
+    var nm = opt ? (opt.textContent || '').trim() : '';
+    return {
+      id: String(normalizeDepartureId(sid)),
+      name: nm || getSaved().name
+    };
+  }
+
   function getSaved() {
     var def = defaultDeparture();
     var id = safeLsGet(STORAGE_ID) || def.id;
@@ -96,6 +115,13 @@
     return { id: id, name: name || 'Самара' };
   }
 
+  /** Актуальный город вылета: приоритет у #tv-departure, затем localStorage. */
+  function getActive() {
+    var fromSel = readFromSelect(document.querySelector('#tv-departure'));
+    if (fromSel && fromSel.id) return fromSel;
+    return getSaved();
+  }
+
   function save(id, name) {
     var def = defaultDeparture();
     if (isBlockedDepartureName(name)) {
@@ -103,8 +129,10 @@
       name = def.name;
     }
     id = String(normalizeDepartureId(id || def.id));
+    name = name || def.name || 'Самара';
     safeLsSet(STORAGE_ID, id);
-    safeLsSet(STORAGE_NAME, name || def.name || 'Самара');
+    safeLsSet(STORAGE_NAME, name);
+    syncGlobalDeparture(id, name);
     updateHeaderPill();
     window.dispatchEvent(new CustomEvent('th-departure-saved', { detail: { id: id, name: name } }));
   }
@@ -185,6 +213,14 @@
   }
 
   function applySavedToPage(list) {
+    list = filterDepartures(list || []);
+    var tvDep = document.querySelector('#tv-departure');
+    var cur = readFromSelect(tvDep);
+    if (cur && cur.id && list.length && list.some(function (d) { return String(d.id) === String(cur.id); })) {
+      save(cur.id, cur.name);
+      applyToSelects(list, cur.id, false);
+      return;
+    }
     var picked = resolveDepartureFromList(list);
     save(picked.id, picked.name);
     if (list && list.length) applyToSelects(list, picked.id, false);
@@ -224,6 +260,7 @@
   function init() {
     if (state.initialized) return;
     state.initialized = true;
+    syncGlobalDeparture(getSaved().id, getSaved().name);
     updateHeaderPill();
     bindDepartureSelectChange();
     applySavedToPage([]);
@@ -253,6 +290,7 @@
   window.THDeparturePreference = {
     init: init,
     getSaved: getSaved,
+    getActive: getActive,
     save: save,
     applyToPageSelects: applySavedToPage,
     onDeparturesReady: onDeparturesReady,

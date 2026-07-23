@@ -33,7 +33,7 @@
             </div>
             <label class="th-sf-agree flex items-start gap-2 cursor-pointer text-sm text-slate-600">
                 <input type="checkbox" id="th-sf-agree" name="agree" required class="mt-1 rounded border-slate-300">
-                <span>Согласен на <a href="/frontend/window/privacy.php" target="_blank" rel="noopener" class="text-sky-600 underline">обработку персональных данных</a></span>
+                <span><?php require_once __DIR__ . '/legal_consent_label.php'; echo th_legal_consent_checkbox_html(); ?></span>
             </label>
             <p id="th-sf-msg" class="th-sf-msg hidden text-sm"></p>
             <button type="submit" id="th-sf-submit" class="th-sf-submit">Отправить</button>

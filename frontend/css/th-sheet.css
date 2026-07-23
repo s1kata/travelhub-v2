@@ -118,7 +118,7 @@
     #quick-booking-modal > .th-qbm-modal__panel,
     #booking-modal > div,
     .th-tour-booking-modal__panel,
-    #tv-nights-popup-card,
+    #tv-nights-popup-card.th-coral-popup__panel,
     .tv-nights-modal-card,
     #th-site-feedback-overlay .th-sf-card,
     #certificateModal > div,
@@ -128,9 +128,46 @@
         margin: 0 !important;
         border-radius: 20px 20px 0 0 !important;
         max-height: min(92%, calc(var(--th-vvh, 100vh) - 8px)) !important;
-        overflow-y: auto !important;
-        padding-bottom: calc(16px + var(--th-safe-bottom, 0px)) !important;
+        overflow: hidden !important;
+        padding-bottom: 0 !important;
         box-sizing: border-box !important;
         background: #fff !important;
+    }
+
+    #tv-nights-popup-card.th-coral-popup__panel {
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+    }
+
+    #tv-sc-date-popup.th-coral-popup:not(.hidden),
+    #tv-tourists-block.th-coral-popup:not(.hidden),
+    #tv-nights-popup.th-coral-popup:not(.hidden) {
+        align-items: flex-end !important;
+        justify-content: center !important;
+        padding: 0 !important;
+    }
+
+    #tv-sc-date-popup.th-coral-popup .th-coral-popup__panel,
+    #tv-tourists-block.th-coral-popup .th-coral-popup__panel,
+    #tv-nights-popup.th-coral-popup .th-coral-popup__panel {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        max-height: min(92%, calc(var(--th-vvh, 100vh) - 8px)) !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .th-search-choice-sheet.is-open .th-search-choice-sheet__panel {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: min(92%, calc(var(--th-vvh, 100vh) - 8px)) !important;
+        border-radius: 20px 20px 0 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
     }
 }

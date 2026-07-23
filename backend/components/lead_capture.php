@@ -73,7 +73,7 @@ $agree_id = $th_lead_id . '-agree';
         </div>
         <label class="th-lead-capture__agree">
             <input type="checkbox" id="<?php echo htmlspecialchars($agree_id, ENT_QUOTES, 'UTF-8'); ?>" name="agree" required>
-            <span>Согласен на <a href="/frontend/window/privacy.php" target="_blank" rel="noopener">обработку персональных данных</a></span>
+            <span><?php require_once __DIR__ . '/legal_consent_label.php'; echo th_legal_consent_checkbox_html(); ?></span>
         </label>
         <div id="<?php echo htmlspecialchars($th_lead_msg_id, ENT_QUOTES, 'UTF-8'); ?>" class="th-lead-capture__msg hidden" data-th-lead-msg hidden></div>
         <button type="submit" class="th-lead-capture__submit"><?php echo htmlspecialchars($th_lead_submit, ENT_QUOTES, 'UTF-8'); ?></button>

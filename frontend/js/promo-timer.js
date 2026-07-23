@@ -1,8 +1,9 @@
 /**
  * promo-timer.js — промокоды TRAVEL10 / TRAVEL5 и обратный отсчёт (ч:мин:с)
  * Фаза 1: 10%, 30 мин (первый визит, попап)
- * После истечения фазы 1: LS, TRAVEL5, 5%, таймер 1 ч
- * Скидка в рублях не более 5000 ₽ от базовой цены
+ * После истечения фазы 1: TRAVEL5, 5%, таймер 1 ч
+ * Каждый промокод одноразовый на пользователя (localStorage, th-promo-apply.js).
+ * Скидка на карточках поиска не применяется автоматически — только вручную на странице тура.
  */
 (function () {
     'use strict';
@@ -65,8 +66,19 @@
         return Math.round((p - d) / 100) * 100;
     }
 
+    function promoCodeUsed(code) {
+        if (window.TH_PROMO_APPLY && typeof window.TH_PROMO_APPLY.isCodeUsed === 'function') {
+            return window.TH_PROMO_APPLY.isCodeUsed(code);
+        }
+        return false;
+    }
+
     function readPhase() {
         var now = Date.now();
+        if (promoCodeUsed(CODE_TEN) && promoCodeUsed(CODE_FIVE)) {
+            return { code: '', pct: 0, rem: 0, phase: 'done' };
+        }
+
         var tenStart = parseInt(lsGet(LS_TEN_START) || '0', 10);
         var fiveStart = parseInt(lsGet(LS_FIVE_START) || '0', 10);
         if (tenStart > 0) {
@@ -74,13 +86,16 @@
             if (elapsedTen >= TIMER_TEN_SEC && lsGet(LS_TEN_EXPIRED) !== '1') {
                 lsSet(LS_TEN_EXPIRED, '1');
             }
-            if (elapsedTen < TIMER_TEN_SEC) {
+            if (!promoCodeUsed(CODE_TEN) && elapsedTen < TIMER_TEN_SEC) {
                 return {
                     code: CODE_TEN,
                     pct: PCT_TEN,
                     rem: TIMER_TEN_SEC - elapsedTen,
                     phase: 'ten'
                 };
+            }
+            if (promoCodeUsed(CODE_FIVE)) {
+                return { code: '', pct: 0, rem: 0, phase: 'done' };
             }
             var fs = fiveStart;
             if (fs <= 0) {
@@ -96,12 +111,12 @@
                     phase: 'five'
                 };
             }
-            return { code: CODE_FIVE, pct: PCT_FIVE, rem: 0, phase: 'done' };
+            return { code: '', pct: 0, rem: 0, phase: 'done' };
         }
-        if (!isFirstVisit) {
-            return { code: CODE_FIVE, pct: PCT_FIVE, rem: 0, phase: 'return' };
+        if (isFirstVisit && !promoCodeUsed(CODE_TEN)) {
+            return { code: CODE_TEN, pct: PCT_TEN, rem: 0, phase: 'pre' };
         }
-        return { code: CODE_TEN, pct: PCT_TEN, rem: 0, phase: 'pre' };
+        return { code: '', pct: 0, rem: 0, phase: 'done' };
     }
 
     function pad2(n) {
@@ -273,10 +288,16 @@
             return price.toLocaleString('ru-RU') + '\u00a0\u20bd';
         },
         reapplyCardPrices: function () {
-            document.querySelectorAll('.th-tour-card[data-promo-patched]').forEach(function (el) {
-                delete el.dataset.promoPatched;
-            });
-            patchCardPrices(document.body);
+            clearPromoCardPatches(document.body);
+        },
+        onCodeUsed: function () {
+            clearPromoCardPatches(document.body);
+            if (readPhase().phase === 'done') {
+                teardownPromoUi();
+            } else {
+                updatePromoTab(document.getElementById('th-promo-popup'));
+                updateStatusBar();
+            }
         },
         openModal: function () {
             showPromoModal({ markShown: false });
@@ -290,7 +311,7 @@
 
     function promoUiShouldShow() {
         var ph = readPhase();
-        if (ph.phase === 'done') return false;
+        if (ph.phase === 'done' || !ph.pct) return false;
         if (ph.rem > 0) return true;
         if (ph.phase === 'pre' && isFirstVisit) return true;
         if (lsGet(LS_POPUP_SHOWN) === '1' || lsGet(LS_TEN_START)) {
@@ -476,7 +497,7 @@
             }
         }
         tab.setAttribute('aria-label', 'Промокод ' + (ph.code || CODE_TEN));
-        if (ph.phase === 'done' || (ph.rem <= 0 && ph.phase !== 'pre' && ph.phase !== 'return')) {
+        if (ph.phase === 'done' || (ph.rem <= 0 && ph.phase !== 'pre')) {
             popup.classList.remove('th-promo-popup--collapsed', 'th-promo-popup--visible');
             document.body.classList.remove('th-promo-tab-visible', 'th-promo-tab-bottom', 'th-promo-open');
             var slot = document.getElementById('th-promo-header-slot');
@@ -584,7 +605,7 @@
         var sig = ph.phase + '|' + ph.code + '|' + ph.pct;
         if (sig !== lastSig) {
             lastSig = sig;
-            window.TH_PROMO.reapplyCardPrices();
+            clearPromoCardPatches(document.body);
             syncPopupTimerExpires(popup);
         }
         if (ph.phase === 'done') {
@@ -642,6 +663,7 @@
                     timerHtml +
                 '</div>' +
                 '<button class="th-promo-popup__cta" id="th-promo-use-btn">Использовать промокод</button>' +
+                '<p class="th-promo-popup__cap">Скидка по промокоду — не более 5000 ₽</p>' +
                 '<p class="th-promo-popup__note">Сообщите менеджеру при бронировании тура</p>' +
             '</div>' +
             '<button type="button" class="th-promo-popup__tab" aria-label="Промокод">' +
@@ -673,7 +695,6 @@
         if (!lsGet(LS_TEN_START) && lsGet(LS_POPUP_SHOWN) !== '1') return false;
         var ph = readPhase();
         if (ph.phase === 'pre') return false;
-        if (ph.phase === 'return' && !lsGet(LS_TEN_START)) return false;
         if (ph.rem <= 0) return false;
         return true;
     }
@@ -783,49 +804,28 @@
         syncExpiresElements(document);
     }
 
-    function patchCardPrices(root) {
+    function clearPromoCardPatches(root) {
         root = root || document;
-        var ph = readPhase();
-        var activeDiscount = ph.pct;
-        var cards = root.querySelectorAll('.th-tour-card');
-        cards.forEach(function (card) {
-            if (card.dataset.promoPatched === 'skip') return;
-            if (card.dataset.promoPatched) return;
-            var priceEl = card.querySelector('.th-tour-card__price');
+        root.querySelectorAll('.th-tour-card[data-promo-patched="1"]').forEach(function (card) {
             var priceBlock = card.querySelector('.th-tour-card__price-block');
-            if (!priceEl || !priceBlock) return;
-            if (card.classList.contains('th-tour-card--promo')) return;
-            if (card.classList.contains('th-tour-card--country')) return;
-            var raw = priceEl.textContent.replace(/[^\d]/g, '');
-            var priceNum = parseInt(raw, 10) || 0;
-            if (!priceNum) return;
-            var discounted = calcPriceAfterDiscount(priceNum, activeDiscount);
-            if (!discounted || discounted >= priceNum) return;
-            card.dataset.promoPatched = '1';
+            var priceEl = card.querySelector('.th-tour-card__price');
+            if (!priceBlock || !priceEl) {
+                delete card.dataset.promoPatched;
+                return;
+            }
             var oldEl = priceBlock.querySelector('.th-promo-old-price');
-            if (!oldEl) {
-                oldEl = document.createElement('span');
-                oldEl.className = 'th-tour-card__old-price th-promo-old-price';
-                priceBlock.insertBefore(oldEl, priceEl);
+            if (oldEl) {
+                var raw = oldEl.textContent.replace(/[^\d]/g, '');
+                var priceNum = parseInt(raw, 10) || 0;
+                if (priceNum) {
+                    priceEl.textContent = window.TH_PROMO.fmt(priceNum);
+                }
+                oldEl.remove();
             }
-            oldEl.textContent = window.TH_PROMO.fmt(priceNum);
-            priceEl.textContent = window.TH_PROMO.fmt(discounted);
             var badge = priceBlock.querySelector('.th-promo-discount-badge');
-            if (!badge) {
-                badge = document.createElement('span');
-                badge.className = 'th-promo-discount-badge';
-                priceBlock.insertBefore(badge, priceEl.nextSibling);
-            }
-            badge.textContent = '\u2212' + activeDiscount + '%';
+            if (badge) badge.remove();
+            delete card.dataset.promoPatched;
         });
-    }
-
-    function watchContainer(id) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        patchCardPrices(el);
-        var obs = new MutationObserver(function () { patchCardPrices(el); });
-        obs.observe(el, { childList: true, subtree: true });
     }
 
     function init() {
@@ -841,9 +841,7 @@
 
         lastSig = readPhase().phase + '|' + readPhase().code + '|' + readPhase().pct;
         lastPopupPhase = readPhase().phase;
-        watchContainer('tv-search-results');
-        watchContainer('promo-tours-results');
-        patchCardPrices(document.body);
+        clearPromoCardPatches(document.body);
         startPromoTicker();
         window.addEventListener('resize', function () {
             syncPromoTabPlacement();

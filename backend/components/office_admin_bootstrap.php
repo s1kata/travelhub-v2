@@ -5,6 +5,8 @@
  */
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/config/office_photo_folders.php';
+
 function th_office_admin_project_root(): string
 {
     return dirname(__DIR__, 2);
@@ -20,22 +22,15 @@ function th_office_admin_is_mysql(PDO $pdo): bool
  */
 function th_office_admin_office_photos_upload_dir(string $city, string $officeName): string
 {
-    $root = th_office_admin_project_root();
     $slug = th_office_admin_office_disk_slug($city, $officeName);
-    $dir = $root . DIRECTORY_SEPARATOR . 'frontend' . DIRECTORY_SEPARATOR . 'window'
-        . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'offices'
-        . DIRECTORY_SEPARATOR . $city . DIRECTORY_SEPARATOR . $slug;
-    if (!is_dir($dir)) {
-        @mkdir($dir, 0755, true);
-    }
-    return $dir;
+    return th_office_photo_disk_dir($city, $slug, true);
 }
 
 /** Публичный URL-префикс папки офиса (без завершающего слэша). */
 function th_office_admin_office_photos_url_prefix(string $city, string $officeName): string
 {
     $slug = th_office_admin_office_disk_slug($city, $officeName);
-    return '/frontend/window/img/offices/' . rawurlencode($city) . '/' . rawurlencode($slug);
+    return th_office_photos_url_prefix($city, $slug);
 }
 
 /** Slug папки офиса (как на фронте в get_office_photos_from_folder). */
@@ -49,38 +44,18 @@ function th_office_admin_office_slug(string $officeName): string
  */
 function th_office_admin_office_disk_slug(string $city, string $officeName): string
 {
-    if ($city === 'samara' && $officeName === 'Anex Tour (Московское шоссе, 81Б)') {
-        return 'anex-tour-moskovskoe-81b';
-    }
-    if ($city === 'samara' && $officeName === 'Fun&Sun (ТЦ «Гудок»)') {
-        return 'anex-tour'; // историческая папка фото локации ТЦ «Гудок»
-    }
-    return th_office_admin_office_slug($officeName);
+    return th_office_photo_folder_slug($city, $officeName);
 }
 
 /**
- * Каталоги с фото офиса на диске (новая раскладка + legacy /img/offices).
+ * Каталог с фото офиса на диске (только каноническая раскладка репозитория).
  *
  * @return list<string>
  */
 function th_office_admin_office_photo_disk_dirs(string $city, string $officeName): array
 {
-    $root = th_office_admin_project_root();
     $slug = th_office_admin_office_disk_slug($city, $officeName);
-    $dirs = [
-        $root . DIRECTORY_SEPARATOR . 'frontend' . DIRECTORY_SEPARATOR . 'window'
-            . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'offices'
-            . DIRECTORY_SEPARATOR . $city . DIRECTORY_SEPARATOR . $slug,
-        $root . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'offices'
-            . DIRECTORY_SEPARATOR . $city . DIRECTORY_SEPARATOR . $slug,
-    ];
-    $out = [];
-    foreach ($dirs as $d) {
-        if (!in_array($d, $out, true)) {
-            $out[] = $d;
-        }
-    }
-    return $out;
+    return [th_office_photo_disk_dir($city, $slug, false)];
 }
 
 /** Удаляет файлы изображений в папках офиса (не трогает .gitkeep). Возвращает число удалённых файлов. */
@@ -162,7 +137,6 @@ function th_office_admin_scan_office_photos_on_disk(): array
     $root = str_replace('\\', '/', th_office_admin_project_root());
     $bases = [
         [$root . '/frontend/window/img/offices', '/frontend/window/img/offices'],
-        [$root . '/img/offices', '/img/offices'],
     ];
     $photos = [];
     $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
@@ -288,7 +262,7 @@ function th_office_admin_merge_samara_amex_into_anex_msk(PDO $pdo): void
         $addr = 'г. Самара, Московское шоссе, 81Б';
         $phone = '+7 (846) 255-25-63';
         $email = 'hello@travelhub63.ru';
-        $hours = 'Работа ежедневно с 10:00 до 20:00';
+        $hours = 'пн–сб: 10:00–20:00, вс: 10:00–16:00';
         $desc = 'Офис Anex Tour на Московском шоссе.';
         try {
             $pdo->prepare('UPDATE offices SET name = ?, address = ?, phone = ?, email = ?, working_hours = ?, description = ? WHERE id = ?')
@@ -363,7 +337,7 @@ function th_office_admin_rename_samara_gudok_to_funsun(PDO $pdo): void
     }
 }
 
-/** Оставляет на сайте только актуальные офисы: Самара — 4, Москва — 2. */
+/** Оставляет на сайте только актуальные офисы: Самара — 5, Москва — 2. */
 function th_office_admin_purge_non_public_offices(PDO $pdo): void
 {
     $keep = [
@@ -371,6 +345,7 @@ function th_office_admin_purge_non_public_offices(PDO $pdo): void
             'Fun&Sun',
             'Fun&Sun (ТЦ «Гудок»)',
             'Anex Tour (Московское шоссе, 81Б)',
+            'Anex Tour (ТЦ «Апельсин»)',
             'Coral Travel',
         ],
         'moscow' => [
@@ -476,10 +451,11 @@ function th_office_admin_bootstrap(PDO $pdo): void
     $seed = [
         ['Fun&Sun', 'samara', 'г. Самара, Молл «Парк Хаус», Московское шоссе, 81Б, 2 этаж, рядом с МФЦ', '+7 (846) 254-16-56', 'hello@travelhub63.ru', 'пн–сб: 10:00–20:00, вс: 10:00–16:00', 'Специализация на пляжном отдыхе и семейных турах.'],
         ['Fun&Sun (ТЦ «Гудок»)', 'samara', 'г. Самара, ТЦ «Гудок», ул. Красноармейская, 131 (цокольный этаж, напротив входа в гипермаркет «Лента»)', '+7 (846) 255-01-15', 'hello@travelhub63.ru', 'Пн-Пт: 9:00 - 20:00, Сб-Вс: 10:00 - 18:00', 'Офис Fun&Sun в ТЦ «Гудок». Специализация на пляжном отдыхе и семейных турах.'],
-        ['Anex Tour (Московское шоссе, 81Б)', 'samara', 'г. Самара, Московское шоссе, 81Б', '+7 (846) 255-25-63', 'hello@travelhub63.ru', 'Работа ежедневно с 10:00 до 20:00', 'Офис Anex Tour на Московском шоссе.'],
-        ['Coral Travel', 'samara', 'г. Самара, ТЦ «Эль Рио», Московское шоссе, 205', '+7 (846) 250-03-06', 'hello@travelhub63.ru', 'Пн-Пт: 9:00 - 20:00, Сб-Вс: 10:00 - 18:00', 'Международный туроператор Coral Travel в Самаре.'],
+        ['Anex Tour (Московское шоссе, 81Б)', 'samara', 'г. Самара, Московское шоссе, 81Б', '+7 (846) 255-25-63', 'hello@travelhub63.ru', 'пн–сб: 10:00–20:00, вс: 10:00–16:00', 'Офис Anex Tour на Московском шоссе.'],
+        ['Anex Tour (ТЦ «Апельсин»)', 'samara', 'г. Самара, ТЦ «Апельсин», ул. Ново-Садовая, 305А (1 этаж, офис 105)', '+7 (846) 955-01-70', 'hello@travelhub63.ru', 'ежедневно 10:00–19:00', 'Офис Anex Tour в ТЦ «Апельсин».'],
+        ['Coral Travel', 'samara', 'г. Самара, ТЦ «Эль Рио», Московское шоссе, 205', '+7 (846) 250-03-06', 'hello@travelhub63.ru', 'пн–сб 10:00–20:00, вс 11:00–20:00', 'Международный туроператор Coral Travel в Самаре.'],
         ['Anex Tour', 'moscow', 'г. Москва, Первомайская ул., 42, этаж 1', '+7 (499) 322-02-89', 'moscow@travelhub63.ru', 'Пн-Пт: 9:00 - 21:00, Сб-Вс: 10:00 - 18:00', 'Офис Anex Tour в Москве.'],
-        ['Coral Elite Service', 'moscow', 'г. Москва, Первомайская ул., 42, этаж 1', '+7 (499) 322-02-97', 'moscow@travelhub63.ru', 'Пн-Пт: 9:00 - 21:00, Сб-Вс: 10:00 - 18:00', 'Элитный сервис Coral Elite Service в Москве.'],
+        ['Coral Elite Service', 'moscow', 'г. Москва, Первомайская ул., 42, этаж 1', '+7 (495) 660-36-66', 'moscow@travelhub63.ru', 'ежедневно 10:00–20:00', 'Элитный сервис Coral Elite Service в Москве.'],
     ];
 
     $ins = $pdo->prepare('INSERT INTO offices (name, city, address, phone, email, working_hours, description) VALUES (?, ?, ?, ?, ?, ?, ?)');
@@ -497,10 +473,5 @@ function th_office_admin_bootstrap(PDO $pdo): void
     th_office_admin_merge_samara_amex_into_anex_msk($pdo);
     th_office_admin_remove_samara_parkovaya_office($pdo);
     th_office_admin_rename_samara_gudok_to_funsun($pdo);
-    try {
-        $pdo->exec("DELETE FROM offices WHERE city = 'samara' AND name LIKE '%Апельсин%'");
-    } catch (PDOException $e) {
-        error_log('[offices] remove apelsin: ' . $e->getMessage());
-    }
     th_office_admin_purge_non_public_offices($pdo);
 }

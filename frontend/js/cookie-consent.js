@@ -8,7 +8,8 @@
     var STORAGE_KEY = 'cookie_consent_accepted';
     var COOKIE_NAME = 'cookie_consent_accepted';
     var COOKIE_MAX_AGE_DAYS = 365;
-    var CONSENT_DOC_URL = '/docs/personal-data-consent.docx';
+    var CONSENT_DOC_URL = '/frontend/window/consent.php';
+    var CONSENT_DOCX_URL = '/docs/personal-data-consent.docx';
     var PRIVACY_URL = '/frontend/window/privacy.php';
     var TERMS_URL = '/frontend/window/terms.php';
 
@@ -60,6 +61,8 @@
                     'Продолжая использовать сайт, вы соглашаетесь на обработку персональных данных. ' +
                     '<span class="cookie-consent-banner__links">' +
                     '<a href="' + CONSENT_DOC_URL + '" class="cookie-consent-banner__link" target="_blank" rel="noopener noreferrer">Согласие на обработку ПД</a>' +
+                    '<span class="cookie-consent-banner__sep" aria-hidden="true">·</span>' +
+                    '<a href="' + CONSENT_DOCX_URL + '" class="cookie-consent-banner__link" target="_blank" rel="noopener noreferrer" download>скачать .docx</a>' +
                     '<span class="cookie-consent-banner__sep" aria-hidden="true">·</span>' +
                     '<a href="' + PRIVACY_URL + '" class="cookie-consent-banner__link" target="_blank" rel="noopener noreferrer">Политика конфиденциальности</a>' +
                     '<span class="cookie-consent-banner__sep" aria-hidden="true">·</span>' +

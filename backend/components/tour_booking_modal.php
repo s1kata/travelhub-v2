@@ -23,7 +23,7 @@ $th_booking_csrf = security_csrf_token();
             </label>
             <label class="th-tour-booking-modal__agree">
                 <input type="checkbox" id="th-tb-agree" required>
-                <span>Согласие на обработку персональных данных</span>
+                <span><?php require_once __DIR__ . '/legal_consent_label.php'; echo th_legal_consent_checkbox_html(); ?></span>
             </label>
             <p id="th-tour-booking-msg" class="th-tour-booking-modal__msg hidden"></p>
             <button type="submit" id="th-tb-submit" class="th-tour-card__btn th-tour-card__btn--lead th-tour-booking-modal__submit">Отправить заявку</button>

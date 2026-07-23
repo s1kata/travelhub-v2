@@ -37,32 +37,78 @@ if (isset($_GET['adults']) && (string) $_GET['adults'] !== '') {
     $tour_search_adults = max(1, min(9, (int) $_GET['adults']));
 }
 $tour_search_childs = isset($_GET['childs']) ? trim((string) $_GET['childs']) : '';
+
+function th_child_age_label(int $age): string {
+    static $map = [
+        0 => 'до 2 лет', 2 => '2 года', 3 => '3 года', 4 => '4 года', 5 => '5 лет', 6 => '6 лет',
+        7 => '7 лет', 8 => '8 лет', 9 => '9 лет', 10 => '10 лет', 11 => '11 лет', 12 => '12 лет',
+        13 => '13 лет', 14 => '14 лет', 15 => '15 лет',
+    ];
+    if (isset($map[$age])) {
+        return $map[$age];
+    }
+    if ($age === 1) {
+        return '1 год';
+    }
+    if ($age >= 2 && $age <= 4) {
+        return $age . ' года';
+    }
+    if ($age >= 5 && $age <= 17) {
+        return $age . ' лет';
+    }
+    return (string) $age;
+}
+
+function th_parse_child_ages(string $childs): array {
+    if ($childs === '') {
+        return [];
+    }
+    $ages = [];
+    foreach (explode(',', $childs) as $seg) {
+        $seg = trim($seg);
+        if ($seg === '' || !preg_match('/^-?\d+$/', $seg)) {
+            continue;
+        }
+        $ai = (int) $seg;
+        if ($ai >= 0 && $ai <= 17 && count($ages) < 3) {
+            $ages[] = $ai;
+        }
+    }
+    return $ages;
+}
+
+function th_party_price_label(int $adults, string $childs = ''): string {
+    $a = max(1, $adults);
+    $parts = [$a === 1 ? '1 взрослого' : $a . ' взрослых'];
+    foreach (th_parse_child_ages($childs) as $age) {
+        $parts[] = '1 реб. (' . th_child_age_label($age) . ')';
+    }
+    return 'за ' . implode(' + ', $parts);
+}
+
+function th_party_summary_label(int $adults, string $childs = ''): string {
+    $a = max(1, $adults);
+    $parts = [$a === 1 ? '1 взрослый' : $a . ' взрослых'];
+    foreach (th_parse_child_ages($childs) as $age) {
+        $parts[] = '1 реб. (' . th_child_age_label($age) . ')';
+    }
+    return implode(' + ', $parts);
+}
+
 $tour_tourists_label = '';
 if ($tour_search_adults !== null || $tour_search_childs !== '') {
     $parts_t = [];
     if ($tour_search_adults !== null) {
-        $parts_t[] = $tour_search_adults . ' ' . ($tour_search_adults === 1 ? 'взрослый' : 'взрослых');
+        $parts_t[] = $tour_search_adults === 1 ? '1 взрослый' : $tour_search_adults . ' взрослых';
     }
-    if ($tour_search_childs !== '') {
-        $ages = [];
-        foreach (explode(',', $tour_search_childs) as $seg) {
-            $seg = trim($seg);
-            if ($seg === '' || !preg_match('/^-?\d+$/', $seg)) {
-                continue;
-            }
-            $ai = (int) $seg;
-            if ($ai >= 0 && $ai <= 17) {
-                $ages[] = $ai;
-            }
-        }
-        if ($ages !== []) {
-            $parts_t[] = 'Дети (возраст, лет): ' . implode(', ', $ages);
-        }
+    foreach (th_parse_child_ages($tour_search_childs) as $age) {
+        $parts_t[] = '1 реб. (' . th_child_age_label($age) . ')';
     }
-    $tour_tourists_label = implode(', ', $parts_t);
+    $tour_tourists_label = implode(' + ', $parts_t);
 }
 
 $tour_price_adults_n = ($tour_search_adults !== null) ? $tour_search_adults : 2;
+$tour_price_party_label = th_party_price_label($tour_price_adults_n, $tour_search_childs);
 
 $months_ru = [ 1 => 'января', 2 => 'февраля', 3 => 'марта', 4 => 'апреля', 5 => 'мая', 6 => 'июня', 7 => 'июля', 8 => 'августа', 9 => 'сентября', 10 => 'октября', 11 => 'ноября', 12 => 'декабря' ];
 function format_date_ru($dateStr, $months) {
@@ -331,7 +377,7 @@ if ($return_url !== '' && $return_url[0] === '/') {
                         <span class="th-detail__top-old-price"><?php echo number_format($td_old_price, 0, '', "\xc2\xa0"); ?>&nbsp;₽</span>
                         <?php endif; ?>
                         <span class="th-detail__top-price-main"><?php echo th_tour_price_html($price); ?></span>
-                        <span class="th-detail__top-price-note">за <?php echo (int)$tour_price_adults_n; ?> взрослых</span>
+                        <span class="th-detail__top-price-note"><?php echo htmlspecialchars($tour_price_party_label); ?></span>
                         <?php if ($from_promo): ?><span class="th-detail__promo-label">Акционная цена</span><?php endif; ?>
                     </div>
                     <?php endif; ?>
@@ -407,7 +453,7 @@ if ($return_url !== '' && $return_url[0] === '/') {
                             <?php if ($td_old_price > 0): ?>
                             <span class="th-detail__old-price"><?php echo number_format($td_old_price, 0, '', "\xc2\xa0"); ?>&nbsp;₽</span>
                             <?php endif; ?>
-                            <span class="th-detail__price-label">за <?php echo (int)$tour_price_adults_n; ?> взрослых</span>
+                            <span class="th-detail__price-label"><?php echo htmlspecialchars($tour_price_party_label); ?></span>
                             <span class="th-detail__price" id="tour-detail-hero-price"><?php echo th_tour_price_html($price); ?></span>
                             <span id="tour-detail-hero-price-noimg" style="display:none"></span>
                             <?php if ($from_promo): ?><span class="th-detail__promo-label">Акционная цена</span><?php endif; ?>
@@ -512,7 +558,7 @@ if ($return_url !== '' && $return_url[0] === '/') {
                                 </div>
                                 <label class="flex items-start gap-2 text-sm text-slate-600 cursor-pointer">
                                     <input type="checkbox" id="b-agree-contact" class="mt-1 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
-                                    <span>Согласие на обработку персональных данных и обратный звонок</span>
+                                    <span><?php require_once __DIR__ . '/../../backend/components/legal_consent_label.php'; echo th_legal_consent_checkbox_html(); ?> и обратный звонок</span>
                                 </label>
                                 <div id="booking-modal-msg" class="hidden p-2 rounded-lg text-sm"></div>
                                 <button type="submit" id="booking-submit-btn" class="th-btn-manager-request w-full">
@@ -624,6 +670,28 @@ if ($return_url !== '' && $return_url[0] === '/') {
                 if (!isNaN(n) && n > 0) return n;
             }
             return 0;
+        }
+        /** Актуальная цена из GET /tours/{id}/flights: price + fuelCharge + surcharges. */
+        function thTdFlightsPickPriceNum(flightPkg, info) {
+            if (!flightPkg || typeof flightPkg !== 'object') return 0;
+            var total = 0;
+            if (flightPkg.price != null) {
+                var pv = (flightPkg.price && flightPkg.price.value != null) ? flightPkg.price.value : flightPkg.price;
+                var pn = Number(pv);
+                if (!isNaN(pn) && pn > 0) total += pn;
+            }
+            if (flightPkg.fuelCharge != null) {
+                var fv = (flightPkg.fuelCharge && flightPkg.fuelCharge.value != null) ? flightPkg.fuelCharge.value : flightPkg.fuelCharge;
+                var fn = Number(fv);
+                if (!isNaN(fn) && fn > 0) total += fn;
+            }
+            if (info && info.surcharges && info.surcharges.length) {
+                info.surcharges.forEach(function (s) {
+                    var sn = Number(s && s.amount);
+                    if (!isNaN(sn) && sn > 0) total += sn;
+                });
+            }
+            return total > 0 ? Math.round(total) : 0;
         }
         function normalizeTvImageUrl(src) {
             src = (typeof src === 'string') ? src.trim() : '';
@@ -1118,6 +1186,17 @@ if ($return_url !== '' && $return_url[0] === '/') {
                         parts.push('<div class="hotel-desc">' + safeDesc + '</div>');
                     }
                     var images = collectHotelImagesFromApiData(d, hotelId);
+                    if (d.services && (d.services.child || d.services.free)) {
+                        var childPolicy = [];
+                        if (d.services.child) childPolicy.push(String(d.services.child));
+                        if (d.services.free) childPolicy.push(String(d.services.free));
+                        if (childPolicy.length) {
+                            var cpHtml = childPolicy.map(function (line) {
+                                return thTdFlightEsc(line).replace(/\n/g, '<br>');
+                            }).join('<br>');
+                            parts.unshift('<div class="hotel-child-policy"><strong>Дети</strong><p>' + cpHtml + '</p></div>');
+                        }
+                    }
                     if (d.infrastructure && (d.infrastructure.beach || d.infrastructure.territory)) {
                         function cleanInfra(text) {
                             var s = String(text || '');
@@ -1267,6 +1346,20 @@ if ($return_url !== '' && $return_url[0] === '/') {
                         }).join('');
                     }
                     if (listItemEl) listItemEl.classList.remove('hidden');
+                    if (!fromPromo) {
+                        var flightPriceNum = thTdFlightsPickPriceNum(first, j.info || null);
+                        if (flightPriceNum > 0) {
+                            currentPrice = flightPriceNum;
+                            tdPriceBeforePromo = flightPriceNum;
+                            appliedPromoCode = '';
+                            var pmFl = document.getElementById('th-td-promo-msg');
+                            if (pmFl) {
+                                pmFl.classList.add('hidden');
+                                pmFl.textContent = '';
+                            }
+                            updateCtaPrice();
+                        }
+                    }
                 })
                 .catch(function() { thTdFlightManagerFallback(); });
         }
@@ -1371,6 +1464,9 @@ if ($return_url !== '' && $return_url[0] === '/') {
                 currentPrice = newP;
                 appliedPromoCode = raw.toUpperCase();
                 if (promoInput && !opts.skipInputSync) promoInput.value = appliedPromoCode;
+                if (promoApi && typeof promoApi.markCodeUsed === 'function') {
+                    promoApi.markCodeUsed(appliedPromoCode);
+                }
                 updateCtaPrice();
                 tdShowPromoMsg('Промокод применён: ' + appliedPromoCode + '. Скидка учтена в цене.', false);
                 return true;

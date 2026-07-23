@@ -239,6 +239,7 @@
     syncHomeFunnel();
     syncStickyPad();
     syncModalLock();
+    pinFixedBottomsForYandex();
   }
 
   var scheduled = false;
@@ -273,16 +274,82 @@
     });
   }
 
+  var pinBottomSelectors = [
+    '.th-site-lead-bar',
+    '.th-results-sticky-lead.is-visible',
+    '#promo-results-sticky-lead.is-visible',
+    '#promo-sticky-cta',
+    '.th-detail__mobile-sticky:not([hidden])',
+    '#th-detail-mobile-sticky:not(.hidden)',
+    '#mobile-sticky-cta.is-visible'
+  ];
+
   /**
-   * Яндекс.Браузер: fixed-бары иногда «уезжают» при скролле адресной строки.
-   * Подтягиваем bottom к visualViewport.
+   * Мобильные браузеры (особенно Яндекс): position:fixed; bottom:0 «плавает» при скролле.
+   * Подтягиваем нижние CTA к низу visualViewport.
    */
   function pinFixedBottomsForYandex() {
-    if (!isYandex() || !isMobile()) return;
-    if (!window.visualViewport) return;
+    if (!isMobile()) return;
     var vv = window.visualViewport;
-    var gap = Math.max(0, (window.innerHeight || 0) - (vv.height || 0) - (vv.offsetTop || 0));
-    root.style.setProperty('--th-yandex-fixed-gap', Math.round(gap) + 'px');
+    if (!vv) {
+      root.style.setProperty('--th-yandex-fixed-gap', '0px');
+      return;
+    }
+
+    var layoutH = window.innerHeight || document.documentElement.clientHeight || 0;
+    var chromeInset = Math.max(0, layoutH - (vv.offsetTop || 0) - (vv.height || layoutH));
+    chromeInset = Math.min(chromeInset, 72);
+    root.style.setProperty('--th-yandex-fixed-gap', Math.round(chromeInset) + 'px');
+
+    pinBottomSelectors.forEach(function (sel) {
+      var nodes = document.querySelectorAll(sel);
+      for (var i = 0; i < nodes.length; i++) {
+        var el = nodes[i];
+        if (!elVisible(el)) continue;
+        if (el.classList.contains('th-site-lead-bar')) {
+          var body = document.body;
+          if (body && (
+            body.classList.contains('th-sticky-cta-active') ||
+            body.classList.contains('has-results-sticky')
+          )) continue;
+          if (document.querySelector('.th-results-sticky-lead.is-visible')) continue;
+          if (body.classList.contains('th-home-funnel-top') &&
+            !body.classList.contains('th-wizard-lead-visible')) {
+            el.style.removeProperty('top');
+            el.style.removeProperty('bottom');
+            continue;
+          }
+        }
+        var rect = el.getBoundingClientRect();
+        var h = rect.height || el.offsetHeight || 0;
+        if (h <= 0) continue;
+        var top = (vv.offsetTop || 0) + (vv.height || layoutH) - h;
+        el.style.setProperty('top', Math.round(top) + 'px', 'important');
+        el.style.setProperty('bottom', 'auto', 'important');
+        el.style.setProperty('position', 'fixed', 'important');
+        el.style.setProperty('left', '0', 'important');
+        el.style.setProperty('right', '0', 'important');
+        el.style.setProperty('transform', 'none', 'important');
+      }
+    });
+
+    var abandon = document.getElementById('th-abandon-sheet');
+    if (abandon && !abandon.classList.contains('hidden') && elVisible(abandon)) {
+      var panel = abandon.querySelector('.th-abandon-sheet__panel');
+      if (panel) {
+        var ph = panel.getBoundingClientRect().height || panel.offsetHeight || 0;
+        if (ph > 0) {
+          panel.style.setProperty('position', 'fixed', 'important');
+          panel.style.setProperty('left', '0', 'important');
+          panel.style.setProperty('right', '0', 'important');
+          panel.style.setProperty('bottom', 'auto', 'important');
+          panel.style.setProperty('top', Math.round((vv.offsetTop || 0) + (vv.height || layoutH) - ph) + 'px', 'important');
+          panel.style.setProperty('width', '100%', 'important');
+          panel.style.setProperty('max-width', '100%', 'important');
+          panel.style.setProperty('margin', '0', 'important');
+        }
+      }
+    }
   }
 
   function bind() {
@@ -355,6 +422,7 @@
 
   window.THMobile = {
     sync: syncAll,
+    pinFixedBottoms: pinFixedBottomsForYandex,
     isMobile: isMobile,
     isYandex: isYandex,
     isHomeFunnelTop: function () {

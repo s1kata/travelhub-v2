@@ -129,6 +129,7 @@
                     '<i class="fas fa-info-circle" aria-hidden="true"></i> ' +
                     'Промокоды скоро появятся в приложении. Сейчас скидка действует только на сайте travelhub63.ru.' +
                 '</p>' +
+                '<p class="th-promo-popup__cap th-app-thanks__cap">Скидка по промокоду — не более 5000 ₽</p>' +
                 '<a href="/frontend/window/promotions.php" class="th-app-thanks__cta">Смотреть горящие туры</a>' +
             '</div>';
 

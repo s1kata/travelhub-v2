@@ -9,9 +9,40 @@
 
     var LS_APP_UNLOCK = 'th_app_promo_unlocked';
     var SS_PENDING = 'th_pending_promo_code';
+    var LS_USED_CODES = 'th_promo_used_codes';
 
     function norm(code) {
         return String(code || '').trim().toUpperCase();
+    }
+
+    function getUsedCodesMap() {
+        try {
+            var raw = localStorage.getItem(LS_USED_CODES);
+            if (!raw) return {};
+            var parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function isCodeUsed(code) {
+        var u = norm(code);
+        if (!u) return false;
+        return !!getUsedCodesMap()[u];
+    }
+
+    function markCodeUsed(code) {
+        var u = norm(code);
+        if (!u || isCodeUsed(u)) return;
+        var used = getUsedCodesMap();
+        used[u] = Date.now();
+        try {
+            localStorage.setItem(LS_USED_CODES, JSON.stringify(used));
+        } catch (e) {}
+        if (window.TH_PROMO && typeof window.TH_PROMO.onCodeUsed === 'function') {
+            window.TH_PROMO.onCodeUsed(u);
+        }
     }
 
     function isAppPromoUnlocked() {
@@ -27,6 +58,7 @@
     function getPromoPct(code) {
         var u = norm(code);
         if (!u) return 0;
+        if (isCodeUsed(u)) return 0;
         if (u === 'TRAVELAPP') {
             return isAppPromoUnlocked() ? 10 : 0;
         }
@@ -60,6 +92,9 @@
 
     function invalidMessage(code) {
         var u = norm(code);
+        if (isCodeUsed(u)) {
+            return 'Этот промокод уже был использован';
+        }
         if (u === 'TRAVELAPP') {
             return 'Сначала нажмите «Скачать в App Store» на главной — промокод выдаётся после перехода';
         }
@@ -91,6 +126,8 @@
         maxDiscount: maxDiscount,
         calcPriceAfterPromo: calcPriceAfterPromo,
         invalidMessage: invalidMessage,
+        isCodeUsed: isCodeUsed,
+        markCodeUsed: markCodeUsed,
         isAppPromoUnlocked: isAppPromoUnlocked,
         setPendingCode: setPendingCode,
         takePendingCode: takePendingCode,

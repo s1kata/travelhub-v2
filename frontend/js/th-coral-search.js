@@ -92,9 +92,13 @@
                 '<i class="fas fa-search th-search-choice-sheet__search-ico" aria-hidden="true"></i>' +
                 '<input type="search" placeholder="' + (type === 'country' ? 'Найти страну…' : 'Найти город…') + '" autocomplete="off" data-th-search-input="' + type + '">' +
                 '</div>' +
+                '<div class="th-search-choice-sheet__body">' +
                 '<div class="th-search-choice-sheet__list" data-th-list="' + type + '"></div>' +
-                '<button type="button" class="th-search-choice-sheet__apply" data-th-choice-apply="' + type + '">' +
-                '<i class="fas fa-check" aria-hidden="true"></i> Применить</button>' +
+                '</div>' +
+                (type === 'departure'
+                    ? '<button type="button" class="th-search-choice-sheet__apply" data-th-choice-apply="' + type + '">' +
+                      '<i class="fas fa-check" aria-hidden="true"></i> Применить</button>'
+                    : '') +
                 '</div>';
             document.body.appendChild(sheet);
             sheet.querySelector('[data-th-search-input="' + type + '"]').addEventListener('input', function () {
@@ -141,7 +145,9 @@
                 '<i class="fas fa-times" aria-hidden="true"></i></button>' +
                 '</div>' +
                 searchBlock +
+                '<div class="th-search-choice-sheet__body">' +
                 '<div class="th-search-choice-sheet__list" data-th-filter-list="' + type + '"></div>' +
+                '</div>' +
                 '<button type="button" class="th-search-choice-sheet__apply" data-th-filter-apply="' + type + '">' +
                 '<i class="fas fa-check" aria-hidden="true"></i> Применить</button>' +
                 '</div>';
@@ -217,7 +223,7 @@
         this.closeFilter(type, false);
     };
 
-    THSearchUI.prototype.openFilter = function (type) {
+    THSearchUI.prototype._openFilterSheet = function (type) {
         var sheet = document.getElementById('th-search-' + type + '-sheet');
         var sel = this.getFilterSelect(type);
         if (!sheet || !sel) return;
@@ -236,6 +242,18 @@
             inp.value = '';
             setTimeout(function () { try { inp.focus(); } catch (e) {} }, 80);
         }
+    };
+
+    THSearchUI.prototype.openFilter = function (type) {
+        var self = this;
+        if (type === 'region') {
+            var regionSel = this.getFilterSelect('region');
+            if (regionSel && regionSel.options.length <= 1 && typeof window.loadTvRegions === 'function') {
+                window.loadTvRegions().finally(function () { self._openFilterSheet(type); });
+                return;
+            }
+        }
+        this._openFilterSheet(type);
     };
 
     THSearchUI.prototype.closeFilter = function (type, revert) {
@@ -299,7 +317,13 @@
         var filterQ = searchInp ? searchInp.value : filter;
         listEl.querySelectorAll('.th-search-choice-sheet__item').forEach(function (btn) {
             btn.addEventListener('click', function () {
-                self.choiceDraft[type] = btn.getAttribute('data-id');
+                var id = btn.getAttribute('data-id');
+                if (!id) return;
+                self.choiceDraft[type] = id;
+                if (type === 'country' || type === 'departure') {
+                    self.commitChoice(type);
+                    return;
+                }
                 self.renderChoiceList(type, filterQ);
             });
         });

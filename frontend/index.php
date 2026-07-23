@@ -143,19 +143,19 @@ $current_page = 'home';
     <link rel="stylesheet" href="/frontend/css/redesign.css?v=31">
     <link rel="stylesheet" href="/frontend/css/v2-theme.css?v=4">
     <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=11">
-    <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=8">
+    <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=14">
     <link rel="stylesheet" href="/frontend/css/th-hard-funnel.css?v=4">
-    <link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=7">
+    <link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=8">
     <link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=5">
     <link rel="stylesheet" href="/frontend/css/yandex-mobile.css?v=6">
-    <link rel="stylesheet" href="/frontend/css/pages/home.css?v=6">
-    <link rel="stylesheet" href="/frontend/css/th-sheet.css?v=2">
+    <link rel="stylesheet" href="/frontend/css/pages/home.css?v=7">
+    <link rel="stylesheet" href="/frontend/css/th-sheet.css?v=7">
     <?php include __DIR__ . '/../backend/components/mobile_site_head.php'; ?>
     <link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=2">
     <script>window.__TH_YM_ID=<?php echo json_encode((string)$th_ym_id, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
     <script src="/frontend/js/v2-theme.js?v=1" defer></script>
-    <script src="/frontend/js/tour-search-wizard.js?v=13" defer></script>
-    <script src="/frontend/js/th-coral-search.js?v=8" defer></script>
+    <script src="/frontend/js/tour-search-wizard.js?v=15" defer></script>
+    <script src="/frontend/js/th-coral-search.js?v=11" defer></script>
     <script src="/frontend/js/th-lead-capture.js?v=2" defer></script>
     <script src="/frontend/js/th-mobile.js?v=13" defer></script>
     <script src="/frontend/js/th-modal.js?v=2" defer></script>
@@ -187,7 +187,7 @@ $current_page = 'home';
                 <p>Поиск занимает дольше обычного — можно подождать<br>или оставить телефон, менеджер подберёт тур.</p>
                 <form id="tv-loader-lead-form" class="tv-search-loader-slow__form">
                     <input type="tel" name="phone" required class="tv-search-loader-slow__input" placeholder="+7 (___) ___-__-__" autocomplete="tel">
-                    <label class="tv-search-loader-slow__agree"><input type="checkbox" name="agree" checked required> Согласие на обработку данных</label>
+                    <label class="tv-search-loader-slow__agree"><input type="checkbox" name="agree" checked required> <?php require_once __DIR__ . '/../../backend/components/legal_consent_label.php'; echo th_legal_consent_checkbox_html(); ?></label>
                     <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;height:0;width:0">
                     <p id="tv-loader-lead-msg" class="tv-search-loader-slow__msg hidden"></p>
                     <button type="submit" class="tv-search-loader-slow__submit"><i class="fas fa-headset" aria-hidden="true"></i>Подобрать за меня</button>
@@ -229,13 +229,13 @@ $current_page = 'home';
                     Найдите тур за минуту
                 </h1>
                 <p class="text-[15px] sm:text-lg text-white/90 max-w-xl mx-auto leading-relaxed drop-shadow-[0_1px_12px_rgba(0,0,0,0.35)]">
-                    Куда · когда · ночи · туристы · откуда
+                    Откуда · куда · даты · ночи · туристы
                 </p>
             </div>
 
             <!-- ===================================================
                  CORAL-STYLE ПОЭТАПНЫЙ ПОИСК (#tv-* для Tourvisor)
-                 5 шагов: Куда → Когда → Ночи → Туристы → Откуда
+                 5 шагов: Откуда → Куда → Когда → Ночи → Туристы
                  =================================================== -->
             <div id="tour-search-section" class="tv-sc-shell th-coral-search th-coral-wizard th-wizard w-full" data-th-wizard="home" data-step="1" data-start-step="1">
                 <?php
@@ -247,24 +247,24 @@ $current_page = 'home';
 
                 <nav class="th-coral-wizard__rail" aria-label="Шаги поиска">
                     <button type="button" class="th-coral-wizard__rail-item is-active" data-thw-goto="1" aria-current="step">
+                        <span class="th-coral-search__label">Откуда</span>
+                        <span class="th-coral-wizard__rail-value" data-th-label="departure"><?php echo $th_def_dep_name; ?></span>
+                    </button>
+                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="2">
                         <span class="th-coral-search__label">Куда</span>
                         <span class="th-coral-wizard__rail-value is-placeholder" data-th-label="country">Страна</span>
                     </button>
-                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="2">
+                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="3">
                         <span class="th-coral-search__label">Когда</span>
                         <span class="th-coral-wizard__rail-value is-placeholder" data-th-label="dates">Даты</span>
                     </button>
-                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="3">
+                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="4">
                         <span class="th-coral-search__label">Ночи</span>
                         <span class="th-coral-wizard__rail-value" data-th-label="nights">6–9 ночей</span>
                     </button>
-                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="4">
+                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="5">
                         <span class="th-coral-search__label">Туристы</span>
                         <span class="th-coral-wizard__rail-value" data-th-label="tourists">2 взрослых</span>
-                    </button>
-                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="5">
-                        <span class="th-coral-search__label">Откуда</span>
-                        <span class="th-coral-wizard__rail-value" data-th-label="departure"><?php echo $th_def_dep_name; ?></span>
                     </button>
                 </nav>
 
@@ -272,7 +272,7 @@ $current_page = 'home';
                     <div class="th-wizard__stepbar-track" aria-hidden="true">
                         <span class="th-wizard__stepbar-fill" data-thw-progress style="width:20%"></span>
                     </div>
-                    <p class="th-wizard__stepbar-label" id="th-wizard-step-label">1 из 5 · Куда</p>
+                    <p class="th-wizard__stepbar-label" id="th-wizard-step-label">1 из 5 · Откуда</p>
                 </div>
 
                 <nav class="th-wizard__progress sr-only" aria-label="Шаги поиска">
@@ -285,10 +285,10 @@ $current_page = 'home';
 
                 <div class="th-wizard__panels">
                     <div class="th-wizard__panel is-active" data-panel="1">
-                        <button type="button" class="th-coral-search__field th-coral-search__field--step" data-th-search-open="country" aria-label="Куда">
+                        <button type="button" class="th-coral-search__field th-coral-search__field--step" data-th-search-open="departure" aria-label="Откуда">
                             <span class="th-coral-search__field-inner">
-                                <span class="th-coral-search__label">Куда</span>
-                                <span class="th-coral-search__value is-placeholder" data-th-label="country">Выберите страну</span>
+                                <span class="th-coral-search__label">Откуда</span>
+                                <span class="th-coral-search__value" data-th-label="departure"><?php echo $th_def_dep_name; ?></span>
                             </span>
                             <i class="fas fa-chevron-right th-coral-search__chevron" aria-hidden="true"></i>
                         </button>
@@ -299,6 +299,20 @@ $current_page = 'home';
                     </div>
 
                     <div class="th-wizard__panel" data-panel="2" hidden>
+                        <button type="button" class="th-coral-search__field th-coral-search__field--step" data-th-search-open="country" aria-label="Куда">
+                            <span class="th-coral-search__field-inner">
+                                <span class="th-coral-search__label">Куда</span>
+                                <span class="th-coral-search__value is-placeholder" data-th-label="country">Выберите страну</span>
+                            </span>
+                            <i class="fas fa-chevron-right th-coral-search__chevron" aria-hidden="true"></i>
+                        </button>
+                        <div class="th-wizard__nav">
+                            <button type="button" class="th-wizard__back" data-thw-back>Назад</button>
+                            <button type="button" class="th-wizard__next" data-thw-next>Далее</button>
+                        </div>
+                    </div>
+
+                    <div class="th-wizard__panel" data-panel="3" hidden>
                         <button type="button" class="th-coral-search__field th-coral-search__field--step" data-th-search-open="dates" aria-label="Когда">
                             <span class="th-coral-search__field-inner">
                                 <span class="th-coral-search__label">Когда</span>
@@ -312,7 +326,7 @@ $current_page = 'home';
                         </div>
                     </div>
 
-                    <div class="th-wizard__panel" data-panel="3" hidden>
+                    <div class="th-wizard__panel" data-panel="4" hidden>
                         <button type="button" class="th-coral-search__field th-coral-search__field--step" data-th-search-open="nights" aria-label="Сколько ночей">
                             <span class="th-coral-search__field-inner">
                                 <span class="th-coral-search__label">Ночей</span>
@@ -326,25 +340,11 @@ $current_page = 'home';
                         </div>
                     </div>
 
-                    <div class="th-wizard__panel" data-panel="4" hidden>
+                    <div class="th-wizard__panel" data-panel="5" hidden>
                         <button type="button" class="th-coral-search__field th-coral-search__field--step" data-th-search-open="tourists" aria-label="Туристы">
                             <span class="th-coral-search__field-inner">
                                 <span class="th-coral-search__label">Туристы</span>
                                 <span class="th-coral-search__value" data-th-label="tourists">2 взрослых</span>
-                            </span>
-                            <i class="fas fa-chevron-right th-coral-search__chevron" aria-hidden="true"></i>
-                        </button>
-                        <div class="th-wizard__nav">
-                            <button type="button" class="th-wizard__back" data-thw-back>Назад</button>
-                            <button type="button" class="th-wizard__next" data-thw-next>Далее</button>
-                        </div>
-                    </div>
-
-                    <div class="th-wizard__panel" data-panel="5" hidden>
-                        <button type="button" class="th-coral-search__field th-coral-search__field--step" data-th-search-open="departure" aria-label="Откуда">
-                            <span class="th-coral-search__field-inner">
-                                <span class="th-coral-search__label">Откуда</span>
-                                <span class="th-coral-search__value" data-th-label="departure"><?php echo $th_def_dep_name; ?></span>
                             </span>
                             <i class="fas fa-chevron-right th-coral-search__chevron" aria-hidden="true"></i>
                         </button>
@@ -403,10 +403,6 @@ $current_page = 'home';
                                 </select>
                             </div>
                         </div>
-                        <button type="button" class="th-coral-wizard__filters-advanced" id="th-wizard-open-filters">
-                            <i class="fas fa-cog" aria-hidden="true"></i>
-                            Бюджет и услуги отеля
-                        </button>
                         <button type="button" id="tv-filters-modal-open" class="sr-only" aria-hidden="true" tabindex="-1"
                                 aria-haspopup="dialog" aria-controls="tv-filters-modal" aria-expanded="false">Фильтры</button>
                     </div>
@@ -444,11 +440,19 @@ $current_page = 'home';
                 <div class="tv-sc-row th-wizard__legacy-fields" id="tv-sc-main-row" aria-hidden="true"></div>
 
                 <!-- ─── ПОПАП: ТУРИСТЫ ─── -->
-                <div id="tv-tourists-block" class="hidden tv-sc-tourists-popup">
-                    <div class="tv-sc-popup-hd">
-                        <span class="tv-sc-popup-title">Туристы</span>
-                        <button type="button" id="tv-tourists-close-btn" class="tv-sc-x-btn" aria-label="Закрыть">✕</button>
-                    </div>
+                <div id="tv-tourists-block" class="th-coral-popup th-coral-tourists-popup hidden" role="dialog" aria-label="Туристы" aria-modal="true">
+                    <div class="th-coral-popup__backdrop" data-tv-tourists-close></div>
+                    <div class="th-coral-popup__panel">
+                        <div class="th-coral-popup__head">
+                            <div class="th-coral-popup__head-main">
+                                <span class="th-coral-popup__eyebrow">Travel Hub</span>
+                                <span class="th-coral-popup__title">Туристы</span>
+                            </div>
+                            <button type="button" id="tv-tourists-close-btn" class="th-coral-popup__close" data-tv-tourists-close aria-label="Закрыть">
+                                <i class="fas fa-times" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <div class="th-coral-popup__body">
                     <div class="tv-sc-counter-row">
                         <span class="tv-sc-counter-label">Взрослые</span>
                         <div class="tv-sc-counter-ctrl">
@@ -473,28 +477,36 @@ $current_page = 'home';
                         <input type="checkbox" id="tv-remember-tourists">
                         <span>Запомнить</span>
                     </label>
-                    <button type="button" id="tv-tourists-apply" class="tv-sc-apply-btn">
-                        <i class="fas fa-check mr-1"></i>Применить
+                        </div>
+                    <button type="button" id="tv-tourists-apply" class="th-coral-popup__apply">
+                        <i class="fas fa-check" aria-hidden="true"></i> Применить
                     </button>
+                    </div>
                 </div>
 
                 <!-- ─── ПОПАП: ДАТЫ ─── -->
-                <div id="tv-sc-date-popup" class="tv-sc-date-popup tv-sc-date-popup--v2 tv-sc-date-popup--cal-only" style="display:none"
+                <div id="tv-sc-date-popup" class="th-coral-popup th-coral-date-popup hidden"
                      role="dialog" aria-label="Когда вылетаете" aria-modal="true">
-                    <div class="tv-sc-popup-hd">
-                        <div class="tv-sc-popup-hd__text">
-                            <span class="tv-sc-popup-title">Когда вылетаете?</span>
-                            <p class="tv-sc-popup-sub">Период возможного вылета</p>
+                    <div class="th-coral-popup__backdrop" data-sc-close="tv-sc-date-popup"></div>
+                    <div class="th-coral-popup__panel">
+                        <div class="th-coral-popup__head">
+                            <div class="th-coral-popup__head-main">
+                                <span class="th-coral-popup__eyebrow">Travel Hub</span>
+                                <span class="th-coral-popup__title">Когда вылетаете?</span>
+                            </div>
+                            <button type="button" class="th-coral-popup__close" data-sc-close="tv-sc-date-popup" aria-label="Закрыть">
+                                <i class="fas fa-times" aria-hidden="true"></i>
+                            </button>
                         </div>
-                        <button type="button" class="tv-sc-x-btn"
-                                data-sc-close="tv-sc-date-popup" aria-label="Закрыть">✕</button>
-                    </div>
-                    <p id="tv-sc-dates-preview" class="tv-sc-dates-preview" aria-live="polite"></p>
-                    <div id="tv-sc-cal-panel" class="tv-sc-cal-panel">
-                        <p id="tv-sc-dates-step" class="tv-sc-dates-step" aria-live="polite">Выберите период вылета (от и до)</p>
-                        <div id="tv-sc-cal-container" class="tv-sc-cal-container"></div>
-                        <button type="button" id="tv-sc-dates-apply" class="tv-sc-apply-btn tv-sc-apply-btn--sticky">
-                            <i class="fas fa-check mr-1" aria-hidden="true"></i>Применить
+                        <div class="th-coral-popup__body">
+                            <p id="tv-sc-dates-preview" class="th-coral-popup__preview" aria-live="polite"></p>
+                            <p id="tv-sc-dates-step" class="th-coral-popup__hint" aria-live="polite">Выберите период вылета (от и до)</p>
+                            <div id="tv-sc-cal-panel" class="tv-sc-cal-panel">
+                                <div id="tv-sc-cal-container" class="tv-sc-cal-container"></div>
+                            </div>
+                        </div>
+                        <button type="button" id="tv-sc-dates-apply" class="th-coral-popup__apply">
+                            <i class="fas fa-check" aria-hidden="true"></i> Применить
                         </button>
                     </div>
                 </div>
@@ -511,7 +523,7 @@ $current_page = 'home';
                         </div>
                         <label class="flex items-start gap-2 text-xs text-white/90 cursor-pointer">
                             <input type="checkbox" name="agree" required class="mt-0.5 rounded border-white/40">
-                            <span>Согласие на обработку персональных данных</span>
+                            <span><?php require_once __DIR__ . '/../../backend/components/legal_consent_label.php'; echo th_legal_consent_checkbox_html(); ?></span>
                         </label>
                         <input type="text" name="website" class="absolute opacity-0 pointer-events-none w-px h-px overflow-hidden" tabindex="-1" autocomplete="off" aria-hidden="true">
                         <button type="submit" class="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 text-sm transition-colors">Отправить</button>
@@ -688,6 +700,7 @@ $current_page = 'home';
                         <i class="fas fa-info-circle" aria-hidden="true"></i>
                         Действует на сайте без таймера. В приложении промокоды появятся позже.
                     </p>
+                    <p class="th-app-banner-note__disclaimer th-app-banner-note__disclaimer--compact" style="margin-top:4px">Скидка по промокоду — не более 5000 ₽</p>
                 </div>
             </div>
         </div>
@@ -1173,15 +1186,8 @@ $current_page = 'home';
             var dispEl = document.getElementById('tv-sc-dates-display');
             if (dispEl) {
                 var pad = function (n) { return String(n).padStart(2, '0'); };
-                var range = pad(d0.getDate()) + '.' + pad(d0.getMonth() + 1) + '–' +
+                dispEl.textContent = pad(d0.getDate()) + '.' + pad(d0.getMonth() + 1) + '–' +
                     pad(d1.getDate()) + '.' + pad(d1.getMonth() + 1);
-                var nf = typeof tvNightsFrom !== 'undefined' ? tvNightsFrom : TV_DEFAULT_NIGHTS_FROM;
-                var nt = typeof tvNightsTo !== 'undefined' ? tvNightsTo : TV_DEFAULT_NIGHTS_TO;
-                if (nf === nt) {
-                    dispEl.textContent = range + ' · ' + tvNightsWord(nf);
-                } else {
-                    dispEl.textContent = range + ' · ' + nf + '–' + nt + ' ночей';
-                }
             }
             try {
                 if (window.THTourSearchWizard && typeof window.THTourSearchWizard.refreshSummary === 'function') {
@@ -1246,7 +1252,7 @@ $current_page = 'home';
             if (dispEl) {
                 var pad = function (n) { return String(n).padStart(2, '0'); };
                 dispEl.textContent = pad(d0.getDate()) + '.' + pad(d0.getMonth() + 1) + '–' +
-                    pad(d1.getDate()) + '.' + pad(d1.getMonth() + 1) + ' · ' + tvNightsWord(nights);
+                    pad(d1.getDate()) + '.' + pad(d1.getMonth() + 1);
             }
             try {
                 if (window.THTourSearchWizard && typeof window.THTourSearchWizard.refreshSummary === 'function') {
@@ -1258,7 +1264,7 @@ $current_page = 'home';
 
         function advanceWizardAfterDates() {
             try {
-                if (window.THTourSearchWizard && window.THTourSearchWizard.step === 2) {
+                if (window.THTourSearchWizard && window.THTourSearchWizard.step === 3) {
                     window.THTourSearchWizard.go(3);
                 }
             } catch (eAdv) {}
@@ -1266,6 +1272,39 @@ $current_page = 'home';
         /** Состав туристов для поиска и карточек: должен быть вне DOMContentLoaded — performTvSearch/renderTvResults вызываются снаружи */
         var tvAdultsCount = 2;
         var tvChildrenAges = [];
+        function tvChildAgesForSearch() {
+            if (!tvChildrenAges || !tvChildrenAges.length) return [];
+            return tvChildrenAges.slice(0, 3).map(function (a) {
+                var n = parseInt(a, 10);
+                if (isNaN(n)) n = 0;
+                return Math.max(0, Math.min(17, n));
+            });
+        }
+        function tvChildsParam() {
+            var ages = tvChildAgesForSearch();
+            return ages.length ? ages.join(',') : '';
+        }
+        function tvPartyPriceLabel(adults) {
+            var a = Math.max(1, parseInt(adults, 10) || 2);
+            if (window.THTourCard && typeof window.THTourCard.partyPriceLabel === 'function') {
+                return window.THTourCard.partyPriceLabel(a, tvChildAgesForSearch());
+            }
+            var parts = [(a === 1 ? '1 взрослого' : a + ' взрослых')];
+            tvChildAgesForSearch().forEach(function (age) {
+                var lbl = (window.THTourCard && window.THTourCard.childAgeLabel)
+                    ? window.THTourCard.childAgeLabel(age)
+                    : ('возраст ' + age);
+                parts.push('1 реб. (' + lbl + ')');
+            });
+            return 'за ' + parts.join(' + ');
+        }
+        function tvPartySummaryLabel(adults) {
+            var a = Math.max(1, parseInt(adults, 10) || 2);
+            if (window.THTourCard && typeof window.THTourCard.partySummaryLabel === 'function') {
+                return window.THTourCard.partySummaryLabel(a, tvChildAgesForSearch());
+            }
+            return tvPartyPriceLabel(a).replace(/^за /, '');
+        }
         document.addEventListener('DOMContentLoaded', async function() {
             var depPopup = document.getElementById('tv-departure-popup');
             var countryPopup = document.getElementById('tv-country-popup');
@@ -1510,8 +1549,6 @@ $current_page = 'home';
                 window.THSearchUI.refreshFilterLabels();
             }
 
-            regionSel.innerHTML = '<option value="">Любой</option>';
-
             if (rCountries.success && Array.isArray(rCountries.data)) {
                 countriesList = sortCountriesWithDefaultFirst(rCountries.data);
             }
@@ -1675,37 +1712,54 @@ $current_page = 'home';
                     console.warn('[API → сайт] Расширенные фильтры: API не вернул данные для countryId', countryId);
                 }
             }
-            countrySel.addEventListener('change', async function() {
-                const cid = this.value;
-                const did = depSel.value;
+            async function loadTvRegions() {
+                if (!regionSel) return;
+                const cid = countrySel ? String(countrySel.value || '').trim() : '';
+                if (!cid) {
+                    regionSel.innerHTML = '<option value="">Любой</option>';
+                    if (window.THSearchUI && typeof window.THSearchUI.refreshFilterLabels === 'function') {
+                        window.THSearchUI.refreshFilterLabels();
+                    }
+                    return;
+                }
                 regionSel.innerHTML = '<option value="">Загрузка...</option>';
-                if (!cid || !did) { regionSel.innerHTML = '<option value="">Любой</option>'; datesInp.placeholder = 'Период'; return; }
                 let rReg = await tvFetch('regions', { countryId: cid });
-                if (!rReg.success && (!rReg.error || String(rReg.error).indexOf('timeout') >= 0 || String(rReg.error).indexOf('failed') >= 0)) {
-                    await new Promise(r => setTimeout(r, 800));
+                if (!rReg.success || !Array.isArray(rReg.data) || rReg.data.length === 0) {
+                    await new Promise(function (r) { setTimeout(r, 700); });
                     rReg = await tvFetch('regions', { countryId: cid });
                 }
                 if (rReg.success && Array.isArray(rReg.data) && rReg.data.length > 0) {
-                    regionSel.innerHTML = '<option value="">Любой</option>' + rReg.data.map(r =>
-                        `<option value="${r.id}">${r.name || ''}</option>`
-                    ).join('');
+                    regionSel.innerHTML = '<option value="">Любой</option>' + rReg.data.map(function (r) {
+                        return '<option value="' + r.id + '">' + (r.name || '') + '</option>';
+                    }).join('');
                     console.log('%c[API → сайт] Данные с API применены: курорты', 'color: #22c55e', rReg.data.length, 'курортов для countryId', cid);
-                    console.log('[Фильтры] regions:', rReg.data.length, 'записей для countryId', cid);
                 } else {
                     regionSel.innerHTML = '<option value="">Любой</option>';
-                    console.warn('[API → сайт] Курорты: пусто или ошибка, оставлен «Любой»');
-                    console.log('[Фильтры] Ошибка regions:', rReg.error || 'пустой ответ', '— курорты временно недоступны');
+                    console.warn('[API → сайт] Курорты: пусто или ошибка, оставлен «Любой»', rReg && rReg.error ? rReg.error : '');
                 }
                 if (window.THSearchUI && typeof window.THSearchUI.refreshFilterLabels === 'function') {
                     window.THSearchUI.refreshFilterLabels();
                 }
-                loadAdvancedFilters(cid);
+            }
+            window.loadTvRegions = loadTvRegions;
+
+            countrySel.addEventListener('change', async function() {
+                await loadTvRegions();
                 applyDefaultDateWindow();
             });
-            if (countrySel.value) loadAdvancedFilters(countrySel.value);
+            if (depSel) {
+                depSel.addEventListener('change', function () {
+                    if (countrySel && countrySel.value) loadTvRegions();
+                });
+            }
+            if (countrySel.value) {
+                loadTvRegions();
+            }
 
             function onSearchBtnClick() {
-                if (window.THTourSearchWizard && typeof window.THTourSearchWizard.validateCurrent === 'function') {
+                if (window.THTourSearchWizard && typeof window.THTourSearchWizard.validateSearchReady === 'function') {
+                    if (!window.THTourSearchWizard.validateSearchReady()) return;
+                } else if (window.THTourSearchWizard && typeof window.THTourSearchWizard.validateCurrent === 'function') {
                     if (!window.THTourSearchWizard.validateCurrent()) return;
                 }
                 if (typeof performTvSearch === 'function') {
@@ -1820,22 +1874,29 @@ $current_page = 'home';
                 updateTvNightsDraftHint();
                 renderTvNightsGrid(true);
                 if (tvNightsPopup) {
+                    tvNightsPopup.style.zIndex = '10260';
                     tvNightsPopup.classList.remove('hidden');
                     tvNightsPopup.classList.add('is-open');
                     tvNightsPopup.style.display = 'flex';
                     tvNightsPopup.setAttribute('aria-hidden', 'false');
+                    var popupCard = document.getElementById('tv-nights-popup-card');
+                    if (popupCard) popupCard.style.pointerEvents = 'auto';
                 }
             }
             window.__thWizardOpenNightsPopup = openTvNightsPopup;
             var tvNightsTrigger = document.getElementById('tv-nights-trigger');
             var tvNightsSummaryBtn = document.getElementById('tv-nights-summary');
+            var tvNightsPopupCard = document.getElementById('tv-nights-popup-card');
             if (tvNightsTrigger) tvNightsTrigger.addEventListener('click', openTvNightsPopup);
             if (tvNightsSummaryBtn) tvNightsSummaryBtn.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); openTvNightsPopup(); });
-            tvNightsGrid && tvNightsGrid.addEventListener('click', function(e) {
-                var btn = e.target.closest('.tv-nights-cell');
+            function handleTvNightsCellSelect(btn, e) {
                 if (!btn) return;
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
                 var n = parseInt(btn.getAttribute('data-n'), 10);
-                if (n < 1 || n > 28) return;
+                if (!Number.isFinite(n) || n < 1 || n > 28) return;
                 if (tvNightsSelectFrom) {
                     draftNightsFrom = n;
                     draftNightsTo = n;
@@ -1851,8 +1912,21 @@ $current_page = 'home';
                 }
                 renderTvNightsGrid(true);
                 updateTvNightsDraftHint();
+            }
+            tvNightsGrid && tvNightsGrid.addEventListener('click', function(e) {
+                handleTvNightsCellSelect(e.target.closest('.tv-nights-cell'), e);
             });
-            document.getElementById('tv-nights-apply').addEventListener('click', function() {
+            if (tvNightsGrid) {
+                tvNightsGrid.querySelectorAll('.tv-nights-cell').forEach(function (btn) {
+                    btn.addEventListener('touchend', function (e) { handleTvNightsCellSelect(btn, e); }, { passive: false });
+                });
+            }
+            var tvNightsApplyBtn = document.getElementById('tv-nights-apply');
+            if (tvNightsApplyBtn) tvNightsApplyBtn.addEventListener('click', function(e) {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
                 if (draftNightsFrom > 28) draftNightsFrom = 28;
                 if (draftNightsTo > 28) draftNightsTo = 28;
                 if (draftNightsTo < draftNightsFrom) draftNightsTo = draftNightsFrom;
@@ -1864,11 +1938,21 @@ $current_page = 'home';
                 closeTvNightsPopup();
                 notifyWizardNightsDone();
             });
+            tvNightsPopup && tvNightsPopup.querySelectorAll('[data-th-nights-close]').forEach(function (el) {
+                el.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    closeTvNightsPopup();
+                });
+            });
             tvNightsPopup && tvNightsPopup.addEventListener('click', function(e) {
-                if (e.target === tvNightsPopup || (e.target.classList && e.target.classList.contains('th-nights-sheet__backdrop'))) {
+                if (e.target === tvNightsPopup || (e.target.classList && e.target.classList.contains('th-coral-popup__backdrop'))) {
                     closeTvNightsPopup();
                 }
             });
+            if (tvNightsPopupCard) {
+                tvNightsPopupCard.addEventListener('click', function (e) { e.stopPropagation(); });
+                tvNightsPopupCard.addEventListener('touchend', function (e) { e.stopPropagation(); }, { passive: true });
+            }
             if (tvNightsPopup) tvNightsPopup.dataset.fallbackBound = '1';
             updateTvNightsSummary();
             
@@ -1893,9 +1977,9 @@ $current_page = 'home';
                 tvChildrenRows.innerHTML = tvChildrenAges.map(function(age, i) {
                     var label = tvAgeLabels[age] || ('возраст ' + age);
                     return '<div class="flex items-center gap-2">' +
-                        '<button type="button" class="tv-child-remove w-9 h-9 rounded-full bg-sky-500 text-white flex items-center justify-center hover:bg-sky-600 flex-shrink-0 transition-colors" data-index="' + i + '" aria-label="Удалить">−</button>' +
-                        '<div class="flex-1 min-w-0 px-4 py-2.5 rounded-full bg-sky-100 text-slate-800 text-sm text-center">' +
-                        '<button type="button" class="tv-child-age-btn w-full text-left font-medium" data-index="' + i + '">Ребенок ' + label + '</button>' +
+                        '<button type="button" class="tv-child-remove" data-index="' + i + '" aria-label="Удалить">−</button>' +
+                        '<div class="tv-sc-child-pill">' +
+                        '<button type="button" class="tv-child-age-btn" data-index="' + i + '">Ребенок ' + label + '</button>' +
                         '</div></div>';
                 }).join('');
                 tvChildrenRows.querySelectorAll('.tv-child-remove').forEach(function(btn) {
@@ -1916,7 +2000,6 @@ $current_page = 'home';
                             [0,2,3,4,5,6,7,8,9,10,11,12,13,14,15].forEach(function(a) {
                                 var b = document.createElement('button');
                                 b.type = 'button';
-                                b.className = 'px-3 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm bg-white hover:border-[#1A1A40] hover:bg-sky-50';
                                 b.textContent = tvAgeLabels[a] || a;
                                 b.dataset.age = a;
                                 b.addEventListener('click', function() {
@@ -1934,8 +2017,23 @@ $current_page = 'home';
                 });
                 if (tvAddChildBtn) tvAddChildBtn.style.display = tvChildrenAges.length >= 3 ? 'none' : 'block';
             }
+            function openTvTouristsPopup() {
+                if (!tvTouristsBlock) return;
+                tvTouristsBlock.classList.remove('hidden');
+                tvTouristsBlock.classList.add('is-open');
+                tvTouristsBlock.style.display = 'flex';
+                tvTouristsBlock.setAttribute('aria-hidden', 'false');
+            }
+            function closeTvTouristsPopup() {
+                if (!tvTouristsBlock) return;
+                tvTouristsBlock.classList.add('hidden');
+                tvTouristsBlock.classList.remove('is-open');
+                tvTouristsBlock.style.display = 'none';
+                tvTouristsBlock.setAttribute('aria-hidden', 'true');
+            }
             document.getElementById('tv-tourists-trigger')?.addEventListener('click', function() {
-                tvTouristsBlock.classList.toggle('hidden');
+                if (tvTouristsBlock.classList.contains('hidden')) openTvTouristsPopup();
+                else closeTvTouristsPopup();
             });
             document.getElementById('tv-adults-minus')?.addEventListener('click', function() {
                 if (tvAdultsCount > 1) { tvAdultsCount--; updateTouristsSummary(); }
@@ -1952,7 +2050,11 @@ $current_page = 'home';
                         localStorage.setItem('tv_tourists', JSON.stringify({ adults: tvAdultsCount, childrenAges: tvChildrenAges }));
                     } catch (e) {}
                 }
-                tvTouristsBlock.classList.add('hidden');
+                closeTvTouristsPopup();
+                var w = document.getElementById('tv-results-wrapper');
+                if (w && !w.classList.contains('hidden') && typeof performTvSearch === 'function') {
+                    performTvSearch(true);
+                }
             });
             try {
                 var saved = localStorage.getItem('tv_tourists');
@@ -2310,11 +2412,30 @@ $current_page = 'home';
             return 'Подготовка поиска...';
         }
 
+        function tvActiveDeparture() {
+            if (window.THDeparturePreference && typeof window.THDeparturePreference.getActive === 'function') {
+                return window.THDeparturePreference.getActive();
+            }
+            var el = document.getElementById('tv-departure');
+            if (el && el.value) {
+                var opt = el.options[el.selectedIndex];
+                return {
+                    id: String(el.value).trim(),
+                    name: (opt && (opt.textContent || '').trim()) || ((window.TH_DEPARTURE && window.TH_DEPARTURE.name) || 'Самара')
+                };
+            }
+            return {
+                id: String((window.TH_DEPARTURE && window.TH_DEPARTURE.id) || '7'),
+                name: (window.TH_DEPARTURE && window.TH_DEPARTURE.name) || 'Самара'
+            };
+        }
+
         async function performTvSearch(manual) {
             if (window.__tvRestoringFromBack && !manual) return;
             if (manual) window.__tvRestoringFromBack = false;
             if (window.THLeadCapture) window.THLeadCapture.reachGoal('search_start');
-            const dep = document.getElementById('tv-departure')?.value || (window.TH_DEPARTURE && window.TH_DEPARTURE.id) || '7';
+            const depActive = tvActiveDeparture();
+            const dep = depActive.id || document.getElementById('tv-departure')?.value || '7';
             const country = document.getElementById('tv-country')?.value;
             if (!country) { alert('Выберите страну'); return; }
             
@@ -2326,14 +2447,7 @@ $current_page = 'home';
             
             // Туристы: взрослые и возрасты детей (tvAdultsCount / tvChildrenAges — общие var выше)
             let adults = Math.max(1, Math.min(9, parseInt(tvAdultsCount, 10) || 2));
-            let childs = '';
-            if (tvChildrenAges && tvChildrenAges.length > 0) {
-                childs = tvChildrenAges.slice(0, 3).map(function(a) {
-                    var n = parseInt(a, 10);
-                    if (isNaN(n)) n = 0;
-                    return String(Math.max(0, Math.min(17, n)));
-                }).join(',');
-            }
+            let childs = tvChildsParam();
             const datesVal = (document.getElementById('tv-dates')?.value || '').trim();
             let dateFrom, dateTo;
             const parseD = (s) => {
@@ -2657,11 +2771,13 @@ $current_page = 'home';
         }
         function loadMainFlightsForTours(hotels, callback) {
             const base = typeof TV_API_BASE !== 'undefined' ? TV_API_BASE : '';
-            const depCityMainFl = (window.TH_DEPARTURE && window.TH_DEPARTURE.name) || 'Самара';
+            const depActiveFl = tvActiveDeparture();
+            const depCityMainFl = depActiveFl.name || 'Самара';
             if (typeof thLoadTourFlightsForHotels === 'function' && base) {
                 thLoadTourFlightsForHotels(hotels, {
                     apiBase: base,
                     departureCity: depCityMainFl,
+                    departureId: depActiveFl.id,
                     maxTours: Math.min(hotels.length, 40),
                     getTourId: getMainTourId,
                     patchContainer: document.getElementById('tv-search-results'),
@@ -2757,9 +2873,9 @@ $current_page = 'home';
                 container.innerHTML = tvEmptyResultsHtml(nf0, nt0, false);
                 return;
             }
-            const depEl = document.getElementById('tv-departure');
-            const departureCity = (window.TH_DEPARTURE && window.TH_DEPARTURE.name) || 'Самара';
-            const departureIdMain = (depEl && depEl.value) ? String(depEl.value).trim() : ((window.TH_DEPARTURE && window.TH_DEPARTURE.id) || '7');
+            const depActive = tvActiveDeparture();
+            const departureCity = depActive.name || 'Самара';
+            const departureIdMain = depActive.id || '7';
             const tourDetailBase = (typeof TOUR_DETAIL_BASE !== 'undefined' ? TOUR_DETAIL_BASE : '') || '/frontend';
             if (window.THTourCard && typeof window.THTourCard.render === 'function') {
                 const priceAdults = Math.max(1, Math.min(9, parseInt(tvAdultsCount, 10) || 2));
@@ -2787,6 +2903,8 @@ $current_page = 'home';
                         rating: String(h.rating || ''), category: String(h.category || ''),
                         adults: String(priceAdults), tour_id: tourId
                     };
+                    var childsStr = tvChildsParam();
+                    if (childsStr) params.childs = childsStr;
                     if (startYmd) params.date_from = startYmd;
                     if (retYmd) params.date_to = retYmd;
                     if (departureIdMain) params.departure_id = departureIdMain;
@@ -2800,7 +2918,7 @@ $current_page = 'home';
                     return window.THTourCard.render(h, {
                         tour, getImageUrl: getTourvisorImageUrl, imageProxy: TV_IMAGE_PROXY,
                         image: cardImg, detailUrl: cardHref,
-                        adults: priceAdults, dateFrom: startYmd, dateTo: retYmd,
+                        adults: priceAdults, childAges: tvChildAgesForSearch(), dateFrom: startYmd, dateTo: retYmd,
                         price, departureCity, departureId: departureIdMain, carousel: true,
                         flightMeta: (window.__mainFlightsByTourId && tourId) ? window.__mainFlightsByTourId[tourId] : null
                     });
@@ -2880,13 +2998,8 @@ $current_page = 'home';
                 if (tourId) params.tour_id = tourId;
                 if (h.id) params.hotel_id = String(h.id);
                 params.adults = String(Math.max(1, Math.min(9, parseInt(tvAdultsCount, 10) || 2)));
-                if (tvChildrenAges && tvChildrenAges.length > 0) {
-                    params.childs = tvChildrenAges.slice(0, 3).map(function(a) {
-                        var n = parseInt(a, 10);
-                        if (isNaN(n)) n = 0;
-                        return String(Math.max(0, Math.min(17, n)));
-                    }).join(',');
-                }
+                var childsLegacy = tvChildsParam();
+                if (childsLegacy) params.childs = childsLegacy;
                 if (departureIdMain) params.departure_id = departureIdMain;
                 const tourDetailUrl = hasCountry ? (tourDetailBase + '/window/tour-detail.php?' + new URLSearchParams(params).toString()) : '#';
                 let cardHref = tourDetailUrl !== '#' ? tourDetailUrl : (link || '#');
@@ -2899,10 +3012,11 @@ $current_page = 'home';
                 const starsHtml = catNum > 0 ? '★'.repeat(Math.min(catNum, 5)) : '';
                 // Форматирование дат
                 const fmtDate = (ymd) => { if (!ymd) return ''; const [y,m,d] = ymd.split('-'); return `${d}.${m}.${String(y).slice(2)}`; };
-                const adultsWord = priceAdults === 1 ? '1 взрослый' : `${priceAdults} взрослых`;
+                const pricePartyLabel = tvPartyPriceLabel(priceAdults);
+                const partySummary = tvPartySummaryLabel(priceAdults);
                 const datesMeta = (startYmd && retYmd)
-                    ? `${fmtDate(startYmd)} – ${fmtDate(retYmd)}, ${nightsNum} ${nightsNum === 1 ? 'ночь' : (nightsNum < 5 ? 'ночи' : 'ночей')}, ${adultsWord}`
-                    : (nights ? `${nights} ${nightsNum < 5 ? 'ночи' : 'ночей'}, ${adultsWord}` : adultsWord);
+                    ? `${fmtDate(startYmd)} – ${fmtDate(retYmd)}, ${nightsNum} ${nightsNum === 1 ? 'ночь' : (nightsNum < 5 ? 'ночи' : 'ночей')}, ${partySummary}`
+                    : (nights ? `${nights} ${nightsNum < 5 ? 'ночи' : 'ночей'}, ${partySummary}` : partySummary);
                 const mediaHtml = (window.THTourCard && typeof window.THTourCard.buildCarouselMediaHtml === 'function')
                     ? window.THTourCard.buildCarouselMediaHtml(slidesForCard, { fallbackImg, hotelName: h.name || '' })
                     : `<div class="th-tour-card__media th-tour-card__media--carousel"><div class="th-tour-card__strip-scroll" tabindex="-1">${slidesForCard.map((src, idx) => {
@@ -2921,7 +3035,7 @@ $current_page = 'home';
                             </div>
                             ${meal ? `<span class="th-tour-card__meal-badge">${meal.replace(/</g,'&lt;')}</span>` : ''}
                             <div class="th-tour-card__price-block">
-                                <span class="th-tour-card__price-label">цена за ${adultsWord}</span>
+                                <span class="th-tour-card__price-label">${pricePartyLabel.replace(/</g,'&lt;')}</span>
                                 <span class="th-tour-card__price">${formatPrice(price)}</span>
                                 ${datesMeta ? `<span class="th-tour-card__dates">${datesMeta.replace(/</g,'&lt;')}</span>` : ''}
                             </div>
@@ -3152,7 +3266,7 @@ $current_page = 'home';
                     el.addEventListener('click', closePopup);
                 });
                 popup.addEventListener('click', function (e) {
-                    if (e.target === popup || e.target.classList.contains('th-nights-sheet__backdrop')) closePopup();
+                    if (e.target === popup || e.target.classList.contains('th-coral-popup__backdrop')) closePopup();
                 });
                 if (popupCard) {
                     popupCard.addEventListener('click', function (e) { e.stopPropagation(); });
@@ -3168,23 +3282,23 @@ $current_page = 'home';
         })();
     </script>
     <!-- Модалка «Ночей» вне hero/карточки: иначе overflow/transform/backdrop в предках обрезают fixed в WebKit/Яндекс.Браузер -->
-    <div id="tv-nights-popup" class="th-nights-sheet hidden" aria-hidden="true">
-        <div class="th-nights-sheet__backdrop" data-th-nights-close></div>
-        <div id="tv-nights-popup-card" class="th-nights-sheet__panel" role="dialog" aria-label="Сколько ночей в отеле">
-            <div class="th-nights-sheet__head">
-                <div class="th-nights-sheet__head-main">
-                    <span class="th-nights-sheet__eyebrow">Travel Hub</span>
-                    <span class="th-nights-sheet__title">Сколько ночей?</span>
+    <div id="tv-nights-popup" class="th-coral-popup th-coral-nights-popup hidden" aria-hidden="true">
+        <div class="th-coral-popup__backdrop" data-th-nights-close></div>
+        <div id="tv-nights-popup-card" class="th-coral-popup__panel" role="dialog" aria-label="Сколько ночей в отеле">
+            <div class="th-coral-popup__head">
+                <div class="th-coral-popup__head-main">
+                    <span class="th-coral-popup__eyebrow">Travel Hub</span>
+                    <span class="th-coral-popup__title">Сколько ночей?</span>
                 </div>
-                <button type="button" class="th-nights-sheet__close" data-th-nights-close aria-label="Закрыть">
+                <button type="button" class="th-coral-popup__close" data-th-nights-close aria-label="Закрыть">
                     <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
             </div>
-            <div class="th-nights-sheet__body">
-                <p id="tv-nights-draft-preview" class="th-nights-sheet__preview" aria-live="polite">6–9 ночей</p>
+            <div class="th-coral-popup__body">
+                <p id="tv-nights-draft-preview" class="th-coral-popup__preview" aria-live="polite">6–9 ночей</p>
                 <div id="tv-nights-quick" class="tv-nights-quick" aria-label="Быстрый выбор ночей"></div>
-                <p id="tv-nights-hint" class="th-nights-sheet__hint">Свой диапазон: сначала «от», потом «до»</p>
-                <div id="tv-nights-grid" class="tv-nights-grid th-nights-sheet__grid">
+                <p id="tv-nights-hint" class="th-coral-popup__hint">Свой диапазон: сначала «от», потом «до»</p>
+                <div id="tv-nights-grid" class="tv-nights-grid th-coral-nights-popup__grid">
                     <?php for ($n = 1; $n <= 28; $n++): ?>
                     <button type="button" class="tv-nights-cell" data-n="<?php echo $n; ?>">
                         <span class="cell-num"><?php echo $n; ?></span>
@@ -3197,7 +3311,7 @@ $current_page = 'home';
                     <?php endfor; ?>
                 </div>
             </div>
-            <button type="button" id="tv-nights-apply" class="th-nights-sheet__apply">
+            <button type="button" id="tv-nights-apply" class="th-coral-popup__apply">
                 <i class="fas fa-check" aria-hidden="true"></i> Применить
             </button>
         </div>
@@ -3287,7 +3401,7 @@ $current_page = 'home';
             <input type="tel" name="phone" placeholder="+7 (___) ___-__-__" required class="th-qbm-modal__input">
                 <label class="th-qbm-modal__agree">
                     <input type="checkbox" name="agree" required>
-                    <span>Согласен на <a href="/frontend/window/privacy.php" target="_blank" rel="noopener">обработку персональных данных</a></span>
+                    <span><?php require_once __DIR__ . '/../../backend/components/legal_consent_label.php'; echo th_legal_consent_checkbox_html(); ?></span>
                 </label>
                 <input type="text" name="website" class="th-qbm-modal__hp" tabindex="-1" autocomplete="off">
                 <div id="qbm-msg" class="th-qbm-modal__msg"></div>
@@ -3728,6 +3842,7 @@ $current_page = 'home';
 
             popup.classList.add('tv-sc-date-popup--cal-only');
             if (isWizardMode) popup.classList.add('tv-sc-date-popup--wizard-cal');
+            var popupPanel = popup.querySelector('.th-coral-popup__panel');
 
             var isOpen = false;
             var mountCalTries = 0;
@@ -3739,10 +3854,7 @@ $current_page = 'home';
             function updateDateLabels(d0, d1) {
                 if (!d0 || !d1) return;
                 var verbose = fmtLabelFull(d0) + ' — ' + fmtLabelFull(d1);
-                var nf = typeof tvNightsFrom !== 'undefined' ? tvNightsFrom : TV_DEFAULT_NIGHTS_FROM;
-                var nt = typeof tvNightsTo !== 'undefined' ? tvNightsTo : TV_DEFAULT_NIGHTS_TO;
-                var nightsLabel = nf === nt ? tvNightsWord(nf) : (nf + '–' + nt + ' ночей');
-                if (preview) preview.textContent = 'Период вылета: ' + verbose + ' · ' + nightsLabel;
+                if (preview) preview.textContent = 'Период вылета: ' + verbose;
                 if (typeof window.updateDateDisplayOnly === 'function') {
                     window.updateDateDisplayOnly(d0, d1);
                 }
@@ -3821,7 +3933,7 @@ $current_page = 'home';
                             }
                             if (selectedDates.length === 2) {
                                 updateDateLabels(selectedDates[0], selectedDates[1]);
-                                setStep('Нажмите «Готово» · ночей: 6–9');
+                                setStep('Нажмите «Применить» для подтверждения');
                             }
                         }
                     });
@@ -3834,15 +3946,17 @@ $current_page = 'home';
                 syncInlineFromMain();
                 tvCalendarJumpToSelection(window.tvDatePickerInline);
                 tvCalendarRefreshUI(window.tvDatePickerInline);
-                setStep('Выберите период вылета (от и до) · ночей в туре: 6–9');
+                setStep('Выберите период вылета (от и до)');
             }
 
             function openPopup() {
                 if (isOpen) { closePopup(); return; }
                 isOpen = true;
                 mountCalTries = 0;
-                popup.style.display = 'block';
+                popup.classList.remove('hidden');
                 popup.classList.add('is-open');
+                popup.style.display = 'flex';
+                popup.setAttribute('aria-hidden', 'false');
                 triggerBtn.setAttribute('aria-expanded', 'true');
                 showOverlay(closePopup);
                 requestAnimationFrame(function () {
@@ -3864,11 +3978,28 @@ $current_page = 'home';
             }
             function closePopup() {
                 isOpen = false;
-                popup.style.display = 'none';
+                popup.classList.add('hidden');
                 popup.classList.remove('is-open');
+                popup.style.display = 'none';
+                popup.setAttribute('aria-hidden', 'true');
                 triggerBtn.setAttribute('aria-expanded', 'false');
                 hideOverlay();
             }
+
+            popup.querySelectorAll('[data-sc-close="tv-sc-date-popup"]').forEach(function (el) {
+                el.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    closePopup();
+                });
+            });
+            if (popupPanel) {
+                popupPanel.addEventListener('click', function (e) { e.stopPropagation(); });
+            }
+            popup.addEventListener('click', function (e) {
+                if (e.target === popup || (e.target.classList && e.target.classList.contains('th-coral-popup__backdrop'))) {
+                    closePopup();
+                }
+            });
 
             triggerBtn.addEventListener('click', function (e) {
                 e.stopPropagation();
@@ -3952,8 +4083,20 @@ $current_page = 'home';
 
             function closeTotourists() {
                 touristsBlock.classList.add('hidden');
+                touristsBlock.classList.remove('is-open');
+                touristsBlock.style.display = 'none';
+                touristsBlock.setAttribute('aria-hidden', 'true');
                 hideOverlay();
             }
+
+            touristsBlock.querySelectorAll('[data-tv-tourists-close]').forEach(function (el) {
+                el.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    closeTotourists();
+                });
+            });
+            var touristsPanel = touristsBlock.querySelector('.th-coral-popup__panel');
+            if (touristsPanel) touristsPanel.addEventListener('click', function (e) { e.stopPropagation(); });
 
             if (closeNewBtn) closeNewBtn.addEventListener('click', closeTotourists);
 
@@ -3968,6 +4111,10 @@ $current_page = 'home';
 
             window.__thWizardOpenTouristsPopup = function () {
                 touristsBlock.classList.remove('hidden');
+                touristsBlock.classList.add('is-open');
+                touristsBlock.style.display = 'flex';
+                touristsBlock.setAttribute('aria-hidden', 'false');
+                showOverlay(closeTotourists);
             };
         }
 

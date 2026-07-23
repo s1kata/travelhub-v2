@@ -1,76 +1,69 @@
 <?php
 /**
- * Фото офиса из папки на диске.
- * Ищет в frontend/window/img/offices (раскладка репозитория), затем в /img/offices у DOCUMENT_ROOT (легаси).
+ * Фото офиса из канонической папки репозитория:
+ * frontend/window/img/offices/{city}/{slug}/
  */
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/config/office_photo_folders.php';
+
 /**
- * @param string|null $folderSlug Явный slug подкаталога (латиница, цифры, дефисы). Если задан — имя офиса не используется для пути.
+ * @param string|null $folderSlug Явный slug подкаталога из offices_catalog.photo_slug
  * @return list<array{image_url: string, filename: string, title: string}>
  */
 function get_office_photos_from_folder(string $city, string $officeNameOrSlug, ?string $folderSlug = null): array
 {
+    $city = strtolower(trim($city));
     if ($folderSlug !== null && $folderSlug !== '') {
         $officeSlug = strtolower(preg_replace('/[^a-z0-9\-]/', '', $folderSlug));
     } else {
-        $officeSlug = strtolower(preg_replace('/[^a-zA-Z0-9]/', '-', $officeNameOrSlug));
+        $officeSlug = th_office_photo_folder_slug($city, $officeNameOrSlug);
     }
     if ($officeSlug === '') {
-        $officeSlug = strtolower(preg_replace('/[^a-zA-Z0-9]/', '-', $officeNameOrSlug));
+        return [];
     }
 
-    $roots = [];
-    $repo = realpath(__DIR__ . '/../..');
-    if ($repo !== false) {
-        $roots[] = str_replace('\\', '/', $repo);
-    }
-    if (!empty($_SERVER['DOCUMENT_ROOT'])) {
-        $dr = str_replace('\\', '/', rtrim((string) $_SERVER['DOCUMENT_ROOT'], '/'));
-        if ($dr !== '' && !in_array($dr, $roots, true)) {
-            $roots[] = $dr;
-        }
+    $baseDir = th_office_photo_disk_dir($city, $officeSlug, false);
+    if (!is_dir($baseDir)) {
+        return [];
     }
 
-    $candidates = [];
-    foreach ($roots as $root) {
-        $candidates[] = [$root . '/frontend/window/img/offices/' . $city . '/' . $officeSlug, '/frontend/window/img/offices/' . $city . '/' . $officeSlug];
-        $candidates[] = [$root . '/img/offices/' . $city . '/' . $officeSlug, '/img/offices/' . $city . '/' . $officeSlug];
+    $urlPrefix = th_office_photos_url_prefix($city, $officeSlug);
+    $files = @scandir($baseDir);
+    if ($files === false) {
+        return [];
     }
 
-    foreach ($candidates as [$baseDir, $urlPrefix]) {
-        if (!is_dir($baseDir)) {
+    $photos = [];
+    foreach ($files as $file) {
+        if ($file === '.' || $file === '..' || $file === '.gitkeep') {
             continue;
         }
-        $files = @scandir($baseDir);
-        if ($files === false) {
+        $filePath = $baseDir . DIRECTORY_SEPARATOR . $file;
+        if (!is_file($filePath)) {
             continue;
         }
-        $photos = [];
-        foreach ($files as $file) {
-            if ($file === '.' || $file === '..' || $file === '.gitkeep') {
-                continue;
-            }
-            $filePath = $baseDir . '/' . $file;
-            if (!is_file($filePath)) {
-                continue;
-            }
-            $ext = strtolower((string) pathinfo($file, PATHINFO_EXTENSION));
-            if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
-                continue;
-            }
-            $photos[] = [
-                'image_url' => $urlPrefix . '/' . $file,
-                'filename' => $file,
-                'title' => pathinfo($file, PATHINFO_FILENAME),
-            ];
+        $ext = strtolower((string) pathinfo($file, PATHINFO_EXTENSION));
+        if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
+            continue;
         }
-        usort($photos, static function (array $a, array $b): int {
-            return strcmp($a['filename'], $b['filename']);
-        });
-
-        return $photos;
+        $photos[] = [
+            'image_url' => $urlPrefix . '/' . rawurlencode($file),
+            'filename' => $file,
+            'title' => pathinfo($file, PATHINFO_FILENAME),
+        ];
     }
 
-    return [];
+    usort($photos, static function (array $a, array $b): int {
+        $ka = th_office_photo_sort_key((string) $a['filename']);
+        $kb = th_office_photo_sort_key((string) $b['filename']);
+        $cmp = strcmp($ka, $kb);
+        if ($cmp !== 0) {
+            return $cmp;
+        }
+
+        return strcmp((string) $a['filename'], (string) $b['filename']);
+    });
+
+    return $photos;
 }

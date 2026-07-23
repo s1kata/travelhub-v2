@@ -1,3 +1,3 @@
 <?php
-header('Location: /frontend/window/offices/samara-offices.php', true, 301);
+header('Location: /frontend/window/offices/office.php?slug=samara-anex-apelsin', true, 301);
 exit;

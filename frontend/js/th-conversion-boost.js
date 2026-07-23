@@ -1,13 +1,17 @@
 /**
- * Travel Hub — conversion boost: wizard sticky, abandon sheet, funnel analytics.
+ * Travel Hub — conversion boost: wizard sticky, abandon sheet (40s / 3m / 7m), funnel analytics.
  */
 (function (global) {
   'use strict';
 
-  var ABANDON_KEY = 'th_abandon_sheet_shown';
-  var IDLE_MS = 30000;
-  var SCROLL_PCT = 0.5;
-  var idleTimer = null;
+  var ABANDON_COUNT_KEY = 'th_abandon_sheet_count';
+  var ABANDON_DONE_KEY = 'th_abandon_sheet_done';
+  /** Показ «Не нашли тур?»: 40 с → 3 мин → 7 мин от загрузки страницы */
+  var ABANDON_SCHEDULE_MS = [40000, 180000, 420000];
+  var PAGE_LOAD_TS = (typeof performance !== 'undefined' && performance.timeOrigin)
+    ? performance.timeOrigin
+    : Date.now();
+  var abandonTimersBound = false;
   var sheetEl = null;
 
   function reach(goal) {
@@ -23,11 +27,17 @@
     } catch (e) { return ''; }
   }
 
-  function sessionShown() {
-    try { return sessionStorage.getItem(ABANDON_KEY) === '1'; } catch (e) { return false; }
+  function abandonShowCount() {
+    try { return parseInt(sessionStorage.getItem(ABANDON_COUNT_KEY) || '0', 10) || 0; } catch (e) { return 0; }
   }
-  function markShown() {
-    try { sessionStorage.setItem(ABANDON_KEY, '1'); } catch (e) {}
+  function incrementAbandonShowCount() {
+    try { sessionStorage.setItem(ABANDON_COUNT_KEY, String(abandonShowCount() + 1)); } catch (e) {}
+  }
+  function isAbandonDone() {
+    try { return sessionStorage.getItem(ABANDON_DONE_KEY) === '1'; } catch (e) { return false; }
+  }
+  function markAbandonDone() {
+    try { sessionStorage.setItem(ABANDON_DONE_KEY, '1'); } catch (e) {}
   }
 
   function isHomeWizard() {
@@ -75,7 +85,7 @@
         '<p class="th-abandon-sheet__sub">Оставьте телефон — менеджер подберёт лучшие варианты бесплатно.</p>' +
         '<form class="th-abandon-sheet__form" id="th-abandon-sheet-form">' +
           '<input type="tel" name="phone" required autocomplete="tel" placeholder="+7 (___) ___-__-__" class="th-abandon-sheet__input">' +
-          '<label class="th-abandon-sheet__agree"><input type="checkbox" name="agree" required checked> Согласен на обработку данных</label>' +
+          '<label class="th-abandon-sheet__agree"><input type="checkbox" name="agree" required checked> Согласен на <a href="/frontend/window/consent.php" target="_blank" rel="noopener">обработку персональных данных</a> и <a href="/frontend/window/terms.php" target="_blank" rel="noopener">Пользовательское соглашение</a></label>' +
           '<input type="text" name="website" tabindex="-1" autocomplete="off" class="th-abandon-sheet__hp">' +
           '<p class="th-abandon-sheet__msg hidden" id="th-abandon-sheet-msg"></p>' +
           '<button type="submit" class="th-abandon-sheet__submit">Подобрать тур за меня</button>' +
@@ -107,7 +117,7 @@
             agree: !!fd.get('agree'),
             website: String(fd.get('website') || ''),
             source: 'abandon_sheet',
-            message: 'Abandon sheet — scroll/idle'
+            message: 'Abandon sheet — timed popup'
           })
           : Promise.resolve({ success: false, error: 'Форма недоступна' });
         submit.then(function (res) {
@@ -116,6 +126,7 @@
             if (res.success) {
               msg.textContent = res.message || 'Заявка принята! Перезвоним за 15 минут.';
               msg.className = 'th-abandon-sheet__msg th-abandon-sheet__msg--ok';
+              markAbandonDone();
               form.reset();
               var mu = maxUrl();
               if (mu) {
@@ -137,48 +148,56 @@
   }
 
   function openAbandonSheet(reason) {
-    if (sessionShown()) return;
+    if (isAbandonDone()) return;
+    if (abandonShowCount() >= ABANDON_SCHEDULE_MS.length) return;
     if (document.body.classList.contains('th-modal-open')) return;
     if (document.querySelector('#tv-search-loader.active')) return;
-    markShown();
-    reach(reason === 'scroll' ? 'abandon_sheet_scroll' : 'abandon_sheet_idle');
+    if (sheetEl && !sheetEl.classList.contains('hidden')) return;
+    incrementAbandonShowCount();
+    var slot = abandonShowCount();
+    reach(reason || ('abandon_sheet_timer_' + slot));
     ensureAbandonSheet();
     sheetEl.classList.remove('hidden');
     document.body.classList.add('th-abandon-open');
     if (global.THMobile && global.THMobile.lockScroll) global.THMobile.lockScroll(true);
+    if (global.THMobile && typeof global.THMobile.sync === 'function') global.THMobile.sync();
+    if (global.THMobile && typeof global.THMobile.pinFixedBottoms === 'function') {
+      global.THMobile.pinFixedBottoms();
+    }
   }
 
   function closeAbandonSheet() {
     if (!sheetEl) return;
     sheetEl.classList.add('hidden');
     document.body.classList.remove('th-abandon-open');
+    var panel = sheetEl.querySelector('.th-abandon-sheet__panel');
+    if (panel) {
+      panel.style.removeProperty('position');
+      panel.style.removeProperty('top');
+      panel.style.removeProperty('bottom');
+      panel.style.removeProperty('left');
+      panel.style.removeProperty('right');
+      panel.style.removeProperty('width');
+      panel.style.removeProperty('max-width');
+      panel.style.removeProperty('margin');
+    }
     if (global.THMobile && global.THMobile.lockScroll) global.THMobile.lockScroll(false);
-  }
-
-  function resetIdle() {
-    if (idleTimer) clearTimeout(idleTimer);
-    idleTimer = setTimeout(function () {
-      if (!sessionShown()) openAbandonSheet('idle');
-    }, IDLE_MS);
   }
 
   function bindAbandonTriggers() {
     if (!document.body || document.body.classList.contains('th-promo-page')) return;
-    var maxScrollFired = false;
-    global.addEventListener('scroll', function () {
-      resetIdle();
-      if (maxScrollFired || sessionShown()) return;
-      var doc = document.documentElement;
-      var max = Math.max(1, doc.scrollHeight - doc.clientHeight);
-      if (max > 0 && (doc.scrollTop / max) >= SCROLL_PCT) {
-        maxScrollFired = true;
-        openAbandonSheet('scroll');
-      }
-    }, { passive: true });
-    ['click', 'keydown', 'touchstart'].forEach(function (ev) {
-      document.addEventListener(ev, resetIdle, { passive: true });
+    if (isAbandonDone()) return;
+    if (abandonTimersBound) return;
+    abandonTimersBound = true;
+    ABANDON_SCHEDULE_MS.forEach(function (delayMs, index) {
+      var fireAt = PAGE_LOAD_TS + delayMs;
+      var wait = Math.max(0, Math.round(fireAt - Date.now()));
+      setTimeout(function () {
+        if (isAbandonDone()) return;
+        if (abandonShowCount() > index) return;
+        openAbandonSheet('abandon_sheet_timer_' + (index + 1));
+      }, wait);
     });
-    resetIdle();
   }
 
   /** Intent copy for quick lead modal */
@@ -256,7 +275,10 @@
     });
   }
 
+  var boostInitialized = false;
   function init() {
+    if (boostInitialized) return;
+    boostInitialized = true;
     bindWizardSteps();
     bindAbandonTriggers();
     bindQuickModalIntent();

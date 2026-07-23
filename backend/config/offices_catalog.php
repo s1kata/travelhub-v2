@@ -6,6 +6,12 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../components/office_folder_photos.php';
 
+/** URL обложки-заглушки, если в папке офиса нет фото. */
+function th_office_default_cover(): string
+{
+    return '/frontend/window/img/hero/e978c0767c0fe7bc778596c86b2b54f3%201.png';
+}
+
 /**
  * @return list<array<string,mixed>>
  */
@@ -30,7 +36,6 @@ function th_offices_raw(): array
             'description' => 'Офис Fun&Sun в молле «Парк Хаус». Подбираем пляжный отдых, семейные туры и горящие предложения. Можно зайти без записи или оставить заявку — перезвоним за 15 минут.',
             'services' => ['Пляжный отдых', 'Семейные туры', 'Горящие туры', 'Активный отдых', 'Экскурсионные туры', 'SPA и wellness'],
             'photo_slug' => 'fun-sun',
-            'fallback_slug' => null,
             'featured' => true,
             'legacy_files' => ['samara-funsun.php'],
         ],
@@ -52,7 +57,6 @@ function th_offices_raw(): array
             'description' => 'Офис Fun&Sun в ТЦ «Гудок». Рядом с гипермаркетом «Лента» — удобно заехать по делам. Поможем выбрать тур под бюджет и даты.',
             'services' => ['Пляжный отдых', 'Семейные туры', 'Горящие туры', 'Раннее бронирование', 'Визовая поддержка'],
             'photo_slug' => 'fun-sun-gudok',
-            'fallback_slug' => 'fun-sun',
             'featured' => false,
             'legacy_files' => ['samara-funsun-gudok.php', 'samara-anex.php'],
         ],
@@ -69,14 +73,34 @@ function th_offices_raw(): array
             'phone' => '+7 (846) 255-25-63',
             'phone_tel' => '+78462552563',
             'email' => 'hello@travelhub63.ru',
-            'hours' => 'ежедневно 10:00–20:00',
+            'hours' => 'пн–сб: 10:00–20:00, вс: 10:00–16:00',
             'blurb' => 'Горящие туры и семейный отдых.',
             'description' => 'Офис Anex Tour на Московском шоссе, 81Б. Горящие туры, семейный отдых и сопровождение до вылета.',
             'services' => ['Горящие туры', 'Семейные путешествия', 'Экскурсионные программы', 'Корпоративный отдых', 'Визовая поддержка'],
             'photo_slug' => 'anex-tour-moskovskoe-81b',
-            'fallback_slug' => 'anex-tour',
             'featured' => true,
             'legacy_files' => ['samara-anex-moskovskoe.php'],
+        ],
+        [
+            'slug' => 'samara-anex-apelsin',
+            'city' => 'samara',
+            'city_name' => 'Самара',
+            'name' => 'Anex Tour — ТЦ «Апельсин»',
+            'db_name' => 'Anex Tour (ТЦ «Апельсин»)',
+            'brand' => 'Anex Tour',
+            'address' => 'г. Самара, ТЦ «Апельсин», ул. Ново-Садовая, 305А (1 этаж, офис 105)',
+            'address_short' => 'ТЦ «Апельсин», ул. Ново-Садовая, 305А',
+            'geo' => 'Самара, Ново-Садовая, 305А',
+            'phone' => '+7 (846) 955-01-70',
+            'phone_tel' => '+78469550170',
+            'email' => 'hello@travelhub63.ru',
+            'hours' => 'ежедневно 10:00–19:00',
+            'blurb' => 'Anex Tour в ТЦ «Апельсин» — подбор туров и авиабилетов.',
+            'description' => 'Офис Anex Tour в торговом центре «Апельсин» на Ново-Садовой, 305А. Подбор туров, авиа- и ж/д билетов, горящие предложения. Удобная остановка «ТЦ Апельсин».',
+            'services' => ['Горящие туры', 'Авиа- и ж/д билеты', 'Семейные путешествия', 'Экскурсионные программы', 'Визовая поддержка', 'Туры в кредит'],
+            'photo_slug' => 'anex-apelsin',
+            'featured' => false,
+            'legacy_files' => ['samara-anex-apelsin.php'],
         ],
         [
             'slug' => 'samara-coral',
@@ -91,12 +115,11 @@ function th_offices_raw(): array
             'phone' => '+7 (846) 250-03-06',
             'phone_tel' => '+78462500306',
             'email' => 'hello@travelhub63.ru',
-            'hours' => 'пн–пт: 9:00–20:00, сб–вс: 10:00–18:00',
+            'hours' => 'пн–сб 10:00–20:00, вс 11:00–20:00',
             'blurb' => 'Международный туроператор Coral Travel.',
             'description' => 'Офис Coral Travel в ТЦ «Эль Рио». Туры в Турцию, Египет, Грецию и другие направления — с личной консультацией менеджера.',
             'services' => ['Туры в Турцию', 'Отдых в Египте', 'Греция и Европа', 'Экзотические направления', 'Семейный отдых', 'Раннее бронирование'],
             'photo_slug' => 'coral-travel',
-            'fallback_slug' => null,
             'featured' => true,
             'legacy_files' => ['samara-coral.php'],
         ],
@@ -112,15 +135,14 @@ function th_offices_raw(): array
             'geo' => 'Москва, Первомайская ул., 42',
             'lat' => 55.794376,
             'lon' => 37.798078,
-            'phone' => '+7 (499) 322-02-97',
-            'phone_tel' => '+74993220297',
+            'phone' => '+7 (495) 660-36-66',
+            'phone_tel' => '+74956603666',
             'email' => 'moscow@travelhub63.ru',
-            'hours' => 'пн–пт: 9:00–21:00, сб–вс: 10:00–18:00',
+            'hours' => 'ежедневно 10:00–20:00',
             'blurb' => 'Премиум-сервис в Москве.',
             'description' => 'Coral Elite Service на Первомайской — премиум-подбор туров, персональный менеджер и сопровождение для взыскательных клиентов.',
             'services' => ['VIP обслуживание', 'Эксклюзивные туры', 'Бизнес-путешествия', 'Семейный отдых премиум', 'Консьерж-сервис', 'Персональный менеджер'],
             'photo_slug' => 'coral-elite-service',
-            'fallback_slug' => 'coral-travel',
             'featured' => true,
             'legacy_files' => ['moscow-coral-elite.php'],
         ],
@@ -144,7 +166,6 @@ function th_offices_raw(): array
             'description' => 'Офис Anex Tour в Москве на Первомайской, 42. Семейный отдых, пакетные туры и помощь с документами.',
             'services' => ['Семейные туры', 'Горящие предложения', 'Пляжный отдых', 'Экскурсионные туры', 'Визовая поддержка'],
             'photo_slug' => 'anex-tour',
-            'fallback_slug' => 'coral-elite-service',
             'featured' => false,
             'legacy_files' => ['moscow-anex.php'],
         ],
@@ -183,16 +204,7 @@ function th_offices_catalog(): array
     $list = [];
     foreach (th_offices_raw() as $o) {
         $photos = get_office_photos_from_folder($o['city'], $o['db_name'], $o['photo_slug']);
-        if (!$photos && !empty($o['fallback_slug'])) {
-            $photos = get_office_photos_from_folder($o['city'], $o['db_name'], $o['fallback_slug']);
-        }
-        if (!$photos && $o['city'] === 'moscow') {
-            $photos = get_office_photos_from_folder('moscow', $o['db_name'], 'coral-elite-service');
-            if (!$photos) {
-                $photos = get_office_photos_from_folder('moscow', $o['db_name'], 'coral-travel');
-            }
-        }
-        $cover = $photos[0]['image_url'] ?? '/frontend/window/img/hero/e978c0767c0fe7bc778596c86b2b54f3%201.png';
+        $cover = $photos[0]['image_url'] ?? th_office_default_cover();
         $gallery = array_map(static function ($p) {
             return $p['image_url'];
         }, $photos);

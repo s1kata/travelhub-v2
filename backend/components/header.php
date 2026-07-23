@@ -631,6 +631,7 @@ $th_csrf_token = security_csrf_token();
             <span class="site-header-mobile-muted">Дополнительно</span>
             <a href="/frontend/window/turkey-vip-hotels.php" class="<?php echo $current_page === 'vip-hotels' ? 'is-active' : ''; ?>">VIP отели Турции</a>
             <a href="/frontend/window/banks_rekvesit.php" class="<?php echo $current_page === 'banks_rekvesit' ? 'is-active' : ''; ?>">Реквизиты</a>
+            <a href="/frontend/window/consent.php" class="<?php echo ($current_page ?? '') === 'consent' ? 'is-active' : ''; ?>">Согласие на обработку ПД</a>
             <a href="/frontend/window/privacy.php" class="<?php echo $current_page === 'privacy' ? 'is-active' : ''; ?>">Политика конфиденциальности</a>
             <a href="/frontend/window/terms.php" class="<?php echo $current_page === 'terms' ? 'is-active' : ''; ?>">Пользовательское соглашение</a>
         </nav>

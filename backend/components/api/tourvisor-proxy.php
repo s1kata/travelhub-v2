@@ -694,6 +694,46 @@ function tvLoadCountriesFallback(): ?array {
     return array_values($d) === $d ? $d : null; // массив со числовыми ключами
 }
 
+function tvRegionsSupplementPath(): string {
+    return ($GLOBALS['tv_project_root'] ?? dirname(__DIR__, 3)) . DIRECTORY_SEPARATOR . 'backend' . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'tourvisor_regions_supplement.php';
+}
+
+function tvLoadRegionsSupplement(?int $countryId): array {
+    if (!$countryId) return [];
+    $f = tvRegionsSupplementPath();
+    if (!file_exists($f)) return [];
+    $all = require $f;
+    if (!is_array($all)) return [];
+    $list = $all[$countryId] ?? [];
+    return is_array($list) ? array_values($list) : [];
+}
+
+function tvFetchRegionsResolved(array $params, ?int $countryId): array {
+    $res = tvRequest('/regions', $params);
+    if ($res['success'] && is_array($res['data']) && count($res['data']) > 0) {
+        return $res;
+    }
+    if ($countryId) {
+        $all = tvRequest('/regions', []);
+        if ($all['success'] && is_array($all['data'])) {
+            $filtered = array_values(array_filter($all['data'], static function ($row) use ($countryId) {
+                return (int)($row['countryId'] ?? 0) === $countryId;
+            }));
+            if (count($filtered) > 0) {
+                return ['success' => true, 'data' => $filtered];
+            }
+        }
+        $supp = tvLoadRegionsSupplement($countryId);
+        if (count($supp) > 0) {
+            return ['success' => true, 'data' => $supp];
+        }
+    }
+    if (!$res['success'] && $params && !empty($GLOBALS['tv_use_fallbacks'])) {
+        return ['success' => true, 'data' => []];
+    }
+    return $res;
+}
+
 function tvCached(string $type, array $reqParams, callable $fetch): array {
     tv_init_firestore_project_id();
     $key = tvCacheKey($type, $reqParams);
@@ -729,7 +769,7 @@ function tvCached(string $type, array $reqParams, callable $fetch): array {
             }
             return $r;
         }
-        if (!empty($r['error']) && in_array($type, ['departures', 'countries', 'meals'], true)) {
+        if (!empty($r['error']) && in_array($type, ['departures', 'countries', 'meals', 'regions'], true)) {
             $stale = tvCacheGetAnyForType($type, 30 * 86400);
             if ($stale !== null) {
                 $cnt = is_array($stale['data'] ?? null) ? count($stale['data']) : 0;
@@ -758,7 +798,7 @@ function tvCached(string $type, array $reqParams, callable $fetch): array {
     }
 
     $cached = tvCacheGet($key, $ttl);
-    if ($cached === null && in_array($type, ['departures', 'countries', 'meals'], true)) {
+    if ($cached === null && in_array($type, ['departures', 'countries', 'meals', 'regions'], true)) {
         $cached = tvCacheGetAnyForType($type, (int)($GLOBALS['tv_dictionary_cache_ttl'] ?? (720 * 3600)));
     }
     if ($cached !== null) {
@@ -789,7 +829,7 @@ function tvCached(string $type, array $reqParams, callable $fetch): array {
         return $r;
     }
     // При ошибке API (таймаут, SSL и т.д.) отдаём устаревший кэш для справочников, если есть
-    if (!empty($r['error']) && in_array($type, ['departures', 'countries', 'meals'], true)) {
+    if (!empty($r['error']) && in_array($type, ['departures', 'countries', 'meals', 'regions'], true)) {
         $stale = tvCacheGetAnyForType($type, 30 * 86400);
         if ($stale !== null) {
             $cnt = is_array($stale['data'] ?? null) ? count($stale['data']) : 0;
@@ -1155,12 +1195,8 @@ function tourvisor_proxy_dispatch(): array
         $params = [];
         if ($countryId) $params['countryId'] = $countryId;
         if ($arrivalId) $params['arrivalId'] = $arrivalId;
-        $r = tvCached('regions', $params, function() use ($params) {
-            $res = tvRequest('/regions', $params);
-            if (!$res['success'] && $params && $GLOBALS['tv_use_fallbacks']) {
-                return ['success' => true, 'data' => []];
-            }
-            return $res;
+        $r = tvCached('regions', $params, function() use ($params, $countryId) {
+            return tvFetchRegionsResolved($params, $countryId);
         });
         break;
     case 'meals':

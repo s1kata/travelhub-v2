@@ -39,6 +39,9 @@ addUrl($urls, $base, $pathPrefix, 'frontend/window/countries-list.php', '0.9', '
 addUrl($urls, $base, $pathPrefix, 'frontend/window/tours.php', '0.9', 'weekly');
 addUrl($urls, $base, $pathPrefix, 'frontend/window/offices.php', '0.8', 'monthly');
 addUrl($urls, $base, $pathPrefix, 'frontend/window/promotions.php', '0.7', 'weekly');
+addUrl($urls, $base, $pathPrefix, 'frontend/window/consent.php', '0.4', 'yearly');
+addUrl($urls, $base, $pathPrefix, 'frontend/window/privacy.php', '0.4', 'yearly');
+addUrl($urls, $base, $pathPrefix, 'frontend/window/terms.php', '0.4', 'yearly');
 addUrl($urls, $base, $pathPrefix, 'frontend/window/tour-calendar.php', '0.7', 'weekly');
 addUrl($urls, $base, $pathPrefix, 'frontend/window/turkey-vip-hotels.php', '0.7', 'monthly');
 
@@ -62,7 +65,7 @@ foreach ($officePages as $page) {
     addUrl($urls, $base, $pathPrefix, 'frontend/window/offices/' . $page, '0.6', 'monthly');
 }
 $officeSlugs = [
-    'samara-funsun', 'samara-funsun-gudok', 'samara-anex-moskovskoe',
+    'samara-funsun', 'samara-funsun-gudok', 'samara-anex-moskovskoe', 'samara-anex-apelsin',
     'samara-coral', 'moscow-coral-elite', 'moscow-anex',
 ];
 foreach ($officeSlugs as $slug) {

@@ -79,7 +79,7 @@
       '</div>' +
       '<div class="th-ol-row">' +
       '<input type="checkbox" id="th-ol-agree">' +
-      '<label for="th-ol-agree" style="font-size:.82rem;color:#475569;line-height:1.35">Согласен на <a href="/frontend/window/privacy.php" target="_blank" rel="noopener" style="color:#5DA9A4;font-weight:800;text-decoration:underline">обработку персональных данных</a></label>' +
+      '<label for="th-ol-agree" style="font-size:.82rem;color:#475569;line-height:1.35">Согласен на <a href="/frontend/window/consent.php" target="_blank" rel="noopener" style="color:#5DA9A4;font-weight:800;text-decoration:underline">обработку персональных данных</a> и <a href="/frontend/window/terms.php" target="_blank" rel="noopener" style="color:#5DA9A4;font-weight:800;text-decoration:underline">Пользовательское соглашение</a></label>' +
       '</div>' +
       '<div class="th-ol-actions">' +
       '<button type="button" class="th-ol-btn th-ol-btn-ghost" id="th-ol-cancel">Отмена</button>' +

@@ -548,17 +548,23 @@
     #quick-booking-modal > div[style*="position:relative"],
     #booking-modal > div,
     #th-tour-booking-modal .th-tour-booking-modal__panel,
-    #tv-nights-popup-card,
+    #tv-nights-popup-card.th-coral-popup__panel,
     .tv-nights-modal-card,
     .promo-stars-popup {
         width: 100% !important;
         max-width: 100% !important;
         border-radius: 20px 20px 0 0 !important;
         max-height: min(88vh, calc(var(--th-vvh) - 12px)) !important;
-        overflow-y: auto !important;
+        overflow: hidden !important;
         -webkit-overflow-scrolling: touch;
-        padding-bottom: calc(16px + var(--th-safe-bottom)) !important;
+        padding-bottom: 0 !important;
         margin: 0 !important;
+    }
+
+    #tv-nights-popup-card:not(.th-coral-popup__panel),
+    .tv-nights-modal-card.legacy-scroll {
+        overflow-y: auto !important;
+        padding-bottom: calc(16px + var(--th-safe-bottom)) !important;
     }
 
     #tv-sc-date-popup.tv-sc-date-popup,

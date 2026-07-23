@@ -80,6 +80,75 @@
     return num === 1 ? '1 взрослый' : num + ' взрослых';
   }
 
+  var CHILD_AGE_LABELS = {
+    0: 'до 2 лет', 2: '2 года', 3: '3 года', 4: '4 года', 5: '5 лет', 6: '6 лет',
+    7: '7 лет', 8: '8 лет', 9: '9 лет', 10: '10 лет', 11: '11 лет', 12: '12 лет',
+    13: '13 лет', 14: '14 лет', 15: '15 лет'
+  };
+
+  function childAgeLabel(age) {
+    var n = parseInt(String(age), 10);
+    if (isNaN(n)) return '';
+    if (CHILD_AGE_LABELS[n] != null) return CHILD_AGE_LABELS[n];
+    if (n === 1) return '1 год';
+    if (n >= 2 && n <= 4) return n + ' года';
+    if (n >= 5 && n <= 17) return n + ' лет';
+    return String(n);
+  }
+
+  function normalizeChildAges(raw) {
+    if (!raw) return [];
+    var list = Array.isArray(raw) ? raw : String(raw).split(',');
+    var out = [];
+    list.forEach(function (a) {
+      if (a === null || a === undefined || a === '') return;
+      var n = parseInt(String(a), 10);
+      if (isNaN(n)) return;
+      n = Math.max(0, Math.min(17, n));
+      if (out.length < 3) out.push(n);
+    });
+    return out;
+  }
+
+  function childsParam(raw) {
+    var ages = normalizeChildAges(raw);
+    return ages.length ? ages.join(',') : '';
+  }
+
+  /** Подпись состава для цены: «за 2 взрослых + 1 реб. (7 лет)». */
+  function partyPriceLabel(adults, childAges) {
+    var a = Math.max(1, parseInt(String(adults), 10) || 2);
+    var ages = normalizeChildAges(childAges);
+    var parts = [a === 1 ? '1 взрослого' : a + ' взрослых'];
+    ages.forEach(function (age) {
+      parts.push('1 реб. (' + childAgeLabel(age) + ')');
+    });
+    return 'за ' + parts.join(' + ');
+  }
+
+  /** Краткий состав для строки дат: «2 взрослых + 1 реб. (до 2 лет)». */
+  function partySummaryLabel(adults, childAges) {
+    var a = Math.max(1, parseInt(String(adults), 10) || 2);
+    var ages = normalizeChildAges(childAges);
+    var parts = [adultsLabel(a)];
+    ages.forEach(function (age) {
+      parts.push('1 реб. (' + childAgeLabel(age) + ')');
+    });
+    return parts.join(' + ');
+  }
+
+  /** Совпадает ли тур из API с запрошенным составом (Tourvisor считает цену под него). */
+  function tourPartyMatches(tour, adults, childAges) {
+    if (!tour || typeof tour !== 'object') return true;
+    var reqA = Math.max(1, parseInt(String(adults), 10) || 2);
+    var reqC = normalizeChildAges(childAges).length;
+    var tourA = tour.adults != null ? parseInt(String(tour.adults), 10) : null;
+    var tourC = tour.childs != null ? parseInt(String(tour.childs), 10) : null;
+    if (tourA != null && !isNaN(tourA) && tourA !== reqA) return false;
+    if (reqC > 0 && tourC != null && !isNaN(tourC) && tourC !== reqC) return false;
+    return true;
+  }
+
   function fmtDateShort(ymd) {
     if (!ymd) return '';
     var parts = String(ymd).split('-');
@@ -88,6 +157,15 @@
   }
 
   function departureName() {
+    if (global.THDeparturePreference && typeof global.THDeparturePreference.getActive === 'function') {
+      var active = global.THDeparturePreference.getActive();
+      if (active && active.name) return active.name;
+    }
+    var depEl = document.getElementById('tv-departure');
+    if (depEl && depEl.value) {
+      var opt = depEl.options[depEl.selectedIndex];
+      if (opt && (opt.textContent || '').trim()) return (opt.textContent || '').trim();
+    }
     if (global.TH_DEPARTURE && global.TH_DEPARTURE.name) return global.TH_DEPARTURE.name;
     try {
       return localStorage.getItem('th_departure_name') || 'Самара';
@@ -97,11 +175,17 @@
   }
 
   function departureId() {
+    if (global.THDeparturePreference && typeof global.THDeparturePreference.getActive === 'function') {
+      var activeId = global.THDeparturePreference.getActive();
+      if (activeId && activeId.id) return String(activeId.id);
+    }
+    var depEl = document.getElementById('tv-departure');
+    if (depEl && depEl.value) return String(depEl.value).trim();
     if (global.TH_DEPARTURE && global.TH_DEPARTURE.id) return String(global.TH_DEPARTURE.id);
     try {
-      return localStorage.getItem('th_departure_id') || '12';
+      return localStorage.getItem('th_departure_id') || '7';
     } catch (e2) {
-      return '12';
+      return '7';
     }
   }
 
@@ -876,6 +960,7 @@
       );
     }
     var adultsNum = parseInt(String(options.adults || 2), 10) || 2;
+    var childAges = normalizeChildAges(options.childAges != null ? options.childAges : options.childs);
     var catNum = parseInt(String(h.category || ''), 10) || 0;
     var starsHtml = catNum > 0 ? '\u2605'.repeat(Math.min(catNum, 5)) : '';
     var isPromo = !!options.promo;
@@ -891,13 +976,15 @@
     var startYmd = options.dateFrom || '';
     var retYmd = options.dateTo || '';
     var datesMeta = '';
-    var adultsWord = adultsLabel(adultsNum);
+    var partyWord = partySummaryLabel(adultsNum, childAges);
+    var pricePartyLabel = partyPriceLabel(adultsNum, childAges);
+    var partyMismatch = !tourPartyMatches(tour, adultsNum, childAges);
     if (startYmd && retYmd) {
-      datesMeta = fmtDateShort(startYmd) + ' \u2013 ' + fmtDateShort(retYmd) + ', ' + nightsLabel(nightsNum) + ', ' + adultsWord;
+      datesMeta = fmtDateShort(startYmd) + ' \u2013 ' + fmtDateShort(retYmd) + ', ' + nightsLabel(nightsNum) + ', ' + partyWord;
     } else if (nightsNum) {
-      datesMeta = nightsLabel(nightsNum) + ', ' + adultsWord;
+      datesMeta = nightsLabel(nightsNum) + ', ' + partyWord;
     } else {
-      datesMeta = adultsWord;
+      datesMeta = partyWord;
     }
 
     // Hard funnel: никогда не рисуем фейковую «было» (+15%). Только реальная цена API.
@@ -959,7 +1046,8 @@
       flightHtml +
       '<div class="th-tour-card__price-block">' +
       (oldPriceNum ? '<span class="th-tour-card__old-price">' + formatPrice(oldPriceNum) + '</span>' : '') +
-      '<span class="th-tour-card__price-label">\u0446\u0435\u043d\u0430 \u0437\u0430 ' + adultsWord + '</span>' +
+      '<span class="th-tour-card__price-label">' + esc(pricePartyLabel) + '</span>' +
+      (partyMismatch ? '<span class="th-tour-card__price-hint">Уточните цену для вашего состава</span>' : '') +
       '<span class="th-tour-card__price">' + formatPrice(priceNum) + '</span>' +
       (isPromo ? '<span class="th-tour-card__promo-label">\u0410\u043a\u0446\u0438\u043e\u043d\u043d\u0430\u044f \u0446\u0435\u043d\u0430</span>' : '') +
       '<span class="th-tour-card__dates">' + esc(datesMeta) + '</span>' +
@@ -990,6 +1078,13 @@
     formatPrice: formatPrice,
     expandMeal: expandMeal,
     nightsLabel: nightsLabel,
+    adultsLabel: adultsLabel,
+    childAgeLabel: childAgeLabel,
+    normalizeChildAges: normalizeChildAges,
+    childsParam: childsParam,
+    partyPriceLabel: partyPriceLabel,
+    partySummaryLabel: partySummaryLabel,
+    tourPartyMatches: tourPartyMatches,
     collectHotelPhotoRawUrls: collectHotelPhotoRawUrls,
     mapTourvisorImageUrl: mapTourvisorImageUrl,
     buildFlightBlockHtml: buildFlightBlockHtml,

@@ -14,6 +14,14 @@ data/*.db-wal
 !data/.gitkeep
 data/tourvisor_cache/
 data/cache/home_popular_destinations/
+data/page_cache/
+data/rate_limit/
+data/test_*.json
+data/curl_*.json
+data/phuquoc_*.json
+data/vn-promo-samara.json
+data/vn-regions.json
+data/vn-regions-list.txt
 
 # PHP
 *.log

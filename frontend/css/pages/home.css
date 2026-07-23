@@ -998,7 +998,7 @@ header {
     /* Сплошной фон — если backdrop-filter глючит в браузере */
     background-color: rgba(15, 23, 42, 0.45);
 }
-#tv-nights-popup-card {
+#tv-nights-popup-card:not(.th-coral-popup__panel) {
     position: relative;
     z-index: 2;
     pointer-events: auto;
@@ -1009,6 +1009,11 @@ header {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
 }
+#tv-nights-popup-card.th-coral-popup__panel {
+    max-width: none;
+    margin-inline: 0;
+    overflow: hidden;
+}
 #tv-nights-grid .tv-nights-cell {
     pointer-events: auto;
     cursor: pointer;
@@ -1017,7 +1022,7 @@ header {
     touch-action: manipulation;
 }
 @media (max-width: 640px) {
-    #tv-nights-popup-card {
+    #tv-nights-popup-card:not(.th-coral-popup__panel) {
         padding: 1rem;
     }
 }
