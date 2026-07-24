@@ -517,6 +517,15 @@
         display: block !important;
     }
 
+    .th-results-sticky-lead.th-results-sticky-lead--actions.is-visible {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px;
+        background: #FF6B6B !important;
+        border-top: none !important;
+        padding: 6px 6px calc(6px + var(--th-safe-bottom, env(safe-area-inset-bottom, 0px))) !important;
+    }
+
     .th-detail__mobile-sticky {
         display: block !important;
     }

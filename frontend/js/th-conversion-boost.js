@@ -4,15 +4,14 @@
 (function (global) {
   'use strict';
 
-  var ABANDON_COUNT_KEY = 'th_abandon_sheet_count';
   var ABANDON_DONE_KEY = 'th_abandon_sheet_done';
-  /** Показ «Не нашли тур?»: 40 с → 3 мин → 7 мин от загрузки страницы */
+  var ABANDON_START_KEY = 'th_abandon_session_start';
+  var ABANDON_SHOWN_KEY = 'th_abandon_slots_shown';
+  /** 1-й показ — 40 с, 2-й — 3 мин, 3-й — 7 мин от первого захода на сайт (сессия) */
   var ABANDON_SCHEDULE_MS = [40000, 180000, 420000];
-  var PAGE_LOAD_TS = (typeof performance !== 'undefined' && performance.timeOrigin)
-    ? performance.timeOrigin
-    : Date.now();
   var abandonTimersBound = false;
   var sheetEl = null;
+  var pendingRetries = {};
 
   function reach(goal) {
     if (global.THLeadCapture && global.THLeadCapture.reachGoal) {
@@ -27,17 +26,52 @@
     } catch (e) { return ''; }
   }
 
-  function abandonShowCount() {
-    try { return parseInt(sessionStorage.getItem(ABANDON_COUNT_KEY) || '0', 10) || 0; } catch (e) { return 0; }
-  }
-  function incrementAbandonShowCount() {
-    try { sessionStorage.setItem(ABANDON_COUNT_KEY, String(abandonShowCount() + 1)); } catch (e) {}
-  }
   function isAbandonDone() {
     try { return sessionStorage.getItem(ABANDON_DONE_KEY) === '1'; } catch (e) { return false; }
   }
   function markAbandonDone() {
     try { sessionStorage.setItem(ABANDON_DONE_KEY, '1'); } catch (e) {}
+  }
+
+  /** Старт визита на сайт (не сбрасывается при переходах по страницам). */
+  function getSessionStart() {
+    try {
+      var raw = sessionStorage.getItem(ABANDON_START_KEY);
+      var ts = raw ? parseInt(raw, 10) : 0;
+      if (!ts || isNaN(ts) || ts > Date.now()) {
+        ts = Date.now();
+        sessionStorage.setItem(ABANDON_START_KEY, String(ts));
+      }
+      return ts;
+    } catch (e) {
+      return Date.now();
+    }
+  }
+
+  function getShownSlots() {
+    try {
+      var raw = sessionStorage.getItem(ABANDON_SHOWN_KEY);
+      if (!raw) return {};
+      var parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function markSlotShown(slotIndex) {
+    var shown = getShownSlots();
+    shown[String(slotIndex)] = 1;
+    try { sessionStorage.setItem(ABANDON_SHOWN_KEY, JSON.stringify(shown)); } catch (e) {}
+  }
+
+  function isSlotShown(slotIndex) {
+    var shown = getShownSlots();
+    return !!shown[String(slotIndex)];
+  }
+
+  function sessionElapsedMs() {
+    return Math.max(0, Date.now() - getSessionStart());
   }
 
   function isHomeWizard() {
@@ -147,15 +181,24 @@
     return sheetEl;
   }
 
-  function openAbandonSheet(reason) {
-    if (isAbandonDone()) return;
-    if (abandonShowCount() >= ABANDON_SCHEDULE_MS.length) return;
-    if (document.body.classList.contains('th-modal-open')) return;
-    if (document.querySelector('#tv-search-loader.active')) return;
-    if (sheetEl && !sheetEl.classList.contains('hidden')) return;
-    incrementAbandonShowCount();
-    var slot = abandonShowCount();
-    reach(reason || ('abandon_sheet_timer_' + slot));
+  function canShowAbandonNow() {
+    if (isAbandonDone()) return false;
+    if (document.body.classList.contains('th-modal-open')) return false;
+    if (document.body.classList.contains('th-abandon-open')) return false;
+    if (document.querySelector('#tv-search-loader.active')) return false;
+    if (sheetEl && !sheetEl.classList.contains('hidden')) return false;
+    return true;
+  }
+
+  function openAbandonSheet(slotIndex, reason) {
+    if (isAbandonDone()) return false;
+    if (isSlotShown(slotIndex)) return false;
+    // Не показывать раньше своего времени сессии
+    if (sessionElapsedMs() < ABANDON_SCHEDULE_MS[slotIndex]) return false;
+    if (!canShowAbandonNow()) return false;
+
+    markSlotShown(slotIndex);
+    reach(reason || ('abandon_sheet_timer_' + (slotIndex + 1)));
     ensureAbandonSheet();
     sheetEl.classList.remove('hidden');
     document.body.classList.add('th-abandon-open');
@@ -164,6 +207,7 @@
     if (global.THMobile && typeof global.THMobile.pinFixedBottoms === 'function') {
       global.THMobile.pinFixedBottoms();
     }
+    return true;
   }
 
   function closeAbandonSheet() {
@@ -184,18 +228,55 @@
     if (global.THMobile && global.THMobile.lockScroll) global.THMobile.lockScroll(false);
   }
 
+  function clearSlotRetry(slotIndex) {
+    if (pendingRetries[slotIndex]) {
+      clearInterval(pendingRetries[slotIndex]);
+      delete pendingRetries[slotIndex];
+    }
+  }
+
+  function tryShowSlot(slotIndex) {
+    if (isAbandonDone()) return;
+    if (isSlotShown(slotIndex)) return;
+    if (sessionElapsedMs() < ABANDON_SCHEDULE_MS[slotIndex]) return;
+    if (openAbandonSheet(slotIndex, 'abandon_sheet_timer_' + (slotIndex + 1))) {
+      clearSlotRetry(slotIndex);
+      return;
+    }
+    // Заблокировано модалкой/лоадером — ждём освобождения, но не раньше своего слота
+    if (pendingRetries[slotIndex]) return;
+    var attempts = 0;
+    pendingRetries[slotIndex] = setInterval(function () {
+      attempts++;
+      if (isAbandonDone() || isSlotShown(slotIndex) || attempts > 60) {
+        clearSlotRetry(slotIndex);
+        return;
+      }
+      if (sessionElapsedMs() < ABANDON_SCHEDULE_MS[slotIndex]) return;
+      if (openAbandonSheet(slotIndex, 'abandon_sheet_timer_' + (slotIndex + 1))) {
+        clearSlotRetry(slotIndex);
+      }
+    }, 2500);
+  }
+
   function bindAbandonTriggers() {
     if (!document.body || document.body.classList.contains('th-promo-page')) return;
     if (isAbandonDone()) return;
     if (abandonTimersBound) return;
     abandonTimersBound = true;
+
+    try {
+      // Старый счётчик больше не используем — только время сессии и слоты
+      sessionStorage.removeItem('th_abandon_sheet_count');
+    } catch (eClean) {}
+
+    getSessionStart(); // фиксируем начало визита один раз за вкладку
+
     ABANDON_SCHEDULE_MS.forEach(function (delayMs, index) {
-      var fireAt = PAGE_LOAD_TS + delayMs;
-      var wait = Math.max(0, Math.round(fireAt - Date.now()));
+      if (isSlotShown(index)) return;
+      var wait = Math.max(0, delayMs - sessionElapsedMs());
       setTimeout(function () {
-        if (isAbandonDone()) return;
-        if (abandonShowCount() > index) return;
-        openAbandonSheet('abandon_sheet_timer_' + (index + 1));
+        tryShowSlot(index);
       }, wait);
     });
   }

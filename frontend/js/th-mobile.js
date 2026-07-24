@@ -320,16 +320,20 @@
             continue;
           }
         }
+        // Результаты поиска: всегда fixed к низу visualViewport (Safari / Яндекс)
+        el.style.setProperty('position', 'fixed', 'important');
+        el.style.setProperty('left', '0', 'important');
+        el.style.setProperty('right', '0', 'important');
+        el.style.setProperty('width', '100%', 'important');
+        el.style.setProperty('transform', 'translateZ(0)', 'important');
+        el.style.setProperty('-webkit-transform', 'translateZ(0)', 'important');
+
         var rect = el.getBoundingClientRect();
         var h = rect.height || el.offsetHeight || 0;
         if (h <= 0) continue;
         var top = (vv.offsetTop || 0) + (vv.height || layoutH) - h;
         el.style.setProperty('top', Math.round(top) + 'px', 'important');
         el.style.setProperty('bottom', 'auto', 'important');
-        el.style.setProperty('position', 'fixed', 'important');
-        el.style.setProperty('left', '0', 'important');
-        el.style.setProperty('right', '0', 'important');
-        el.style.setProperty('transform', 'none', 'important');
       }
     });
 

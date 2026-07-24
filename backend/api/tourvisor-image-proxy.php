@@ -256,13 +256,13 @@ if ($url === '' || !preg_match('#^https?://' . preg_quote($allowedHost, '#') . '
     tv_image_proxy_bad_request('Invalid url');
 }
 
-$projectRoot = dirname(__DIR__, 2);
-$cacheDir = $projectRoot . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'tourvisor_image_cache';
+require_once dirname(__DIR__) . DIRECTORY_SEPARATOR . 'components' . DIRECTORY_SEPARATOR . 'tourvisor_image_cache.php';
+
+$cacheDir = th_tourvisor_image_cache_dir();
 if (!is_dir($cacheDir)) {
     @mkdir($cacheDir, 0755, true);
 }
-$ttl = (int) (getenv('TOURVISOR_IMAGE_CACHE_TTL_DAYS') ?: ($_ENV['TOURVISOR_IMAGE_CACHE_TTL_DAYS'] ?? 30));
-$ttl = min(max($ttl, 1), 365) * 86400;
+$ttl = th_tourvisor_image_cache_ttl_seconds();
 
 $fetchUrl = preg_replace('#^https:#', 'http:', $url);
 $ctx = stream_context_create([
@@ -315,6 +315,11 @@ if (is_dir($cacheDir) && is_writable($cacheDir)) {
         fclose($fp);
         @rename($tmp, $cacheFile);
         @chmod($cacheFile, 0644);
+    }
+
+    // Фоновая подрезка ~1% запросов (полная — по cron: clear_image_cache.php)
+    if (random_int(1, 100) === 1) {
+        th_tourvisor_image_cache_maintain($cacheDir);
     }
 }
 

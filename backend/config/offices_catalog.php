@@ -28,6 +28,8 @@ function th_offices_raw(): array
             'address' => 'г. Самара, Молл «Парк Хаус», Московское шоссе, 81Б, 2 этаж (рядом с МФЦ)',
             'address_short' => 'Молл «Парк Хаус», Московское шоссе, 81Б, 2 этаж',
             'geo' => 'Самара, Московское шоссе, 81Б',
+            'lat' => 53.23345,
+            'lon' => 50.20090,
             'phone' => '+7 (846) 254-16-56',
             'phone_tel' => '+78462541656',
             'email' => 'hello@travelhub63.ru',
@@ -49,6 +51,8 @@ function th_offices_raw(): array
             'address' => 'г. Самара, ТЦ «Гудок», ул. Красноармейская, 131 (цоколь, напротив «Ленты»)',
             'address_short' => 'ТЦ «Гудок», ул. Красноармейская, 131',
             'geo' => 'Самара, Красноармейская, 131',
+            'lat' => 53.19090,
+            'lon' => 50.11117,
             'phone' => '+7 (846) 255-01-15',
             'phone_tel' => '+78462550115',
             'email' => 'hello@travelhub63.ru',
@@ -70,6 +74,8 @@ function th_offices_raw(): array
             'address' => 'г. Самара, Московское шоссе, 81Б',
             'address_short' => 'Московское шоссе, 81Б',
             'geo' => 'Самара, Московское шоссе, 81Б',
+            'lat' => 53.23355,
+            'lon' => 50.20120,
             'phone' => '+7 (846) 255-25-63',
             'phone_tel' => '+78462552563',
             'email' => 'hello@travelhub63.ru',
@@ -91,6 +97,8 @@ function th_offices_raw(): array
             'address' => 'г. Самара, ТЦ «Апельсин», ул. Ново-Садовая, 305А (1 этаж, офис 105)',
             'address_short' => 'ТЦ «Апельсин», ул. Ново-Садовая, 305А',
             'geo' => 'Самара, Ново-Садовая, 305А',
+            'lat' => 53.21255,
+            'lon' => 50.17785,
             'phone' => '+7 (846) 955-01-70',
             'phone_tel' => '+78469550170',
             'email' => 'hello@travelhub63.ru',
@@ -112,6 +120,8 @@ function th_offices_raw(): array
             'address' => 'г. Самара, ТЦ «Эль Рио», Московское шоссе, 205 (3 этаж, у «Детского мира»)',
             'address_short' => 'ТЦ «Эль Рио», Московское шоссе, 205',
             'geo' => 'Самара, Московское шоссе, 205',
+            'lat' => 53.22780,
+            'lon' => 50.19640,
             'phone' => '+7 (846) 250-03-06',
             'phone_tel' => '+78462500306',
             'email' => 'hello@travelhub63.ru',
@@ -228,4 +238,27 @@ function th_offices_by_city(string $city): array
     return array_values(array_filter(th_offices_catalog(), static function ($o) use ($city) {
         return ($o['city'] ?? '') === $city;
     }));
+}
+
+/**
+ * Точки для интерактивной карты офисов (Yandex Maps JS API).
+ *
+ * @return list<array{name:string,lat:float,lon:float,geo:string,address:string,phone:string,page_url:string}>
+ */
+function th_offices_map_points(string $city): array
+{
+    $points = [];
+    foreach (th_offices_by_city($city) as $o) {
+        $points[] = [
+            'name' => (string) ($o['name'] ?? ''),
+            'lat' => isset($o['lat']) ? (float) $o['lat'] : 0.0,
+            'lon' => isset($o['lon']) ? (float) $o['lon'] : 0.0,
+            'geo' => (string) ($o['geo'] ?? $o['address'] ?? ''),
+            'address' => (string) ($o['address'] ?? ''),
+            'phone' => (string) ($o['phone'] ?? ''),
+            'page_url' => (string) ($o['page_url'] ?? ''),
+        ];
+    }
+
+    return $points;
 }

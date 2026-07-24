@@ -1,22 +1,70 @@
 /**
- * Hard funnel UI — sticky results lead + demoted secondary CTAs.
+ * Hard funnel UI — sticky results lead (Call / MAX / Заявка) + demoted secondary CTAs.
  */
 .th-results-sticky-lead {
-    /* На мобилке переопределяется в mobile-adult.css → position:fixed */
-    position: sticky;
-    bottom: 0;
-    z-index: 40;
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    z-index: 9990;
     display: none;
-    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
-    background: #fff;
-    border-top: 1px solid rgba(26, 26, 64, 0.12);
-    box-shadow: 0 -6px 24px rgba(15, 23, 42, 0.08);
+    box-sizing: border-box;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    background: #FF6B6B;
+    border-top: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: 0 -8px 28px rgba(255, 107, 107, 0.35);
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
 }
 
 .th-results-sticky-lead.is-visible {
-    display: block;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
 }
 
+.th-results-sticky-lead--actions .th-results-sticky-lead__btn {
+    display: none !important;
+}
+
+.th-results-sticky-lead__action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 52px;
+    padding: 0 8px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    color: #fff;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    background: transparent;
+    box-shadow: none;
+}
+
+.th-results-sticky-lead__action--call,
+.th-results-sticky-lead__action--max,
+.th-results-sticky-lead__action--lead {
+    background: transparent;
+    box-shadow: none;
+}
+
+.th-results-sticky-lead__action:active {
+    transform: scale(0.98);
+    background: rgba(0, 0, 0, 0.08);
+}
+
+/* legacy single-button (promo page) */
 .th-results-sticky-lead__btn {
     display: flex;
     align-items: center;

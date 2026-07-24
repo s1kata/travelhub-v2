@@ -336,17 +336,19 @@ html.th-yandex-mobile #mobile-sticky-cta {
 
 html.th-yandex-mobile .th-site-lead-bar {
     display: grid !important;
-    grid-template-columns: 1fr 1fr 1.2fr !important;
-    gap: 8px !important;
-    padding: 10px 12px calc(10px + var(--th-safe-bottom, 0px)) !important;
-    background: rgba(26, 26, 64, 0.98) !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    padding: 6px 6px calc(6px + var(--th-safe-bottom, 0px)) !important;
+    background: #FF6B6B !important;
 }
 
 html.th-yandex-mobile .th-site-lead-bar__btn {
-    min-height: 50px !important;
-    font-size: 0.8rem !important;
+    min-height: 52px !important;
+    font-size: 0.9rem !important;
     gap: 5px !important;
-    padding: 0 8px !important;
+    padding: 0 6px !important;
+    background: transparent !important;
+    box-shadow: none !important;
 }
 
 html.th-yandex-mobile.th-kb-open .th-site-lead-bar,

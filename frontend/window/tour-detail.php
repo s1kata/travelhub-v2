@@ -1165,6 +1165,28 @@ if ($return_url !== '' && $return_url[0] === '/') {
             });
         });
 
+        function thTdCleanHotelText(raw) {
+            var s = String(raw || '');
+            s = s.replace(/<\/li>/gi, '\n');
+            s = s.replace(/<li[^>]*>/gi, '• ');
+            s = s.replace(/<br\s*\/?>/gi, '\n');
+            s = s.replace(/<\/p>/gi, '\n');
+            s = s.replace(/<p[^>]*>/gi, '');
+            s = s.replace(/<\/ul>/gi, '\n');
+            s = s.replace(/<ul[^>]*>/gi, '');
+            s = s.replace(/<\/ol>/gi, '\n');
+            s = s.replace(/<ol[^>]*>/gi, '');
+            s = s.replace(/<[^>]+>/g, '');
+            s = s.replace(/&nbsp;/gi, ' ');
+            s = s.replace(/&amp;#178;/gi, '²').replace(/&#178;/g, '²').replace(/&amp;#xb2;/gi, '²').replace(/&#xb2;/g, '²')
+                .replace(/&amp;sup2;/gi, '²').replace(/&sup2;/g, '²')
+                .replace(/&amp;#179;/gi, '³').replace(/&#179;/g, '³').replace(/&amp;#xb3;/gi, '³').replace(/&#xb3;/g, '³');
+            return s.trim().replace(/\n{2,}/g, '\n');
+        }
+        function thTdHotelTextToHtml(raw) {
+            return thTdCleanHotelText(raw).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+        }
+
         if (hotelId && tvApiBase) {
             var sep = tvApiBase.indexOf('?') >= 0 ? '&' : '?';
             var hotelUrl = tvApiBase + sep + 'type=hotel&hotelId=' + encodeURIComponent(hotelId);
@@ -1179,11 +1201,7 @@ if ($return_url !== '' && $return_url[0] === '/') {
                     var parts = [];
                     var desc = (d.common && d.common.description) ? d.common.description : (d.description || '');
                     if (desc) {
-                        var safeDesc = String(desc).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
-                        safeDesc = safeDesc.replace(/&amp;#178;/gi, '²').replace(/&#178;/g, '²').replace(/&amp;#xb2;/gi, '²').replace(/&#xb2;/g, '²')
-                            .replace(/&amp;sup2;/gi, '²').replace(/&sup2;/g, '²')
-                            .replace(/&amp;#179;/gi, '³').replace(/&#179;/g, '³').replace(/&amp;#xb3;/gi, '³').replace(/&#xb3;/g, '³');
-                        parts.push('<div class="hotel-desc">' + safeDesc + '</div>');
+                        parts.push('<div class="hotel-desc">' + thTdHotelTextToHtml(desc) + '</div>');
                     }
                     var images = collectHotelImagesFromApiData(d, hotelId);
                     if (d.services && (d.services.child || d.services.free)) {
@@ -1192,31 +1210,18 @@ if ($return_url !== '' && $return_url[0] === '/') {
                         if (d.services.free) childPolicy.push(String(d.services.free));
                         if (childPolicy.length) {
                             var cpHtml = childPolicy.map(function (line) {
-                                return thTdFlightEsc(line).replace(/\n/g, '<br>');
+                                return thTdHotelTextToHtml(line);
                             }).join('<br>');
                             parts.unshift('<div class="hotel-child-policy"><strong>Дети</strong><p>' + cpHtml + '</p></div>');
                         }
                     }
                     if (d.infrastructure && (d.infrastructure.beach || d.infrastructure.territory)) {
-                        function cleanInfra(text) {
-                            var s = String(text || '');
-                            s = s.replace(/<\/li>/gi, '\n');
-                            s = s.replace(/<li[^>]*>/gi, '• ');
-                            s = s.replace(/<br\s*\/?>/gi, '\n');
-                            s = s.replace(/<[^>]+>/g, '');
-                            return s.trim().replace(/\n{2,}/g, '\n');
-                        }
-                        function infraToHtml(raw) {
-                            var h = cleanInfra(raw).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
-                            return h.replace(/&amp;#178;/gi, '²').replace(/&#178;/g, '²').replace(/&amp;#xb2;/gi, '²').replace(/&#xb2;/g, '²')
-                                .replace(/&amp;sup2;/gi, '²').replace(/&sup2;/g, '²');
-                        }
                         var infraHtml = '<div class="hotel-infra">';
                         if (d.infrastructure.beach) {
-                            infraHtml += '<div class="hotel-infra-item"><strong>Пляж</strong>' + infraToHtml(d.infrastructure.beach) + '</div>';
+                            infraHtml += '<div class="hotel-infra-item"><strong>Пляж</strong>' + thTdHotelTextToHtml(d.infrastructure.beach) + '</div>';
                         }
                         if (d.infrastructure.territory) {
-                            infraHtml += '<div class="hotel-infra-item"><strong>Территория</strong>' + infraToHtml(d.infrastructure.territory) + '</div>';
+                            infraHtml += '<div class="hotel-infra-item"><strong>Территория</strong>' + thTdHotelTextToHtml(d.infrastructure.territory) + '</div>';
                         }
                         infraHtml += '</div>';
                         parts.push(infraHtml);

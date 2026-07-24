@@ -4,6 +4,7 @@ if (PageCache::get()) exit;
 require_once __DIR__ . '/../../backend/config/config.php';
 require_once __DIR__ . '/../../backend/config/contacts.php';
 require_once __DIR__ . '/../../backend/config/offices_catalog.php';
+require_once __DIR__ . '/../../backend/config/maps.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 PageCache::start();
 
@@ -24,6 +25,7 @@ $heroCover = $offices[0]['cover'] ?? '/frontend/window/img/hero/e978c0767c0fe7bc
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/frontend/css/th-offices.css?v=3">
     <?php include __DIR__ . '/../../backend/components/design_system_head.php'; ?>
+    <script src="<?php echo htmlspecialchars(th_maps()['api_js'], ENT_QUOTES, 'UTF-8'); ?>" type="text/javascript"></script>
 </head>
 <body class="th-off-page text-slate-900">
     <?php
@@ -115,17 +117,15 @@ $heroCover = $offices[0]['cover'] ?? '/frontend/window/img/hero/e978c0767c0fe7bc
         </div>
         <p class="th-off-empty hidden" id="th-offices-empty">В этом городе офисов пока нет в списке.</p>
 
-        <section class="mt-10 rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
-            <div class="px-4 py-4 sm:px-6 border-b border-slate-100">
-                <h2 class="heading-font text-xl sm:text-2xl font-bold text-slate-900 m-0">Главный офис на карте</h2>
-                <p class="text-slate-600 mt-1 mb-0">Самара, Московское шоссе, 81Б — и <a class="text-[#5DA9A4] font-semibold underline" href="/frontend/window/offices/samara-offices.php">все офисы Самары</a> / <a class="text-[#5DA9A4] font-semibold underline" href="/frontend/window/offices/moscow-offices.php">Москвы</a></p>
-            </div>
-            <?php
-            require_once __DIR__ . '/../../backend/config/maps.php';
-            $yandex_map_open_url = th_maps()['widget_samara_hq'];
-            include __DIR__ . '/../../backend/components/yandex_map_open_link.php';
-            ?>
-        </section>
+        <?php
+        $yandex_offices_map_id = 'offices-samara-map';
+        $yandex_offices_map_points = th_offices_map_points('samara');
+        $yandex_offices_map_title = 'Все офисы в Самаре на карте';
+        $yandex_offices_map_subtitle = '5 офисов Travel Hub — Fun&Sun, Anex Tour и Coral Travel. Нажмите на метку для адреса и телефона. Также: <a class="text-[#5DA9A4] font-semibold underline" href="/frontend/window/offices/moscow-offices.php">офисы в Москве</a>.';
+        $yandex_offices_map_center = [53.2335, 50.2010];
+        $yandex_offices_map_zoom = 12;
+        include __DIR__ . '/../../backend/components/yandex_offices_map.php';
+        ?>
     </main>
 
     <?php

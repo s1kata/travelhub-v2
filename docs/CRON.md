@@ -78,7 +78,26 @@ php backend/scripts/tourvisor_background_update.php
 php clear_cache.php 10
 ```
 
-Удаляет записи старше 10 дней (аргумент — число дней).
+Удаляет JSON в `data/tourvisor_cache` старше 10 дней.
+
+### Кэш картинок Tourvisor (hotel_pics)
+
+Папка `data/tourvisor_image_cache/` — прокси `tourvisor-image-proxy.php`. На проде может занимать гигабайты: просроченные файлы удаляются только при повторном запросе.
+
+**Разовая чистка (освободить место сейчас):**
+
+```bash
+php clear_image_cache.php --stats
+php clear_image_cache.php 14 --trim-mb=1024
+```
+
+**Cron (рекомендуется, раз в сутки):**
+
+```
+30 4 * * * cd /path/to/travelhub-v2 && php clear_image_cache.php >> data/image_cache_cron.log 2>&1
+```
+
+В `.env`: `TOURVISOR_IMAGE_CACHE_TTL_DAYS=14`, `TOURVISOR_IMAGE_CACHE_MAX_MB=1024` — лимит диска; популярные фото перекачаются автоматически при просмотре (первая загрузка ~0.5–2 с, дальше снова из кэша).
 
 ## HTTP-cron (если нет CLI)
 

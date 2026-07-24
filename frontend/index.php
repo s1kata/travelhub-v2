@@ -12,6 +12,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_once __DIR__ . '/../backend/config/config.php';
+require_once __DIR__ . '/../backend/components/legal_consent_label.php';
 PageCache::start();
 
 require_once __DIR__ . '/../backend/components/yandex_metrika.php';
@@ -144,14 +145,14 @@ $current_page = 'home';
     <link rel="stylesheet" href="/frontend/css/v2-theme.css?v=4">
     <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=11">
     <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=14">
-    <link rel="stylesheet" href="/frontend/css/th-hard-funnel.css?v=4">
+    <link rel="stylesheet" href="/frontend/css/th-hard-funnel.css?v=6">
     <link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=8">
-    <link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=5">
-    <link rel="stylesheet" href="/frontend/css/yandex-mobile.css?v=6">
+    <link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=6">
+    <link rel="stylesheet" href="/frontend/css/yandex-mobile.css?v=7">
     <link rel="stylesheet" href="/frontend/css/pages/home.css?v=7">
     <link rel="stylesheet" href="/frontend/css/th-sheet.css?v=7">
     <?php include __DIR__ . '/../backend/components/mobile_site_head.php'; ?>
-    <link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=2">
+    <link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=3">
     <script>window.__TH_YM_ID=<?php echo json_encode((string)$th_ym_id, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
     <script src="/frontend/js/v2-theme.js?v=1" defer></script>
     <script src="/frontend/js/tour-search-wizard.js?v=15" defer></script>
@@ -187,7 +188,7 @@ $current_page = 'home';
                 <p>Поиск занимает дольше обычного — можно подождать<br>или оставить телефон, менеджер подберёт тур.</p>
                 <form id="tv-loader-lead-form" class="tv-search-loader-slow__form">
                     <input type="tel" name="phone" required class="tv-search-loader-slow__input" placeholder="+7 (___) ___-__-__" autocomplete="tel">
-                    <label class="tv-search-loader-slow__agree"><input type="checkbox" name="agree" checked required> <?php require_once __DIR__ . '/../../backend/components/legal_consent_label.php'; echo th_legal_consent_checkbox_html(); ?></label>
+                    <label class="tv-search-loader-slow__agree"><input type="checkbox" name="agree" checked required> <?php echo th_legal_consent_checkbox_html(); ?></label>
                     <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;height:0;width:0">
                     <p id="tv-loader-lead-msg" class="tv-search-loader-slow__msg hidden"></p>
                     <button type="submit" class="tv-search-loader-slow__submit"><i class="fas fa-headset" aria-hidden="true"></i>Подобрать за меня</button>
@@ -523,7 +524,7 @@ $current_page = 'home';
                         </div>
                         <label class="flex items-start gap-2 text-xs text-white/90 cursor-pointer">
                             <input type="checkbox" name="agree" required class="mt-0.5 rounded border-white/40">
-                            <span><?php require_once __DIR__ . '/../../backend/components/legal_consent_label.php'; echo th_legal_consent_checkbox_html(); ?></span>
+                            <span><?php echo th_legal_consent_checkbox_html(); ?></span>
                         </label>
                         <input type="text" name="website" class="absolute opacity-0 pointer-events-none w-px h-px overflow-hidden" tabindex="-1" autocomplete="off" aria-hidden="true">
                         <button type="submit" class="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 text-sm transition-colors">Отправить</button>
@@ -932,12 +933,30 @@ $current_page = 'home';
         </div>
     </section>
 
-    <div id="th-results-sticky-lead" class="th-results-sticky-lead" aria-label="Быстрая заявка">
-        <button type="button" class="th-results-sticky-lead__btn" data-open-lead-modal="results-sticky">
+    <?php
+    require_once __DIR__ . '/../backend/config/contacts.php';
+    $_th_sticky_c = th_contacts();
+    ?>
+    <nav id="th-results-sticky-lead" class="th-results-sticky-lead th-results-sticky-lead--actions" aria-label="Быстрая связь">
+        <a class="th-results-sticky-lead__action th-results-sticky-lead__action--call"
+           href="tel:<?php echo htmlspecialchars($_th_sticky_c['phone_tel'], ENT_QUOTES, 'UTF-8'); ?>"
+           data-th-track="call_bar">
             <i class="fas fa-phone" aria-hidden="true"></i>
-            Оставить телефон — подберём тур
+            <span>Позвонить</span>
+        </a>
+        <a class="th-results-sticky-lead__action th-results-sticky-lead__action--max"
+           href="<?php echo htmlspecialchars($_th_sticky_c['max_url'], ENT_QUOTES, 'UTF-8'); ?>"
+           target="_blank" rel="noopener noreferrer"
+           data-th-track="max_bar">
+            <span>MAX</span>
+        </a>
+        <button type="button" class="th-results-sticky-lead__action th-results-sticky-lead__action--lead"
+                data-open-lead-modal="results-sticky"
+                data-th-track="lead_bar">
+            <i class="fas fa-comment-dots" aria-hidden="true"></i>
+            <span>Заявка</span>
         </button>
-    </div>
+    </nav>
 
     <?php include __DIR__ . '/../backend/components/footer.php'; ?>
 
@@ -2656,8 +2675,19 @@ $current_page = 'home';
             if (wrapper) wrapper.classList.remove('hidden');
             if (leadBar) leadBar.classList.remove('hidden');
             var stickyLead = document.getElementById('th-results-sticky-lead');
-            if (stickyLead) stickyLead.classList.add('is-visible');
+            if (stickyLead) {
+                stickyLead.classList.add('is-visible');
+                try {
+                    if (stickyLead.parentNode !== document.body) {
+                        document.body.appendChild(stickyLead);
+                    }
+                } catch (eMove) {}
+                document.body.classList.add('has-results-sticky');
+            }
             if (window.THMobile && typeof window.THMobile.sync === 'function') window.THMobile.sync();
+            if (window.THMobile && typeof window.THMobile.pinFixedBottoms === 'function') {
+                window.THMobile.pinFixedBottoms();
+            }
             if (window.THLeadCapture) window.THLeadCapture.reachGoal('search_results_shown');
         }
         function tvApplyClientFiltersAndRender() {
@@ -3401,7 +3431,7 @@ $current_page = 'home';
             <input type="tel" name="phone" placeholder="+7 (___) ___-__-__" required class="th-qbm-modal__input">
                 <label class="th-qbm-modal__agree">
                     <input type="checkbox" name="agree" required>
-                    <span><?php require_once __DIR__ . '/../../backend/components/legal_consent_label.php'; echo th_legal_consent_checkbox_html(); ?></span>
+                    <span><?php echo th_legal_consent_checkbox_html(); ?></span>
                 </label>
                 <input type="text" name="website" class="th-qbm-modal__hp" tabindex="-1" autocomplete="off">
                 <div id="qbm-msg" class="th-qbm-modal__msg"></div>

@@ -36,6 +36,16 @@
 - `frontend/window/countries/country.php`
 - `frontend/guest-template.php`
 
+## Кэш картинок Tourvisor
+
+Прокси: `backend/api/tourvisor-image-proxy.php` → папка `data/tourvisor_image_cache/`.
+
+- TTL: `TOURVISOR_IMAGE_CACHE_TTL_DAYS` (по умолчанию 14)
+- Лимит диска: `TOURVISOR_IMAGE_CACHE_MAX_MB` (0 = без лимита)
+- Очистка: `php clear_image_cache.php` — см. [CRON.md](CRON.md)
+
+После удаления старых файлов картинки **не пропадают** — при первом просмотре тура прокси снова скачает их с static.tourvisor.ru и положит в кэш.
+
 ## Прогрев и промо
 
 - Прогрев: `php backend/scripts/tourvisor_background_update.php` или `GET /backend/scripts/warmup_tourvisor_cache.php`

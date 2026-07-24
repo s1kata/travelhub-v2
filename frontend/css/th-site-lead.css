@@ -17,13 +17,16 @@ body.has-th-lead-bar:not(.th-promo-page) {
     z-index: 9990;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-    padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
-    background: rgba(26, 26, 64, 0.96);
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.28);
+    gap: 4px;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+    background: #FF6B6B;
+    border-top: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: 0 -8px 28px rgba(255, 107, 107, 0.35);
 }
 
 .th-site-lead-bar__btn {
@@ -31,30 +34,27 @@ body.has-th-lead-bar:not(.th-promo-page) {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    min-height: 48px;
-    padding: 0 10px;
-    border-radius: 12px;
+    min-height: 52px;
+    padding: 0 8px;
+    border-radius: 10px;
     font-weight: 700;
-    font-size: 0.82rem;
+    font-size: 0.9rem;
     text-decoration: none;
     border: none;
     cursor: pointer;
     color: #fff;
     font-family: inherit;
     -webkit-tap-highlight-color: transparent;
+    background: transparent;
+    box-shadow: none;
 }
 
-.th-site-lead-bar__btn--call {
-    background: #5DA9A4;
-}
-
-.th-site-lead-bar__btn--wa {
-    background: #0F1C3F;
-}
-
-.th-site-lead-bar__btn--max {
-    background: #5B7CFF;
-    box-shadow: 0 4px 14px rgba(91, 124, 255, 0.35);
+.th-site-lead-bar__btn--call,
+.th-site-lead-bar__btn--wa,
+.th-site-lead-bar__btn--max,
+.th-site-lead-bar__btn--lead {
+    background: transparent;
+    box-shadow: none;
 }
 
 .th-max-badge {
@@ -65,7 +65,7 @@ body.has-th-lead-bar:not(.th-promo-page) {
     height: 1.1rem;
     padding: 0 3px;
     border-radius: 4px;
-    background: #5B7CFF;
+    background: rgba(255, 255, 255, 0.22);
     color: #fff;
     font-size: 0.55rem;
     font-weight: 800;
@@ -73,13 +73,9 @@ body.has-th-lead-bar:not(.th-promo-page) {
     line-height: 1;
 }
 
-.th-site-lead-bar__btn--lead {
-    background: #FF6B6B;
-    box-shadow: 0 6px 16px rgba(255, 107, 107, 0.35);
-}
-
 .th-site-lead-bar__btn:active {
     transform: scale(0.98);
+    background: rgba(0, 0, 0, 0.08);
 }
 
 /* Hide when another sticky funnel CTA is visible (tour results / detail) */

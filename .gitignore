@@ -13,6 +13,7 @@ data/*.db-shm
 data/*.db-wal
 !data/.gitkeep
 data/tourvisor_cache/
+data/tourvisor_image_cache/
 data/cache/home_popular_destinations/
 data/page_cache/
 data/rate_limit/

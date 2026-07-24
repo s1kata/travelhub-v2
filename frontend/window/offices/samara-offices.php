@@ -9,15 +9,7 @@ $offices = th_offices_by_city('samara');
 $page_title = 'Офисы в Самаре';
 $current_page = 'offices';
 $heroCover = $offices[0]['cover'] ?? '/frontend/window/img/hero/e978c0767c0fe7bc778596c86b2b54f3%201.png';
-$mapPoints = array_map(static function ($o) {
-    return [
-        'name' => $o['name'],
-        'geo' => 'Россия, ' . ($o['geo'] ?? $o['address']),
-        'address' => $o['address'],
-        'phone' => $o['phone'],
-        'page_url' => $o['page_url'],
-    ];
-}, $offices);
+require_once __DIR__ . '/../../../backend/config/maps.php';
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -30,7 +22,7 @@ $mapPoints = array_map(static function ($o) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/frontend/css/th-offices.css?v=2">
     <?php include __DIR__ . '/../../../backend/components/design_system_head.php'; ?>
-    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+    <script src="<?php echo htmlspecialchars(th_maps()['api_js'], ENT_QUOTES, 'UTF-8'); ?>" type="text/javascript"></script>
 </head>
 <body class="th-off-page text-slate-900">
     <?php include __DIR__ . '/../../../backend/components/header.php'; ?>
@@ -85,13 +77,15 @@ $mapPoints = array_map(static function ($o) {
             <?php endforeach; ?>
         </div>
 
-        <section class="mt-10 rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
-            <div class="px-4 py-4 sm:px-6 border-b border-slate-100 text-center sm:text-left">
-                <h2 class="heading-font text-xl sm:text-2xl font-bold text-slate-900 m-0">Расположение офисов на карте</h2>
-                <p class="text-slate-600 mt-1 mb-0">Интерактивная карта Яндекс — все офисы в Самаре</p>
-            </div>
-            <div id="samara-offices-map" class="w-full" style="height:450px;min-height:400px;background:#e2e8f0;"></div>
-        </section>
+        <?php
+        $yandex_offices_map_id = 'samara-offices-map';
+        $yandex_offices_map_points = th_offices_map_points('samara');
+        $yandex_offices_map_title = 'Расположение офисов на карте';
+        $yandex_offices_map_subtitle = 'Интерактивная карта Яндекс — все офисы в Самаре';
+        $yandex_offices_map_center = [53.2335, 50.2010];
+        $yandex_offices_map_zoom = 12;
+        include __DIR__ . '/../../../backend/components/yandex_offices_map.php';
+        ?>
     </main>
 
     <?php
@@ -104,52 +98,5 @@ $mapPoints = array_map(static function ($o) {
 
     <?php include __DIR__ . '/../../../backend/components/footer.php'; ?>
     <script src="/frontend/js/office-lead-modal.js?v=2" defer></script>
-    <script>
-    (function () {
-      if (typeof ymaps === 'undefined') return;
-      ymaps.ready(function () {
-        function esc(s) {
-          if (s == null) return '';
-          return String(s)
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-        }
-        var map = new ymaps.Map('samara-offices-map', {
-          center: [53.2028, 50.1408],
-          zoom: 11,
-          controls: ['zoomControl', 'fullscreenControl']
-        });
-        var officesData = <?php echo json_encode($mapPoints, JSON_UNESCAPED_UNICODE); ?>;
-        var collection = new ymaps.GeoObjectCollection();
-        map.geoObjects.add(collection);
-        var pending = officesData.length;
-        function done() {
-          pending--;
-          if (pending <= 0 && collection.getLength() > 0) {
-            try { map.setBounds(collection.getBounds(), { checkZoomRange: true, zoomMargin: 40 }); } catch (e) {}
-          }
-        }
-        officesData.forEach(function (o) {
-          ymaps.geocode(o.geo, { results: 1 }).then(function (res) {
-            var first = res.geoObjects.get(0);
-            if (first) {
-              var phone = (o.phone || '').replace(/[^\d+]/g, '');
-              var html = '<div style="padding:4px 0;min-width:200px">' +
-                '<strong>' + esc(o.name) + '</strong><br>' +
-                esc(o.address) + '<br>' +
-                (phone ? '<a href="tel:' + esc(phone) + '">' + esc(o.phone) + '</a><br>' : '') +
-                '<a href="' + esc(o.page_url) + '" target="_blank" rel="noopener">Подробнее</a>' +
-                '</div>';
-              collection.add(new ymaps.Placemark(first.geometry.getCoordinates(), {
-                balloonContent: html,
-                hintContent: o.name
-              }, { preset: 'islands#blueCircleIcon' }));
-            }
-            done();
-          }, function () { done(); });
-        });
-      });
-    })();
-    </script>
 </body>
 </html>

@@ -15,22 +15,23 @@
 .th-site-lead-bar {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    max-width: 42rem;
-    margin-left: auto;
-    margin-right: auto;
+    max-width: none;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
     z-index: var(--th-z-lead-bar);
 }
 
 @media (min-width: 768px) {
     .th-site-lead-bar {
-        max-width: 36rem;
-        padding-left: 16px;
-        padding-right: 16px;
+        max-width: none;
+        padding-left: 8px;
+        padding-right: 8px;
     }
 
     .th-site-lead-bar__btn {
-        min-height: 46px;
-        font-size: 0.875rem;
+        min-height: 50px;
+        font-size: 0.95rem;
     }
 }
 
@@ -103,6 +104,17 @@ body.has-th-lead-bar:not(.th-promo-page) {
 #promo-results-sticky-lead.is-visible,
 #mobile-sticky-cta.is-visible {
     display: block !important;
+}
+
+.th-results-sticky-lead.th-results-sticky-lead--actions.is-visible {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    max-width: none;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    background: #FF6B6B !important;
+    border-top: none !important;
 }
 
 #promo-sticky-cta .th-promo-pick-tour-btn,
