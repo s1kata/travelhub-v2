@@ -1128,7 +1128,10 @@ $current_page = 'home';
                 if (v != null && v !== '') u.searchParams.set(k, String(v));
             });
             if (type === 'search-cached') {
-                if (!opts.cacheOnly) u.searchParams.set('live', '1');
+                if (opts.cacheScope) u.searchParams.set('cacheScope', String(opts.cacheScope));
+                if (opts.cacheOnly) u.searchParams.set('cacheOnly', '1');
+                if (!opts.cacheOnly && !opts.backgroundRefresh) u.searchParams.set('live', '1');
+                if (opts.backgroundRefresh) u.searchParams.set('live', '1');
                 u.searchParams.set('_t', String(Date.now()));
             }
             const url = u.toString();
@@ -2555,8 +2558,8 @@ $current_page = 'home';
                     countryId: country,
                     countryName: countryNameForCache,
                     dateFrom, dateTo,
-                    nightsFrom: nFrom || 7,
-                    nightsTo: nTo || 14,
+                    nightsFrom: nFrom || 6,
+                    nightsTo: nTo || 9,
                     adults
                 };
                 if (childs) cacheParams.childs = childs;
@@ -2569,19 +2572,48 @@ $current_page = 'home';
                 console.log('%c[API → сайт] Параметры поиска отправляются в API', 'color: #5DA9A4; font-weight: bold', cacheParams);
                 console.log('[Фильтры] Поиск с параметрами:', { meal: meal || '—', regionIds: region || '—', hotelCategory: category || '—', hotelServices: (typeof tvSelectedServiceIds !== 'undefined' && tvSelectedServiceIds.length) ? tvSelectedServiceIds.join(',') : '—' });
                 tvLoaderUpdateInstantPreview(countryNameForCache, dep);
-                rCache = await tvFetch('search-cached', cacheParams, { cacheOnly: true });
-                if (!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0) {
-                    rCache = await tvFetch('search-cached', cacheParams);
-                }
+                const cacheOpts = { cacheOnly: true, cacheScope: 'country_page' };
+                rCache = await tvFetch('search-cached', cacheParams, cacheOpts);
                 if ((!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0) && origNFrom === 6 && origNTo === 9) {
                     const altParams = Object.assign({}, cacheParams, { nightsFrom: 5, nightsTo: 10 });
-                    const rAlt = await tvFetch('search-cached', altParams, { cacheOnly: true });
-                    if (!rAlt.success || !Array.isArray(rAlt.data) || rAlt.data.length === 0) {
-                        var rAltLive = await tvFetch('search-cached', altParams);
-                        if (rAltLive.success && Array.isArray(rAltLive.data) && rAltLive.data.length > 0) rAlt = rAltLive;
-                    }
+                    const rAlt = await tvFetch('search-cached', altParams, cacheOpts);
                     if (rAlt.success && Array.isArray(rAlt.data) && rAlt.data.length > 0) {
                         rCache = rAlt;
+                        tvShowAltNightsBanner(true);
+                    }
+                }
+                var hadInstantCache = rCache.success && Array.isArray(rCache.data) && rCache.data.length > 0;
+                if (hadInstantCache) {
+                    clearInterval(progressInterval);
+                    tvLoaderSetProgress(100, 'Готово!', 'Показываем результаты...');
+                    await new Promise(function (r) { setTimeout(r, 200); });
+                    tvLoaderHide();
+                    tvHotelsBeforeBudgetFilter = rCache.data.slice();
+                    if (tvPostFiltersCtrl && typeof tvPostFiltersCtrl.updateFromHotels === 'function') {
+                        tvPostFiltersCtrl.updateFromHotels(tvHotelsBeforeBudgetFilter);
+                    }
+                    tvApplyClientFiltersAndRender();
+                    showTvResultsChrome();
+                    document.getElementById('tv-results-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    console.log('%c[Главная · Поиск] Мгновенная выдача из кэша', 'color: #22c55e', tvLastResults.length, 'туров');
+                    tvFetch('search-cached', cacheParams, { backgroundRefresh: true, cacheScope: 'country_page' }).then(function (fresh) {
+                        if (!fresh || !fresh.success || !Array.isArray(fresh.data) || fresh.data.length === 0) return;
+                        if (fresh.fromCache === true) return;
+                        tvHotelsBeforeBudgetFilter = fresh.data.slice();
+                        if (tvPostFiltersCtrl && typeof tvPostFiltersCtrl.updateFromHotels === 'function') {
+                            tvPostFiltersCtrl.updateFromHotels(tvHotelsBeforeBudgetFilter);
+                        }
+                        tvApplyClientFiltersAndRender();
+                        console.log('%c[Главная · Поиск] Фоновое обновление цен', 'color: #5DA9A4', tvLastResults.length, 'туров');
+                    }).catch(function () {});
+                    return;
+                }
+                rCache = await tvFetch('search-cached', cacheParams, { cacheScope: 'country_page' });
+                if ((!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0) && origNFrom === 6 && origNTo === 9) {
+                    const altParams = Object.assign({}, cacheParams, { nightsFrom: 5, nightsTo: 10 });
+                    var rAltLive = await tvFetch('search-cached', altParams, { cacheScope: 'country_page' });
+                    if (rAltLive.success && Array.isArray(rAltLive.data) && rAltLive.data.length > 0) {
+                        rCache = rAltLive;
                         tvShowAltNightsBanner(true);
                     }
                 }

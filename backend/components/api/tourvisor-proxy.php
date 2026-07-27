@@ -1545,6 +1545,15 @@ function tourvisor_proxy_dispatch(): array
             }
         }
 
+        $searchCacheOnly = isset($_GET['cacheOnly']) && $_GET['cacheOnly'] === '1';
+        if ($type === 'search-cached' && $searchCacheOnly) {
+            header('X-Tourvisor-Search-Mode: cache');
+            header('X-Tourvisor-Cache-Read: none');
+            $GLOBALS['tv_cache_hit'] = true;
+            $r = ['success' => false, 'error' => 'Cache miss', 'data' => [], 'fromCache' => false];
+            break;
+        }
+
         header('X-Tourvisor-Search-Mode: live');
         header('X-Tourvisor-Cache-Read: none');
         if ($onlyPromo) {

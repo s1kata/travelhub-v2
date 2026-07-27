@@ -1,0 +1,11 @@
+services:
+  search-cache-reader:
+    build: ../search-cache-reader
+    ports:
+      - "8080:8080"
+    environment:
+      TOURVISOR_CACHE_DIR: /cache
+      PHP_TOURVISOR_PROXY_URL: ${PHP_TOURVISOR_PROXY_URL:-https://travelhub63.ru/frontend/api/tourvisor-proxy.php}
+      LISTEN_ADDR: ":8080"
+    volumes:
+      - ../travelhub-v2/data/tourvisor_cache:/cache:ro

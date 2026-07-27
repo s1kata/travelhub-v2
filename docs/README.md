@@ -13,6 +13,7 @@
 | [TOURVISOR.md](TOURVISOR.md) | API, прокси и кэш поиска туров |
 | [BUILD.md](BUILD.md) | Сборка Tailwind CSS перед продом |
 | [PERFORMANCE.md](PERFORMANCE.md) | Кэш страниц и оптимизация изображений |
+| [SEARCH_SPEED.md](SEARCH_SPEED.md) | Go sidecar, SWR-поиск, прогрев кэша |
 | [SEO.md](SEO.md) | Мета-теги, sitemap, robots |
 
 ## Структура репозитория
