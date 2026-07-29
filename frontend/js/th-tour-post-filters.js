@@ -128,12 +128,17 @@
       }
     }
 
+    if (state.thOnly) {
+      out = out.filter(function (h) {
+        return tophotelsRating(h) > 0;
+      });
+    }
+
     var thMin = parseFloat(String(state.thMinRating || ''));
     if (!isNaN(thMin) && thMin > 0) {
       out = out.filter(function (h) {
         var r = tophotelsRating(h);
-        // Hotels without TopHotels data stay visible until enrichment is widespread
-        if (r <= 0) return true;
+        // Threshold implies “with guest reviews”: hide unmatched
         return r >= thMin;
       });
     }
@@ -172,7 +177,8 @@
       priceMin: '',
       priceMax: '',
       beachLine: '',
-      thMinRating: ''
+      thMinRating: '',
+      thOnly: false
     };
   }
 
@@ -265,18 +271,26 @@
 
     root.querySelectorAll('[data-pf-th-rating]').forEach(function (btn) {
       btn.addEventListener('click', function () {
+        var val = btn.getAttribute('data-pf-th-rating') || '';
         var wasActive = btn.classList.contains('is-active');
+        var next = wasActive ? '' : val;
+        state.thMinRating = next;
         root.querySelectorAll('[data-pf-th-rating]').forEach(function (b) {
-          b.classList.remove('is-active');
-          b.setAttribute('aria-pressed', 'false');
+          var on = next !== '' && b.getAttribute('data-pf-th-rating') === next;
+          b.classList.toggle('is-active', on);
+          b.setAttribute('aria-pressed', on ? 'true' : 'false');
         });
-        if (!wasActive) {
-          state.thMinRating = btn.getAttribute('data-pf-th-rating') || '';
-          btn.classList.add('is-active');
-          btn.setAttribute('aria-pressed', 'true');
-        } else {
-          state.thMinRating = '';
-        }
+        emit();
+      });
+    });
+
+    root.querySelectorAll('[data-pf-th-only]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        state.thOnly = !state.thOnly;
+        root.querySelectorAll('[data-pf-th-only]').forEach(function (b) {
+          b.classList.toggle('is-active', state.thOnly);
+          b.setAttribute('aria-pressed', state.thOnly ? 'true' : 'false');
+        });
         emit();
       });
     });
@@ -309,9 +323,10 @@
         state.meals.clear();
         state.regions.clear();
         state.priceMin = state.priceMax = state.beachLine = state.thMinRating = '';
+        state.thOnly = false;
         if (minInp) minInp.value = '';
         if (maxInp) maxInp.value = '';
-        root.querySelectorAll('.tv-pf-chip.is-active, [data-pf-beach].is-active, [data-pf-th-rating].is-active').forEach(function (el) {
+        root.querySelectorAll('.tv-pf-chip.is-active, [data-pf-beach].is-active, [data-pf-th-rating].is-active, [data-pf-th-only].is-active').forEach(function (el) {
           el.classList.remove('is-active');
           el.setAttribute('aria-pressed', 'false');
         });
@@ -327,8 +342,13 @@
         renderRegions(meta);
         var beachGrp = root.querySelector('[data-pf-beach-group]');
         if (beachGrp) beachGrp.style.display = meta.hasBeachData ? '' : 'none';
-        var thGrp = root.querySelector('[data-pf-th-rating-group]');
-        if (thGrp) thGrp.style.display = meta.hasTophotels ? '' : 'none';
+        root.querySelectorAll('[data-pf-th-rating-group]').forEach(function (thGrp) {
+          if (thGrp.hasAttribute('data-pf-th-mobile-group')) {
+            thGrp.classList.toggle('is-visible', !!meta.hasTophotels);
+          } else {
+            thGrp.style.display = meta.hasTophotels ? '' : 'none';
+          }
+        });
         var mealBox = root.querySelector('[data-pf-meals]');
         if (mealBox && meta.meals.length) {
           var known = MEAL_CODES.filter(function (c) { return meta.meals.indexOf(c) >= 0; });

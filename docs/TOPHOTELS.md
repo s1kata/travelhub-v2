@@ -11,8 +11,20 @@
 | Enrichment в прокси | `tourvisor-proxy` → поле `hotel.tophotels` |
 | Файловый кэш | `data/tophotels/` |
 | Cron sync | `backend/cron/tophotels_sync.php` |
-| UI badge + фильтр | `th-tour-card.js`, `th-tour-post-filters.js`, sidebar на главной |
+| UI guest-score + фильтр/сорт | `th-tour-card.js`, `th-tour-post-filters.js`, toolbar на главной |
 | Sample fixtures | `data/tophotels/*.sample.*` |
+
+## UX (best practice)
+
+См. полный продукт-дизайн: [RESULTS_UX.md](./RESULTS_UX.md).
+
+Кратко (Booking / Level / Onlinetours):
+
+1. Wizard **не трогаем** — адаптация sheets 768 уже ок.
+2. Карточка: score-badge на фото → «Отлично» + N отзывов → аспекты → цена → CTA.
+3. Mobile/tablet: sticky chips над выдачей (сайдбар &lt;1024 скрыт).
+4. Desktop ≥1024: sidebar + sort-seg.
+5. Цвета `#1A1A40` / `#5DA9A4`; нет матча → UI скрыт.
 
 ## Контракт в JSON поиска
 

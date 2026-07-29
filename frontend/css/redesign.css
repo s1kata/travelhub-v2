@@ -3086,25 +3086,125 @@
     margin-top: 1px;
     flex-shrink: 0;
 }
+/* TopHotels guest score — brand colors (#1A1A40 / #5DA9A4) */
+.th-tour-card__guest-score {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0 6px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(26, 26, 64, 0.06) 0%, rgba(93, 169, 164, 0.14) 100%);
+    border: 1px solid rgba(93, 169, 164, 0.35);
+}
+.th-tour-card__guest-score-main {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 1px;
+    flex-shrink: 0;
+    min-width: 2.6rem;
+}
+.th-tour-card__guest-score-value {
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1;
+    color: #1A1A40;
+    letter-spacing: -0.02em;
+}
+.th-tour-card__guest-score-scale {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #5DA9A4;
+}
+.th-tour-card__guest-score-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+.th-tour-card__guest-score-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #1A1A40;
+    letter-spacing: 0.02em;
+}
+.th-tour-card__guest-score-reviews {
+    font-size: 11px;
+    font-weight: 500;
+    color: #64748b;
+}
+.th-tour-card__th-aspects {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    margin: 0 0 6px;
+}
+.th-tour-card__th-aspect {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 500;
+}
+.th-tour-card__th-aspect-score {
+    color: #1A1A40;
+    font-weight: 700;
+}
+/* legacy tiny badge (if any leftover markup) */
 .th-tour-card__th-rating {
     display: inline-flex;
     align-items: baseline;
     gap: 1px;
-    margin-top: 1px;
-    flex-shrink: 0;
-    padding: 1px 6px;
-    border-radius: 4px;
-    background: #0f766e;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: #5DA9A4;
     color: #fff;
     font-size: 11px;
     font-weight: 700;
-    line-height: 1.4;
-    white-space: nowrap;
 }
-.th-tour-card__th-rating-scale {
+.th-tour-card__th-rating-scale,
+.th-tour-card__th-rating-reviews {
     font-weight: 500;
-    opacity: 0.85;
+    opacity: 0.9;
     font-size: 10px;
+}
+
+/* Results: guest-review sort chips */
+.tv-guest-sort {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+.tv-guest-sort__btn {
+    border: 1px solid rgba(93, 169, 164, 0.45);
+    background: #fff;
+    color: #1A1A40;
+    font-size: 12px;
+    font-weight: 650;
+    padding: 6px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.tv-guest-sort__btn:hover {
+    border-color: #5DA9A4;
+    background: rgba(93, 169, 164, 0.1);
+}
+.tv-guest-sort__btn.is-active {
+    background: linear-gradient(135deg, #1A1A40, #5DA9A4);
+    border-color: transparent;
+    color: #fff;
+}
+.tv-sidebar-filter-group--guest .tv-sidebar-filter-label {
+    color: #1A1A40;
+}
+.tv-sidebar-filter-group--guest .tv-pf-chip.is-active,
+.tv-sidebar-filter-group--guest .tv-pf-chip[aria-pressed="true"] {
+    background: #5DA9A4 !important;
+    border-color: #5DA9A4 !important;
+    color: #fff !important;
 }
 
 /* --- Бейдж питания --- */

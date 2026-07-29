@@ -46,6 +46,14 @@ $translations = [
 ];
 
 $current_page = 'home';
+
+// Search UI: original coral wizard by default. Optional experiment: ?search=v2
+if (isset($_GET['search']) && is_string($_GET['search']) && $_GET['search'] !== '') {
+    $th_search_ui_raw = strtolower(trim($_GET['search']));
+} else {
+    $th_search_ui_raw = strtolower(trim((string) (getenv('TH_SEARCH_UI') ?: ($_ENV['TH_SEARCH_UI'] ?? 'legacy'))));
+}
+$th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
 ?>
 
 <!DOCTYPE html>
@@ -141,10 +149,17 @@ $current_page = 'home';
     <link rel="stylesheet" href="/frontend/css/responsive.css?v=17" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="/frontend/css/responsive.css?v=17"></noscript>
     <link rel="stylesheet" href="/frontend/css/design-system.css?v=14">
-    <link rel="stylesheet" href="/frontend/css/redesign.css?v=31">
+    <link rel="stylesheet" href="/frontend/css/redesign.css?v=33">
+    <link rel="stylesheet" href="/frontend/css/th-results-ux.css?v=1">
     <link rel="stylesheet" href="/frontend/css/v2-theme.css?v=4">
+    <?php if ($th_search_ui === 'legacy'): ?>
+    <link rel="stylesheet" href="/frontend/search-legacy/css/tour-search-wizard.css?v=legacy1">
+    <link rel="stylesheet" href="/frontend/search-legacy/css/th-coral-search.css?v=legacy1">
+    <?php else: ?>
     <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=11">
     <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=14">
+    <link rel="stylesheet" href="/frontend/css/th-search-v2.css?v=1">
+    <?php endif; ?>
     <link rel="stylesheet" href="/frontend/css/th-hard-funnel.css?v=6">
     <link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=8">
     <link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=6">
@@ -154,16 +169,23 @@ $current_page = 'home';
     <?php include __DIR__ . '/../backend/components/mobile_site_head.php'; ?>
     <link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=3">
     <script>window.__TH_YM_ID=<?php echo json_encode((string)$th_ym_id, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
+    <script>window.__TH_SEARCH_UI=<?php echo json_encode($th_search_ui, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
     <script src="/frontend/js/v2-theme.js?v=1" defer></script>
+    <?php if ($th_search_ui === 'legacy'): ?>
+    <script src="/frontend/search-legacy/js/tour-search-wizard.js?v=legacy1" defer></script>
+    <script src="/frontend/search-legacy/js/th-coral-search.js?v=legacy1" defer></script>
+    <?php else: ?>
     <script src="/frontend/js/tour-search-wizard.js?v=15" defer></script>
     <script src="/frontend/js/th-coral-search.js?v=11" defer></script>
+    <script src="/frontend/js/th-search-v2.js?v=1" defer></script>
+    <?php endif; ?>
     <script src="/frontend/js/th-lead-capture.js?v=2" defer></script>
     <script src="/frontend/js/th-mobile.js?v=13" defer></script>
     <script src="/frontend/js/th-modal.js?v=2" defer></script>
     <script src="/frontend/js/th-gallery.js?v=1" defer></script>
     
 </head>
-<body class="text-[#111827] antialiased">
+<body class="text-[#111827] antialiased th-search-ui-<?php echo htmlspecialchars($th_search_ui, ENT_QUOTES, 'UTF-8'); ?>">
     <?php include __DIR__ . '/../backend/components/header.php'; ?>
     <!-- Загрузчик поиска туров (процентный) -->
     <div id="tv-search-loader" class="tv-search-loader" aria-hidden="true">
@@ -587,9 +609,10 @@ $current_page = 'home';
                             <span class="tv-sidebar-filter-label">Курорты</span>
                             <div class="tv-pf-regions" data-pf-regions><p class="tv-pf-hint">Появятся после поиска</p></div>
                         </div>
-                        <div class="tv-sidebar-filter-group" data-pf-th-rating-group style="display:none">
-                            <span class="tv-sidebar-filter-label">Рейтинг TopHotels</span>
+                        <div class="tv-sidebar-filter-group tv-sidebar-filter-group--guest" data-pf-th-rating-group style="display:none">
+                            <span class="tv-sidebar-filter-label">Оценки гостей</span>
                             <div class="tv-pf-chips">
+                                <button type="button" class="tv-pf-chip" data-pf-th-only aria-pressed="false">Только с отзывами</button>
                                 <button type="button" class="tv-pf-chip" data-pf-th-rating="8" aria-pressed="false">от 8.0</button>
                                 <button type="button" class="tv-pf-chip" data-pf-th-rating="8.5" aria-pressed="false">от 8.5</button>
                                 <button type="button" class="tv-pf-chip" data-pf-th-rating="9" aria-pressed="false">от 9.0</button>
@@ -612,13 +635,35 @@ $current_page = 'home';
                                 Найдено <span id="tv-result-count">0</span> туров
                             </h3>
                             <div class="tv-sort-rail">
-                                <select id="tv-sort" class="tv-select tv-sort-select px-3 py-2 rounded-xl border border-slate-200 text-slate-700">
+                                <select id="tv-sort" class="tv-select tv-sort-select px-3 py-2 rounded-xl border border-slate-200 text-slate-700" aria-label="Сортировка">
                                     <option value="price-asc">Сначала дешевые</option>
                                     <option value="price-desc">Сначала дорогие</option>
                                     <option value="rating">По рейтингу</option>
+                                    <option value="th-rating">По отзывам гостей</option>
+                                    <option value="best-value">Цена + оценка</option>
                                 </select>
                             </div>
                         </div>
+                        <!-- Sticky chips: mobile+tablet (sidebar hidden &lt;1024). Desktop keeps sort seg only. -->
+                        <div id="tv-results-control" class="tv-results-control" aria-label="Сортировка и оценки гостей">
+                            <div class="tv-results-control__scroll">
+                                <div class="tv-results-control__seg tv-guest-sort" role="group" aria-label="Сортировка">
+                                    <button type="button" class="tv-guest-sort__btn is-active" data-tv-sort-quick="price-asc">Дешевле</button>
+                                    <button type="button" class="tv-guest-sort__btn" data-tv-sort-quick="th-rating">По отзывам</button>
+                                    <button type="button" class="tv-guest-sort__btn" data-tv-sort-quick="best-value">Цена + оценка</button>
+                                </div>
+                                <span class="tv-results-control__divider" aria-hidden="true"></span>
+                                <div class="tv-results-control__guest" data-pf-th-rating-group data-pf-th-mobile-group>
+                                    <button type="button" class="tv-pf-chip" data-pf-th-only aria-pressed="false">С отзывами</button>
+                                    <button type="button" class="tv-pf-chip" data-pf-th-rating="8" aria-pressed="false">от 8.0</button>
+                                    <button type="button" class="tv-pf-chip" data-pf-th-rating="8.5" aria-pressed="false">от 8.5</button>
+                                    <button type="button" class="tv-pf-chip" data-pf-th-rating="9" aria-pressed="false">от 9.0</button>
+                                </div>
+                            </div>
+                        </div>
+                        <p id="tv-results-empty-guest" class="tv-results-empty-guest" role="status">
+                            По выбранным оценкам гостей ничего не найдено — смягчите фильтр или сбросьте «С отзывами».
+                        </p>
                         <div id="tv-search-progress" class="hidden mb-6 p-4 rounded-xl bg-slate-50 border border-slate-200">
                             <div class="flex items-center gap-3">
                                 <div class="animate-spin w-5 h-5 border-2 border-[#FF6B6B] border-t-transparent rounded-full"></div>
@@ -1798,7 +1843,15 @@ $current_page = 'home';
             }
             var searchBtn = document.getElementById('tv-search-btn');
             if (searchBtn) searchBtn.addEventListener('click', onSearchBtnClick);
-            document.getElementById('tv-sort').addEventListener('change', applyTvSort);
+            var tvSortEl = document.getElementById('tv-sort');
+            if (tvSortEl) tvSortEl.addEventListener('change', applyTvSort);
+            document.querySelectorAll('[data-tv-sort-quick]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var val = btn.getAttribute('data-tv-sort-quick') || 'price-asc';
+                    if (tvSortEl) tvSortEl.value = val;
+                    applyTvSort();
+                });
+            });
             document.getElementById('tv-load-more-btn').addEventListener('click', () => loadMoreTvResults());
 
             setDefaultNightsRange();
@@ -2231,7 +2284,7 @@ $current_page = 'home';
                 }, 0);
             });
 
-            var pfRoot = document.getElementById('tv-results-sidebar');
+            var pfRoot = document.querySelector('.tv-results-layout') || document.getElementById('tv-results-sidebar');
             if (pfRoot && window.THTourPostFilters && typeof window.THTourPostFilters.mount === 'function') {
                 tvPostFiltersCtrl = window.THTourPostFilters.mount({
                     root: pfRoot,
@@ -2740,6 +2793,12 @@ $current_page = 'home';
             tvDisplayedCount = Math.min(TV_PAGE_SIZE, Math.max(tvLastResults.length, 0));
             var rC = document.getElementById('tv-result-count');
             if (rC) rC.textContent = String(tvLastResults.length);
+            var st = tvPostFiltersCtrl && tvPostFiltersCtrl.state;
+            var guestFilterOn = !!(st && (st.thOnly || (parseFloat(String(st.thMinRating || '')) > 0)));
+            var emptyGuest = document.getElementById('tv-results-empty-guest');
+            if (emptyGuest) {
+                emptyGuest.classList.toggle('is-visible', guestFilterOn && tvLastResults.length === 0);
+            }
             applyTvSort();
             updateTvLoadMoreButton();
         }
@@ -2777,17 +2836,41 @@ $current_page = 'home';
             }
             return out;
         }
+        function syncTvGuestSortButtons(sortVal) {
+            document.querySelectorAll('[data-tv-sort-quick]').forEach(function (btn) {
+                var v = btn.getAttribute('data-tv-sort-quick') || '';
+                btn.classList.toggle('is-active', v === sortVal);
+            });
+        }
         function applyTvSort() {
             const sortVal = document.getElementById('tv-sort')?.value || 'price-asc';
+            syncTvGuestSortButtons(sortVal);
             let arr = [...tvLastResults];
+            function thScore(h) {
+                const th = h && h.tophotels;
+                const r = th && th.rating != null ? Number(th.rating) : 0;
+                return (r > 0) ? r : 0;
+            }
+            function bestValueScore(h) {
+                const price = tvHotelListPrice(h) || 1;
+                const rating = thScore(h);
+                if (rating <= 0) return (1 / Math.log10(price + 10)) * 0.15;
+                return rating / Math.log10(price + 10);
+            }
             if (sortVal === 'price-asc') arr.sort((a, b) => tvHotelListPrice(a) - tvHotelListPrice(b));
             else if (sortVal === 'price-desc') arr.sort((a, b) => tvHotelListPrice(b) - tvHotelListPrice(a));
-            else if (sortVal === 'rating') arr.sort((a, b) => {
-                const thA = (a.tophotels && a.tophotels.rating) ? Number(a.tophotels.rating) : 0;
-                const thB = (b.tophotels && b.tophotels.rating) ? Number(b.tophotels.rating) : 0;
-                if (thA || thB) return thB - thA;
+            else if (sortVal === 'th-rating' || sortVal === 'rating') arr.sort((a, b) => {
+                const thA = thScore(a);
+                const thB = thScore(b);
+                if (thA || thB) {
+                    if (thB !== thA) return thB - thA;
+                    const revA = (a.tophotels && a.tophotels.reviewsCount) ? Number(a.tophotels.reviewsCount) : 0;
+                    const revB = (b.tophotels && b.tophotels.reviewsCount) ? Number(b.tophotels.reviewsCount) : 0;
+                    return revB - revA;
+                }
                 return (Number(b.rating) || 0) - (Number(a.rating) || 0);
             });
+            else if (sortVal === 'best-value') arr.sort((a, b) => bestValueScore(b) - bestValueScore(a));
             var slice = arr.slice(0, tvDisplayedCount);
             renderTvResults(slice);
             var tvResEl = document.getElementById('tv-search-results');
