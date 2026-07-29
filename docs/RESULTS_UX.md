@@ -15,9 +15,9 @@
 
 | Брейк | Поведение |
 |-------|-----------|
-| ≤767.98 | Sheets, 1-col cards, sticky control bar |
-| 768–1023 | 2-col cards, control bar с guest-chips |
-| ≥1024 | Sidebar + 2-col в layout; guest-chips только в sidebar |
+| ≤767.98 | Sheets, 1-col cards |
+| ≤1023.98 | Нижняя плашка = **пост-фильтры** (Фильтры + chips + компакт MAX/Заявка); полный sidebar в sheet |
+| ≥1024 | Классическая плашка Call/MAX/Заявка; sidebar слева |
 
 ## Файлы
 

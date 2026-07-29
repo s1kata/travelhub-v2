@@ -150,7 +150,6 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     <noscript><link rel="stylesheet" href="/frontend/css/responsive.css?v=17"></noscript>
     <link rel="stylesheet" href="/frontend/css/design-system.css?v=14">
     <link rel="stylesheet" href="/frontend/css/redesign.css?v=33">
-    <link rel="stylesheet" href="/frontend/css/th-results-ux.css?v=1">
     <link rel="stylesheet" href="/frontend/css/v2-theme.css?v=4">
     <?php if ($th_search_ui === 'legacy'): ?>
     <link rel="stylesheet" href="/frontend/search-legacy/css/tour-search-wizard.css?v=legacy1">
@@ -168,6 +167,8 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     <link rel="stylesheet" href="/frontend/css/th-sheet.css?v=7">
     <?php include __DIR__ . '/../backend/components/mobile_site_head.php'; ?>
     <link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=3">
+    <!-- After unified-ui: mobile results dock overrides Call/MAX/Заявка bar -->
+    <link rel="stylesheet" href="/frontend/css/th-results-ux.css?v=2">
     <script>window.__TH_YM_ID=<?php echo json_encode((string)$th_ym_id, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
     <script>window.__TH_SEARCH_UI=<?php echo json_encode($th_search_ui, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
     <script src="/frontend/js/v2-theme.js?v=1" defer></script>
@@ -990,26 +991,65 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     require_once __DIR__ . '/../backend/config/contacts.php';
     $_th_sticky_c = th_contacts();
     ?>
-    <nav id="th-results-sticky-lead" class="th-results-sticky-lead th-results-sticky-lead--actions" aria-label="Быстрая связь">
-        <a class="th-results-sticky-lead__action th-results-sticky-lead__action--call"
-           href="tel:<?php echo htmlspecialchars($_th_sticky_c['phone_tel'], ENT_QUOTES, 'UTF-8'); ?>"
-           data-th-track="call_bar">
-            <i class="fas fa-phone" aria-hidden="true"></i>
-            <span>Позвонить</span>
-        </a>
-        <a class="th-results-sticky-lead__action th-results-sticky-lead__action--max"
-           href="<?php echo htmlspecialchars($_th_sticky_c['max_url'], ENT_QUOTES, 'UTF-8'); ?>"
-           target="_blank" rel="noopener noreferrer"
-           data-th-track="max_bar">
-            <span>MAX</span>
-        </a>
-        <button type="button" class="th-results-sticky-lead__action th-results-sticky-lead__action--lead"
-                data-open-lead-modal="results-sticky"
-                data-th-track="lead_bar">
-            <i class="fas fa-comment-dots" aria-hidden="true"></i>
-            <span>Заявка</span>
-        </button>
+    <nav id="th-results-sticky-lead" class="th-results-sticky-lead th-results-sticky-lead--actions th-results-sticky-lead--dock" aria-label="Фильтры и связь">
+        <!-- Mobile/tablet: post-filters dock (Call/MAX/Заявка → компакт справа) -->
+        <div class="th-rsd__filters" aria-label="Пост-фильтры выдачи">
+            <button type="button" class="th-rsd__all-btn" id="th-rsd-open-filters"
+                    aria-expanded="false" aria-controls="th-results-pf-sheet">
+                <i class="fas fa-sliders-h" aria-hidden="true"></i>
+                <span>Фильтры</span>
+            </button>
+            <div class="th-rsd__chips">
+                <div class="th-rsd__seg tv-guest-sort" role="group" aria-label="Сортировка">
+                    <button type="button" class="tv-guest-sort__btn is-active" data-tv-sort-quick="price-asc">Дешевле</button>
+                    <button type="button" class="tv-guest-sort__btn" data-tv-sort-quick="th-rating">Отзывы</button>
+                    <button type="button" class="tv-guest-sort__btn" data-tv-sort-quick="best-value">Цена+оценка</button>
+                </div>
+                <div class="th-rsd__guest tv-results-control__guest" data-pf-th-rating-group data-pf-th-mobile-group>
+                    <button type="button" class="tv-pf-chip" data-pf-th-only aria-pressed="false">С отзывами</button>
+                    <button type="button" class="tv-pf-chip" data-pf-th-rating="8" aria-pressed="false">от 8</button>
+                    <button type="button" class="tv-pf-chip" data-pf-th-rating="8.5" aria-pressed="false">от 8.5</button>
+                    <button type="button" class="tv-pf-chip" data-pf-th-rating="9" aria-pressed="false">от 9</button>
+                </div>
+            </div>
+        </div>
+        <div class="th-rsd__contact" aria-label="Быстрая связь">
+            <a class="th-results-sticky-lead__action th-results-sticky-lead__action--call th-rsd__icon-btn"
+               href="tel:<?php echo htmlspecialchars($_th_sticky_c['phone_tel'], ENT_QUOTES, 'UTF-8'); ?>"
+               data-th-track="call_bar" aria-label="Позвонить">
+                <i class="fas fa-phone" aria-hidden="true"></i>
+                <span class="th-rsd__label">Звонок</span>
+            </a>
+            <a class="th-results-sticky-lead__action th-results-sticky-lead__action--max th-rsd__icon-btn"
+               href="<?php echo htmlspecialchars($_th_sticky_c['max_url'], ENT_QUOTES, 'UTF-8'); ?>"
+               target="_blank" rel="noopener noreferrer"
+               data-th-track="max_bar" aria-label="MAX">
+                <span>MAX</span>
+            </a>
+            <button type="button" class="th-results-sticky-lead__action th-results-sticky-lead__action--lead th-rsd__icon-btn"
+                    data-open-lead-modal="results-sticky"
+                    data-th-track="lead_bar" aria-label="Заявка">
+                <i class="fas fa-comment-dots" aria-hidden="true"></i>
+                <span class="th-rsd__label">Заявка</span>
+            </button>
+        </div>
     </nav>
+
+    <!-- Mobile: полный сайдбар пост-фильтров как bottom sheet -->
+    <div id="th-results-pf-sheet" class="th-sheet th-results-pf-sheet hidden" aria-hidden="true">
+        <div class="th-sheet__backdrop" data-th-rsd-close></div>
+        <div class="th-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="th-rsd-sheet-title">
+            <button type="button" class="th-sheet__close" data-th-rsd-close aria-label="Закрыть">&times;</button>
+            <div class="th-results-pf-sheet__head">
+                <h2 id="th-rsd-sheet-title" class="th-results-pf-sheet__title">Уточнить выдачу</h2>
+                <p class="th-results-pf-sheet__sub">Звёзды, питание, бюджет, курорты и оценки гостей</p>
+            </div>
+            <div class="th-results-pf-sheet__body" id="th-results-pf-sheet-body"></div>
+            <div class="th-results-pf-sheet__foot">
+                <button type="button" class="th-results-pf-sheet__apply" data-th-rsd-close>Показать туры</button>
+            </div>
+        </div>
+    </div>
 
     <?php include __DIR__ . '/../backend/components/footer.php'; ?>
 
@@ -2284,8 +2324,8 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 }, 0);
             });
 
-            var pfRoot = document.querySelector('.tv-results-layout') || document.getElementById('tv-results-sidebar');
-            if (pfRoot && window.THTourPostFilters && typeof window.THTourPostFilters.mount === 'function') {
+            var pfRoot = document.body;
+            if (window.THTourPostFilters && typeof window.THTourPostFilters.mount === 'function') {
                 tvPostFiltersCtrl = window.THTourPostFilters.mount({
                     root: pfRoot,
                     onChange: function () {
@@ -2293,6 +2333,50 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     }
                 });
             }
+
+            (function bindResultsPfSheet() {
+                var sheet = document.getElementById('th-results-pf-sheet');
+                var openBtn = document.getElementById('th-rsd-open-filters');
+                var bodySlot = document.getElementById('th-results-pf-sheet-body');
+                var sidebar = document.getElementById('tv-results-sidebar');
+                var layout = document.querySelector('.tv-results-layout');
+                if (!sheet || !openBtn || !bodySlot || !sidebar) return;
+                var homeParent = sidebar.parentNode;
+                var homeNext = sidebar.nextSibling;
+
+                function openSheet() {
+                    if (sidebar.parentNode !== bodySlot) {
+                        bodySlot.appendChild(sidebar);
+                    }
+                    sheet.classList.remove('hidden');
+                    sheet.classList.add('is-open', 'th-sheet--open');
+                    sheet.setAttribute('aria-hidden', 'false');
+                    openBtn.setAttribute('aria-expanded', 'true');
+                    document.body.classList.add('th-rsd-sheet-open');
+                }
+                function closeSheet() {
+                    sheet.classList.add('hidden');
+                    sheet.classList.remove('is-open', 'th-sheet--open');
+                    sheet.setAttribute('aria-hidden', 'true');
+                    openBtn.setAttribute('aria-expanded', 'false');
+                    document.body.classList.remove('th-rsd-sheet-open');
+                    if (homeParent && sidebar.parentNode === bodySlot) {
+                        if (homeNext && homeNext.parentNode === homeParent) {
+                            homeParent.insertBefore(sidebar, homeNext);
+                        } else if (layout) {
+                            layout.insertBefore(sidebar, layout.firstChild);
+                        } else {
+                            homeParent.appendChild(sidebar);
+                        }
+                    }
+                    if (window.THMobile && typeof window.THMobile.sync === 'function') window.THMobile.sync();
+                }
+                openBtn.addEventListener('click', openSheet);
+                sheet.querySelectorAll('[data-th-rsd-close]').forEach(function (el) {
+                    el.addEventListener('click', closeSheet);
+                });
+                window.__thCloseResultsPfSheet = closeSheet;
+            })();
 
             if (typeof tryRestoreTvMainSearchFromSnapshot === 'function') {
                 var hasRestoreParam = false;
