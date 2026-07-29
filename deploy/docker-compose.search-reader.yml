@@ -1,11 +1,22 @@
+# Go search-cache-reader рядом с travelhub-v2 (локально / staging)
+#
+# Ожидается соседний репозиторий:
+#   ../microservice/search-cache-reader  или symlink ../search-cache-reader
+#
+# PHP fallback URL должен быть loop-safe (см. docs/SEARCH_SPEED.md).
+
 services:
   search-cache-reader:
     build: ../search-cache-reader
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
       TOURVISOR_CACHE_DIR: /cache
-      PHP_TOURVISOR_PROXY_URL: ${PHP_TOURVISOR_PROXY_URL:-https://travelhub63.ru/frontend/api/tourvisor-proxy.php}
+      # На хосте с nginx из deploy/nginx-travelhub63.conf:
+      PHP_TOURVISOR_PROXY_URL: ${PHP_TOURVISOR_PROXY_URL:-http://host.docker.internal/_internal/tourvisor-proxy.php}
       LISTEN_ADDR: ":8080"
     volumes:
-      - ../travelhub-v2/data/tourvisor_cache:/cache:ro
+      - ./data/tourvisor_cache:/cache:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

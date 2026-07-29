@@ -3086,6 +3086,26 @@
     margin-top: 1px;
     flex-shrink: 0;
 }
+.th-tour-card__th-rating {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 1px;
+    margin-top: 1px;
+    flex-shrink: 0;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #0f766e;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+.th-tour-card__th-rating-scale {
+    font-weight: 500;
+    opacity: 0.85;
+    font-size: 10px;
+}
 
 /* --- Бейдж питания --- */
 .th-tour-card__meal-badge {

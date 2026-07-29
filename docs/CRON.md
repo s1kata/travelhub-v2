@@ -99,6 +99,48 @@ php clear_image_cache.php 14 --trim-mb=1024
 
 В `.env`: `TOURVISOR_IMAGE_CACHE_TTL_DAYS=14`, `TOURVISOR_IMAGE_CACHE_MAX_MB=1024` — лимит диска; популярные фото перекачаются автоматически при просмотре (первая загрузка ~0.5–2 с, дальше снова из кэша).
 
+### Firestore: миграция кэша туров с хостинга + очистка
+
+Одноразово **на сервере** (где лежит `data/tourvisor_cache`), после настройки `FIREBASE_*`:
+
+```bash
+# сначала посмотреть
+php backend/scripts/firestore_migrate_tourvisor_cache.php --dry-run
+# залить search + dictionaries в Firestore
+php backend/scripts/firestore_migrate_tourvisor_cache.php --delay-ms=150
+# только поиск:
+# php backend/scripts/firestore_migrate_tourvisor_cache.php --only=search
+```
+
+Файлы тяжелее ~900 KB (лимит документа Firestore) скрипт пропускает — они останутся на диске (L2).
+
+Очистка просроченных документов **2× в неделю ночью** (Пн и Чт 03:00 МСК):
+
+```bash
+php backend/cron/firestore_cache_cleanup.php
+```
+
+```
+0 3 * * 1,4 cd /path/to/travelhub-v2 && php backend/cron/firestore_cache_cleanup.php >> data/firestore_cache_cleanup.log 2>&1
+```
+
+UTC: `0 0 * * 1,4` (если сервер в UTC).
+
+Подробнее: [CACHE_LAYERS.md](CACHE_LAYERS.md).
+
+### TopHotels (рейтинги) — после получения API
+
+Каркас готов; без `TOPHOTELS_RATINGS_URL` / fixture cron ничего не качает. См. [TOPHOTELS.md](TOPHOTELS.md).
+
+```bash
+php backend/cron/tophotels_sync.php
+php backend/cron/tophotels_sync.php --import-matches=data/tophotels/matches.csv
+```
+
+```
+30 3 * * * cd /path/to/travelhub-v2 && php backend/cron/tophotels_sync.php >> data/tophotels_sync.log 2>&1
+```
+
 ## HTTP-cron (если нет CLI)
 
 - `GET /backend/api/cron-yml-feed.php` — логика как у `yml_feed_rules_cron.php` (защитите URL на проде).

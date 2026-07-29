@@ -60,11 +60,13 @@ function firestoreAccessToken(): ?string {
     if ($creds === null) return null;
     $jwt = firestoreJwt($creds);
     $body = 'grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=' . urlencode($jwt);
+    $timeout = firestore_http_timeout_sec();
     $ctx = stream_context_create([
         'http' => [
             'method' => 'POST',
             'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
             'content' => $body,
+            'timeout' => $timeout,
         ],
     ]);
     $resp = @file_get_contents('https://oauth2.googleapis.com/token', false, $ctx);
@@ -79,6 +81,22 @@ function firestoreAccessToken(): ?string {
 }
 
 /**
+ * Короткий таймаут для L1 read-cache: при сбое быстро падаем на L2 (файл/PHP).
+ */
+function firestore_http_timeout_sec(): float {
+    $raw = getenv('TH_CACHE_FIRESTORE_TIMEOUT_SEC') ?: ($_ENV['TH_CACHE_FIRESTORE_TIMEOUT_SEC'] ?? '2.5');
+    $t = (float) $raw;
+    if ($t < 0.5) {
+        $t = 0.5;
+    }
+    if ($t > 15) {
+        $t = 15;
+    }
+
+    return $t;
+}
+
+/**
  * Читает документ из коллекции. Возвращает массив с ключами data (array) и expiresAt (int) или null.
  * Поддерживает data как stringValue (JSON) или mapValue (массив/объект Firestore); при отсутствии expiresAt не проверяет срок.
  */
@@ -87,10 +105,12 @@ function firestoreGet(string $projectId, string $collection, string $documentId)
     if ($token === null) return null;
     $docId = preg_replace('#[^a-zA-Z0-9_\-=]#', '_', $documentId);
     $url = 'https://firestore.googleapis.com/v1/projects/' . urlencode($projectId) . '/databases/(default)/documents/' . urlencode($collection) . '/' . $docId;
+    $timeout = firestore_http_timeout_sec();
     $ctx = stream_context_create([
         'http' => [
             'method' => 'GET',
             'header' => "Authorization: Bearer {$token}\r\n",
+            'timeout' => $timeout,
         ],
     ]);
     $resp = @file_get_contents($url, false, $ctx);
@@ -167,10 +187,113 @@ function firestoreSet(string $projectId, string $collection, string $documentId,
             'method' => 'PATCH',
             'header' => "Authorization: Bearer {$token}\r\nContent-Type: application/json\r\n",
             'content' => json_encode($payload),
+            'timeout' => firestore_http_timeout_sec() + 2.0,
         ],
     ]);
     $resp = @file_get_contents($url, false, $ctx);
     return $resp !== false;
+}
+
+/**
+ * Список документов коллекции (пагинация). $fieldPaths — только эти поля (например expiresAt).
+ *
+ * @param list<string> $fieldPaths
+ * @return array{documents: list<array{id: string, fields: array<string, mixed>}>, nextPageToken: ?string}
+ */
+function firestoreListDocuments(
+    string $projectId,
+    string $collection,
+    int $pageSize = 100,
+    ?string $pageToken = null,
+    array $fieldPaths = []
+): array {
+    $token = firestoreAccessToken();
+    if ($token === null) {
+        return ['documents' => [], 'nextPageToken' => null];
+    }
+    $pageSize = max(1, min(300, $pageSize));
+    $url = 'https://firestore.googleapis.com/v1/projects/' . rawurlencode($projectId)
+        . '/databases/(default)/documents/' . rawurlencode($collection)
+        . '?pageSize=' . $pageSize;
+    if ($pageToken !== null && $pageToken !== '') {
+        $url .= '&pageToken=' . rawurlencode($pageToken);
+    }
+    foreach ($fieldPaths as $fp) {
+        $fp = trim((string) $fp);
+        if ($fp !== '') {
+            $url .= '&mask.fieldPaths=' . rawurlencode($fp);
+        }
+    }
+    $ctx = stream_context_create([
+        'http' => [
+            'method' => 'GET',
+            'header' => "Authorization: Bearer {$token}\r\n",
+            'timeout' => firestore_http_timeout_sec() + 5.0,
+            'ignore_errors' => true,
+        ],
+    ]);
+    $resp = @file_get_contents($url, false, $ctx);
+    if ($resp === false) {
+        return ['documents' => [], 'nextPageToken' => null];
+    }
+    $decoded = json_decode($resp, true);
+    if (!is_array($decoded)) {
+        return ['documents' => [], 'nextPageToken' => null];
+    }
+    $out = [];
+    foreach ($decoded['documents'] ?? [] as $doc) {
+        if (!is_array($doc) || empty($doc['name'])) {
+            continue;
+        }
+        $name = (string) $doc['name'];
+        $id = substr($name, strrpos($name, '/') + 1);
+        $out[] = [
+            'id' => $id,
+            'fields' => is_array($doc['fields'] ?? null) ? $doc['fields'] : [],
+        ];
+    }
+
+    return [
+        'documents' => $out,
+        'nextPageToken' => isset($decoded['nextPageToken']) ? (string) $decoded['nextPageToken'] : null,
+    ];
+}
+
+function firestoreDeleteDocument(string $projectId, string $collection, string $documentId): bool
+{
+    $token = firestoreAccessToken();
+    if ($token === null) {
+        return false;
+    }
+    $docId = preg_replace('#[^a-zA-Z0-9_\-=]#', '_', $documentId);
+    $url = 'https://firestore.googleapis.com/v1/projects/' . rawurlencode($projectId)
+        . '/databases/(default)/documents/' . rawurlencode($collection) . '/' . rawurlencode($docId);
+    $ctx = stream_context_create([
+        'http' => [
+            'method' => 'DELETE',
+            'header' => "Authorization: Bearer {$token}\r\n",
+            'timeout' => firestore_http_timeout_sec() + 2.0,
+            'ignore_errors' => true,
+        ],
+    ]);
+    $resp = @file_get_contents($url, false, $ctx);
+    $code = 0;
+    if (!empty($http_response_header[0]) && preg_match('#\s(\d{3})\s#', (string) $http_response_header[0], $m)) {
+        $code = (int) $m[1];
+    }
+
+    return $resp !== false && ($code === 200 || $code === 204);
+}
+
+/**
+ * Макс. размер JSON payload для одного документа (~лимит Firestore 1 MiB с запасом).
+ */
+function firestore_max_payload_bytes(): int
+{
+    $raw = getenv('TH_FIRESTORE_MAX_DOC_BYTES') ?: ($_ENV['TH_FIRESTORE_MAX_DOC_BYTES'] ?? '900000');
+    $n = (int) $raw;
+
+    return $n > 100000 ? $n : 900000;
 }
 
 /**

@@ -136,6 +136,7 @@ if (!defined('TV_PROJECT_ROOT')) {
 
 $GLOBALS['tv_firestore_project_id'] = null;
 $GLOBALS['tv_firestore_used'] = null;
+$GLOBALS['tv_cache_layer'] = null;
 $explicitCacheDir = getenv('TOURVISOR_CACHE_DIR') ?: ($_ENV['TOURVISOR_CACHE_DIR'] ?? '');
 if ($explicitCacheDir !== '') {
     $GLOBALS['tv_cache_dir_override'] = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $explicitCacheDir), DIRECTORY_SEPARATOR);
@@ -446,18 +447,114 @@ function tvLoadSearchParams(int $searchId): ?array {
 function tvSaveSearchResultsCache(string $key, array $results): void {
     $file = tvCacheDir() . DIRECTORY_SEPARATOR . $key . '.json';
     $data = ['results' => $results, 'cachedAt' => time()];
-    file_put_contents($file, json_encode($data, JSON_UNESCAPED_UNICODE), LOCK_EX);
+    @file_put_contents($file, json_encode($data, JSON_UNESCAPED_UNICODE), LOCK_EX);
 }
 
-function tvGetSearchResultsCache(string $key, int $maxAge = 0): ?array {
-    $file = tvCacheDir() . DIRECTORY_SEPARATOR . $key . '.json';
-    if (!file_exists($file)) return null;
-    if ($maxAge > 0) {
-        $age = time() - filemtime($file);
-        if ($age >= $maxAge) return null;
+/**
+ * L1 Firestore searchCache — быстрый remote read (SpaceWeb / multi-node).
+ *
+ * @return list<mixed>|null
+ */
+function tvGetSearchResultsCacheFirestore(string $key): ?array {
+    $projectId = $GLOBALS['tv_firestore_project_id'] ?? null;
+    if ($projectId === null || $projectId === '') {
+        return null;
     }
-    $d = json_decode(file_get_contents($file), true);
-    return is_array($d) && isset($d['results']) ? $d['results'] : null;
+    tv_firestore_helper_load();
+    if (!function_exists('firestoreGet')) {
+        return null;
+    }
+    $fs = @firestoreGet((string) $projectId, 'searchCache', $key);
+    if ($fs === null || !isset($fs['data']) || !is_array($fs['data'])) {
+        return null;
+    }
+    $data = $fs['data'];
+    // Документ может быть { results: [...] } или сразу списком отелей
+    if (isset($data['results']) && is_array($data['results'])) {
+        return $data['results'];
+    }
+    if ($data === []) {
+        return null;
+    }
+    // list of hotels
+    if (isset($data[0]) || array_values($data) === $data) {
+        return $data;
+    }
+
+    return null;
+}
+
+/**
+ * Трёхуровневое чтение кэша поиска:
+ *   L1 — Firestore searchCache (TH_CACHE_FIRESTORE_FIRST=1)
+ *   L2 — локальный файл data/tourvisor_cache
+ *   L3 — зарезервирован под Go sidecar (на VPS); здесь только метка при будущем чтении
+ *
+ * @return list<mixed>|null
+ */
+function tvGetSearchResultsCache(string $key, int $maxAge = 0): ?array {
+    $fsFirst = filter_var(
+        getenv('TH_CACHE_FIRESTORE_FIRST') ?: ($_ENV['TH_CACHE_FIRESTORE_FIRST'] ?? '1'),
+        FILTER_VALIDATE_BOOLEAN
+    );
+
+    if ($fsFirst) {
+        $fromFs = tvGetSearchResultsCacheFirestore($key);
+        if (is_array($fromFs) && $fromFs !== []) {
+            $GLOBALS['tv_cache_layer'] = 'L1-firestore';
+            $GLOBALS['tv_firestore_used'] = 'hit';
+            $GLOBALS['tv_cache_hit'] = true;
+            // Прогрев L2 на диске (быстрый локальный fallback при следующем запросе)
+            @tvSaveSearchResultsCache($key, $fromFs);
+            tvLog('search_cache_hit', [
+                'cache_key' => $key,
+                'layer' => 'L1-firestore',
+                'hotels_count' => count($fromFs),
+            ]);
+
+            return $fromFs;
+        }
+    }
+
+    $file = tvCacheDir() . DIRECTORY_SEPARATOR . $key . '.json';
+    if (is_file($file)) {
+        $useFile = true;
+        if ($maxAge > 0) {
+            $age = time() - (int) filemtime($file);
+            if ($age >= $maxAge) {
+                $useFile = false;
+            }
+        }
+        if ($useFile) {
+            $d = json_decode((string) file_get_contents($file), true);
+            if (is_array($d) && isset($d['results']) && is_array($d['results']) && $d['results'] !== []) {
+                $GLOBALS['tv_cache_layer'] = 'L2-file';
+                $GLOBALS['tv_cache_hit'] = true;
+                tvLog('search_cache_hit', [
+                    'cache_key' => $key,
+                    'layer' => 'L2-file',
+                    'hotels_count' => count($d['results']),
+                ]);
+
+                return $d['results'];
+            }
+        }
+    }
+
+    // Если L1 был выключен — всё же попробуем Firestore после файла
+    if (!$fsFirst) {
+        $fromFs = tvGetSearchResultsCacheFirestore($key);
+        if (is_array($fromFs) && $fromFs !== []) {
+            $GLOBALS['tv_cache_layer'] = 'L1-firestore';
+            $GLOBALS['tv_firestore_used'] = 'hit';
+            $GLOBALS['tv_cache_hit'] = true;
+            @tvSaveSearchResultsCache($key, $fromFs);
+
+            return $fromFs;
+        }
+    }
+
+    return null;
 }
 
 const TV_ALL_TOURS_CACHE_KEY = 'all_tours';
@@ -791,6 +888,7 @@ function tvCached(string $type, array $reqParams, callable $fetch): array {
             tvLog('cache_hit', ['type' => $type, 'source' => 'firestore', 'params' => $reqParams, 'items' => $cnt]);
             $GLOBALS['tv_cache_hit'] = true;
             $GLOBALS['tv_firestore_used'] = 'hit';
+            $GLOBALS['tv_cache_layer'] = 'L1-firestore';
             $payload = ['success' => true, 'data' => $fs['data']];
             @tvCacheSet($key, $payload);
             return $payload;
@@ -805,6 +903,7 @@ function tvCached(string $type, array $reqParams, callable $fetch): array {
         $cnt = is_array($cached['data'] ?? null) ? count($cached['data']) : 0;
         tvLog('cache_hit', ['type' => $type, 'source' => 'file', 'params' => $reqParams, 'items' => $cnt]);
         $GLOBALS['tv_cache_hit'] = true;
+        $GLOBALS['tv_cache_layer'] = 'L2-file';
         return $cached;
     }
 
@@ -1556,6 +1655,7 @@ function tourvisor_proxy_dispatch(): array
 
         header('X-Tourvisor-Search-Mode: live');
         header('X-Tourvisor-Cache-Read: none');
+        $GLOBALS['tv_cache_layer'] = 'live';
         if ($onlyPromo) {
             header('X-Tourvisor-Promo-Source: live_api');
             tvLog('promo_search_live', [
@@ -2052,6 +2152,22 @@ function tourvisor_proxy_emit(array $r): void
 
     $jwt = function_exists('getTvToken') ? getTvToken() : '';
     $itemsCount = is_array($r['data'] ?? null) ? count($r['data']) : (is_array($r['results'] ?? null) ? count($r['results']) : 0);
+    // Слой ответа: go выставляет сам; PHP — прямой fallback (nginx / Go upstream).
+    $readerHint = strtolower(trim((string) ($_SERVER['HTTP_X_CACHE_READER_HINT'] ?? '')));
+    if ($readerHint === '' || !preg_match('/^[a-z0-9_-]{1,40}$/', $readerHint)) {
+        $readerHint = 'php';
+    }
+    header('X-Cache-Reader: ' . $readerHint);
+    $cacheLayer = (string) ($GLOBALS['tv_cache_layer'] ?? '');
+    if ($cacheLayer === '' && !empty($GLOBALS['tv_cache_hit'])) {
+        $cacheLayer = 'L2-file';
+    }
+    if ($cacheLayer === '' && isset($GLOBALS['tv_cache_hit']) && $GLOBALS['tv_cache_hit'] === false) {
+        $cacheLayer = 'live';
+    }
+    if ($cacheLayer !== '') {
+        header('X-Tourvisor-Cache-Layer: ' . $cacheLayer);
+    }
     header('X-Tourvisor-Type: ' . ($type ?: 'none'));
     header('X-Tourvisor-Source: ' . ($GLOBALS['tv_source'] ?? 'default'));
     header('X-Tourvisor-Success: ' . (!empty($r['success']) ? 'yes' : 'no'));
@@ -2065,6 +2181,11 @@ function tourvisor_proxy_emit(array $r): void
         $first = $r['data'][0] ?? null;
         if (is_array($first) && (isset($first['id']) || isset($first['tours']) || isset($first['name']))) {
             $r['data'] = tv_enrich_hotel_pictures($r['data']);
+            // TopHotels enrichment (local map). No-op until TOPHOTELS_ENABLED / fixture / enrichment.json.
+            require_once __DIR__ . '/../tophotels/bootstrap.php';
+            if (function_exists('th_tophotels_enrich_hotels')) {
+                $r['data'] = th_tophotels_enrich_hotels($r['data']);
+            }
         }
     }
     echo json_encode($r, JSON_UNESCAPED_UNICODE);

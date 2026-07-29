@@ -587,6 +587,14 @@ $current_page = 'home';
                             <span class="tv-sidebar-filter-label">Курорты</span>
                             <div class="tv-pf-regions" data-pf-regions><p class="tv-pf-hint">Появятся после поиска</p></div>
                         </div>
+                        <div class="tv-sidebar-filter-group" data-pf-th-rating-group style="display:none">
+                            <span class="tv-sidebar-filter-label">Рейтинг TopHotels</span>
+                            <div class="tv-pf-chips">
+                                <button type="button" class="tv-pf-chip" data-pf-th-rating="8" aria-pressed="false">от 8.0</button>
+                                <button type="button" class="tv-pf-chip" data-pf-th-rating="8.5" aria-pressed="false">от 8.5</button>
+                                <button type="button" class="tv-pf-chip" data-pf-th-rating="9" aria-pressed="false">от 9.0</button>
+                            </div>
+                        </div>
                         <div class="tv-sidebar-filter-group" data-pf-beach-group style="display:none">
                             <span class="tv-sidebar-filter-label">Линия пляжа</span>
                             <div class="tv-pf-chips">
@@ -2774,7 +2782,12 @@ $current_page = 'home';
             let arr = [...tvLastResults];
             if (sortVal === 'price-asc') arr.sort((a, b) => tvHotelListPrice(a) - tvHotelListPrice(b));
             else if (sortVal === 'price-desc') arr.sort((a, b) => tvHotelListPrice(b) - tvHotelListPrice(a));
-            else if (sortVal === 'rating') arr.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+            else if (sortVal === 'rating') arr.sort((a, b) => {
+                const thA = (a.tophotels && a.tophotels.rating) ? Number(a.tophotels.rating) : 0;
+                const thB = (b.tophotels && b.tophotels.rating) ? Number(b.tophotels.rating) : 0;
+                if (thA || thB) return thB - thA;
+                return (Number(b.rating) || 0) - (Number(a.rating) || 0);
+            });
             var slice = arr.slice(0, tvDisplayedCount);
             renderTvResults(slice);
             var tvResEl = document.getElementById('tv-search-results');

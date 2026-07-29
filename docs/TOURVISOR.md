@@ -8,11 +8,15 @@
 
 Все «свои» запросы идут через `backend/api/tourvisor-proxy.php` (алиас `frontend/api/tourvisor-proxy.php`).
 
+На проде перед PHP стоит **двухслойный** путь (Go cache reader → PHP fallback): см. [SEARCH_SPEED.md](SEARCH_SPEED.md) и `deploy/nginx-travelhub63.conf`.
+
+Чтение кэша поиска/справочников внутри PHP: **L1 Firestore → L2 файл → live** — см. [CACHE_LAYERS.md](CACHE_LAYERS.md).
+
 | Тип | Цепочка |
 |-----|---------|
-| Справочники (departures, countries) | Firestore `dictionaryCache` → файловый кэш → API |
+| Справочники (departures, countries) | L1 Firestore `dictionaryCache` → L2 файл → API |
 | Остальные справочники | файловый кэш → API |
-| Поиск (`type=search-cached`) | файл (14 дн) → Firestore `searchCache` → `all_tours` (14 дн) → API |
+| Поиск (`type=search-cached`) | L1 Firestore `searchCache` → L2 файл → `all_tours` → API |
 
 Переменные `.env`: `TOURVISOR_TOKEN`, `TOURVISOR_API_URL`, `TOURVISOR_CACHE_TTL_HOURS`, `TOURVISOR_SEARCH_CACHE_TTL_HOURS`, `TOURVISOR_ALL_TOURS_CACHE_TTL_HOURS`, `FIREBASE_PROJECT_ID`.
 

@@ -1,0 +1,17 @@
+{
+  "updated_at": "2026-07-29T00:00:00Z",
+  "by_tv_id": {
+    "REPLACE_WITH_REAL_TOURVISOR_HOTEL_ID": {
+      "id": "th-demo-1001",
+      "rating": 8.7,
+      "scale": 10,
+      "reviewsCount": 214,
+      "food": 8.5,
+      "service": 8.9,
+      "placement": 8.6,
+      "lastReviewAt": "2026-07-01",
+      "matched": true,
+      "source": "tophotels"
+    }
+  }
+}

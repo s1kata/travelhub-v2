@@ -910,6 +910,23 @@
     );
   }
 
+  function thHotelsRatingBadgeHtml(h) {
+    var th = h && h.tophotels;
+    if (!th || th.rating == null || th.rating === '') return '';
+    var rating = parseFloat(String(th.rating));
+    if (isNaN(rating) || rating <= 0) return '';
+    var scale = parseInt(String(th.scale || 10), 10) || 10;
+    var reviews = th.reviewsCount != null ? parseInt(String(th.reviewsCount), 10) : 0;
+    var title = 'Рейтинг TopHotels' + (reviews > 0 ? ' · ' + reviews + ' отзывов' : '');
+    var label = (Math.round(rating * 10) / 10).toFixed(1).replace(/\.0$/, '');
+    return (
+      '<span class="th-tour-card__th-rating" title="' + esc(title) + '" data-th-tophotels-id="' + esc(String(th.id || '')) + '">' +
+      '<span class="th-tour-card__th-rating-score">' + esc(label) + '</span>' +
+      '<span class="th-tour-card__th-rating-scale">/' + esc(String(scale)) + '</span>' +
+      '</span>'
+    );
+  }
+
   /**
    * @param {object} h — hotel from Tourvisor search
    * @param {object} options — tour, detailUrl, promo, getImageUrl, adults, dates, target
@@ -1041,6 +1058,7 @@
       '<div class="th-tour-card__name-row">' +
       '<h3 class="th-tour-card__name">' + esc(h.name) + '</h3>' +
       (starsHtml ? '<span class="th-tour-card__stars">' + starsHtml + '</span>' : '') +
+      thHotelsRatingBadgeHtml(h) +
       '</div>' +
       (meal ? '<span class="th-tour-card__meal-badge">' + esc(meal) + '</span>' : '') +
       flightHtml +

@@ -14,6 +14,8 @@
 | [BUILD.md](BUILD.md) | Сборка Tailwind CSS перед продом |
 | [PERFORMANCE.md](PERFORMANCE.md) | Кэш страниц и оптимизация изображений |
 | [SEARCH_SPEED.md](SEARCH_SPEED.md) | Go sidecar, SWR-поиск, прогрев кэша |
+| [CACHE_LAYERS.md](CACHE_LAYERS.md) | L1 Firestore → L2 файл → L3 Go |
+| [TOPHOTELS.md](TOPHOTELS.md) | Рейтинги/отзывы TopHotels (каркас под API) |
 | [SEO.md](SEO.md) | Мета-теги, sitemap, robots |
 
 ## Структура репозитория
