@@ -155,6 +155,18 @@
   #tv-results-control {
     display: none !important;
   }
+
+  body.th-rsd-sheet-open .th-results-sticky-lead {
+    display: none !important;
+  }
+
+  /* Narrow phones: keep MAX + Заявка, drop call to free chips space */
+  @media (max-width: 379.98px) {
+    .th-results-sticky-lead--dock .th-rsd__icon-btn--call,
+    .th-results-sticky-lead--dock .th-results-sticky-lead__action--call {
+      display: none !important;
+    }
+  }
 }
 
 /* Desktop: classic coral Call / MAX / Заявка */

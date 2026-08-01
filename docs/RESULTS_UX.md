@@ -21,9 +21,17 @@
 
 ## Файлы
 
-- `frontend/css/th-results-ux.css` — control bar + score badge + aspects
+- `frontend/css/th-results-ux.css` — dock, sheet, score badge, aspects
 - `frontend/js/th-tour-card.js` — badge на фото + «Отлично» + pills
-- `frontend/js/th-tour-post-filters.js` — sync chips sidebar ↔ mobile
-- `frontend/index.php` — `#tv-results-control`
+- `frontend/js/th-tour-post-filters.js` — sync chips sidebar ↔ sticky dock
+- `frontend/index.php` — `#th-results-sticky-lead--dock`, `#th-results-pf-sheet`
 
-Без `hotel.tophotels` в JSON UI скрыт (нужен sync / fixture).
+## Mobile dock (≤1023)
+
+При показе выдачи нижняя плашка меняется:
+
+`[Фильтры] [Дешевле|Отзывы|Цена+оценка] [С отзывами|от 8…]` + компакт `MAX` / `Заявка`
+
+Кнопка **Фильтры** открывает sheet с полным sidebar (звёзды, питание, бюджет, курорты, оценки).
+
+Без `hotel.tophotels` в JSON guest-chips скрыты (нужен sync / fixture).

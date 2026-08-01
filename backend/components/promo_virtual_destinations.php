@@ -81,11 +81,15 @@ function th_promo_apply_virtual_search_params(int $promoCountryId, array $params
     if (!th_promo_is_virtual_country_id($promoCountryId)) {
         return $params;
     }
+    $params['promoTileId'] = (string) $promoCountryId;
     $params['countryId'] = (string) th_promo_resolve_tv_country_id($promoCountryId);
     $regionIds = th_promo_virtual_region_ids($promoCountryId);
     if ($regionIds !== []) {
         $params['regionIds'] = implode(',', array_map('strval', $regionIds));
     }
+    // Иначе вложенный onlyPromo читает promo_cache_{vietnam} без Фукуока
+    $params['live'] = '1';
+    $params['bypassCache'] = '1';
 
     return $params;
 }

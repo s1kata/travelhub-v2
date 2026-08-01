@@ -316,6 +316,8 @@ function th_promo_speed_promo_search_live(
     ?string $childs,
     callable $dispatch
 ): array {
+    // Виртуальные плитки (Фукуок): сразу live + regionIds, без country-wide promo_cache
+    $forceLiveFirst = th_promo_is_virtual_country_id($countryId);
     $arrays = th_promo_speed_fetch_promo_only_search_arrays(
         $countryId,
         $departureId,
@@ -323,10 +325,10 @@ function th_promo_speed_promo_search_live(
         $adults,
         $childs,
         $dispatch,
-        false
+        $forceLiveFirst
     );
     $merged = th_promo_speed_merge_hotels($arrays, $countryId);
-    if ($merged === []) {
+    if ($merged === [] && !$forceLiveFirst) {
         $arrays = th_promo_speed_fetch_promo_only_search_arrays(
             $countryId,
             $departureId,
@@ -901,7 +903,9 @@ function th_promo_speed_hotel_country_id(array $h): string
  */
 function th_promo_speed_merge_hotels(array $dataArrays, int $expectedCountryId): array
 {
-    $ec = $expectedCountryId > 0 ? (string) $expectedCountryId : '';
+    // Виртуальные плитки (16104 Фукуок): в ответе Tourvisor countryId=16, не 16104
+    $matchCountryId = $expectedCountryId > 0 ? th_promo_resolve_tv_country_id($expectedCountryId) : 0;
+    $ec = $matchCountryId > 0 ? (string) $matchCountryId : '';
     $byKey = [];
     foreach ($dataArrays as $arr) {
         if (!is_array($arr)) {

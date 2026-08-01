@@ -956,6 +956,10 @@ function tourvisor_proxy_dispatch_get(array $params = []): array
 function tourvisor_proxy_dispatch(): array
 {
     tv_init_firestore_project_id();
+    // Nested dispatch_get() меняет $_GET — bypass нужно пересчитывать на каждый вызов
+    // (иначе live=1 во вложенном search-cached не сбрасывает promo_cache родительской страны).
+    $GLOBALS['tv_bypass_cache'] = (isset($_GET['live']) && $_GET['live'] === '1')
+        || (isset($_GET['bypassCache']) && $_GET['bypassCache'] === '1');
     $type = $_GET['type'] ?? '';
     $GLOBALS['tv_source'] = trim((string) ($_GET['source'] ?? '')) ?: 'default';
     $departureId = isset($_GET['departureId']) ? (int) $_GET['departureId'] : null;
@@ -1548,7 +1552,10 @@ function tourvisor_proxy_dispatch(): array
                 'dateTo' => $sp['dateTo'],
                 'bypass_cache' => !empty($GLOBALS['tv_bypass_cache']),
             ]);
-            if (!$GLOBALS['tv_bypass_cache']) {
+            // regionIds (Фукуок и др.) — не отдаём country-wide promo_cache без фильтра курорта
+            $promoRegionIdsRaw = trim((string) ($_GET['regionIds'] ?? ''));
+            $promoHasRegions = $promoRegionIdsRaw !== '';
+            if (!$GLOBALS['tv_bypass_cache'] && !$promoHasRegions) {
             tv_promo_country_cache_load();
             if ($promoCntId > 0) {
                 $promoFile = th_promo_cache_get($promoCntId, $promoDepId);
@@ -1824,11 +1831,21 @@ function tourvisor_proxy_dispatch(): array
                 tvMergeAllToursCache($liveData);
                 if ($onlyPromo && !empty($dataToReturn)) {
                     tv_promo_country_cache_load();
-                    th_promo_cache_set((int) ($sp['countryId'] ?? 0), $dataToReturn, [
-                        'departureId' => (int) ($sp['departureId'] ?: th_departure_default_id()),
-                        'dateFrom' => $sp['dateFrom'],
-                        'dateTo' => $sp['dateTo'],
-                    ]);
+                    // Виртуальные плитки (promoTileId=16104) пишем отдельно — не затираем кэш Вьетнама
+                    $promoCacheCountryId = (int) ($_GET['promoTileId'] ?? 0);
+                    if ($promoCacheCountryId <= 0) {
+                        $promoCacheCountryId = (int) ($sp['countryId'] ?? 0);
+                    }
+                    // Не кладём региональную выборку в кэш всей страны
+                    $skipCountryWidePromoCache = trim((string) ($_GET['regionIds'] ?? '')) !== ''
+                        && (int) ($_GET['promoTileId'] ?? 0) <= 0;
+                    if ($promoCacheCountryId > 0 && !$skipCountryWidePromoCache) {
+                        th_promo_cache_set($promoCacheCountryId, $dataToReturn, [
+                            'departureId' => (int) ($sp['departureId'] ?: th_departure_default_id()),
+                            'dateFrom' => $sp['dateFrom'],
+                            'dateTo' => $sp['dateTo'],
+                        ]);
+                    }
                 }
                 if ($projectId !== null && $projectId !== '') {
                     tv_firestore_helper_load();
