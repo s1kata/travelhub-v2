@@ -284,12 +284,37 @@
     '#mobile-sticky-cta.is-visible'
   ];
 
+  var pinStyleProps = [
+    'position', 'left', 'right', 'top', 'bottom', 'width', 'max-width',
+    'margin', 'margin-left', 'margin-right', 'transform', '-webkit-transform'
+  ];
+
+  function clearPinnedBottomStyles(el) {
+    if (!el || !el.style) return;
+    for (var i = 0; i < pinStyleProps.length; i++) {
+      el.style.removeProperty(pinStyleProps[i]);
+    }
+  }
+
   /**
    * Мобильные браузеры (особенно Яндекс): position:fixed; bottom:0 «плавает» при скролле.
    * Подтягиваем нижние CTA к низу visualViewport.
+   * На desktop сбрасываем инлайн-стили — иначе плашка «съезжает» влево после ресайза.
    */
   function pinFixedBottomsForYandex() {
-    if (!isMobile()) return;
+    if (!isMobile()) {
+      root.style.setProperty('--th-yandex-fixed-gap', '0px');
+      pinBottomSelectors.forEach(function (sel) {
+        var nodes = document.querySelectorAll(sel);
+        for (var i = 0; i < nodes.length; i++) clearPinnedBottomStyles(nodes[i]);
+      });
+      var abandonDesk = document.getElementById('th-abandon-sheet');
+      if (abandonDesk) {
+        var panelDesk = abandonDesk.querySelector('.th-abandon-sheet__panel');
+        if (panelDesk) clearPinnedBottomStyles(panelDesk);
+      }
+      return;
+    }
     var vv = window.visualViewport;
     if (!vv) {
       root.style.setProperty('--th-yandex-fixed-gap', '0px');
@@ -325,6 +350,9 @@
         el.style.setProperty('left', '0', 'important');
         el.style.setProperty('right', '0', 'important');
         el.style.setProperty('width', '100%', 'important');
+        el.style.setProperty('max-width', '100%', 'important');
+        el.style.setProperty('margin-left', '0', 'important');
+        el.style.setProperty('margin-right', '0', 'important');
         el.style.setProperty('transform', 'translateZ(0)', 'important');
         el.style.setProperty('-webkit-transform', 'translateZ(0)', 'important');
 

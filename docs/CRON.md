@@ -80,6 +80,24 @@ php clear_cache.php 10
 
 Удаляет JSON в `data/tourvisor_cache` старше 10 дней.
 
+### Прогрев поиска главной (SpaceWeb / PHP-only)
+
+Популярные страны × Самара/Москва × окна дат → файловый `search-cached`.  
+Без этого первый клик «Найти» часто уходит в live Tourvisor (десятки секунд).
+
+```bash
+bash backend/cron/warm_home_search_cache.sh
+# или: php backend/cron/warm_home_search_cache.php
+```
+
+Рекомендуется **4× в сутки**:
+
+```
+30 0,8,14,20 * * * cd /path/to/travelhub-v2 && bash backend/cron/warm_home_search_cache.sh >> data/home_search_warm.log 2>&1
+```
+
+Подробнее: [SEARCH_SPEED.md](SEARCH_SPEED.md).
+
 ### Кэш картинок Tourvisor (hotel_pics)
 
 Папка `data/tourvisor_image_cache/` — прокси `tourvisor-image-proxy.php`. На проде может занимать гигабайты: просроченные файлы удаляются только при повторном запросе.
@@ -127,19 +145,6 @@ php backend/cron/firestore_cache_cleanup.php
 UTC: `0 0 * * 1,4` (если сервер в UTC).
 
 Подробнее: [CACHE_LAYERS.md](CACHE_LAYERS.md).
-
-### TopHotels (рейтинги) — после получения API
-
-Каркас готов; без `TOPHOTELS_RATINGS_URL` / fixture cron ничего не качает. См. [TOPHOTELS.md](TOPHOTELS.md).
-
-```bash
-php backend/cron/tophotels_sync.php
-php backend/cron/tophotels_sync.php --import-matches=data/tophotels/matches.csv
-```
-
-```
-30 3 * * * cd /path/to/travelhub-v2 && php backend/cron/tophotels_sync.php >> data/tophotels_sync.log 2>&1
-```
 
 ## HTTP-cron (если нет CLI)
 

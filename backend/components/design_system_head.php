@@ -19,13 +19,13 @@ if (!defined('TRAVELHUB_DS_HEAD')) {
 <link rel="stylesheet" href="/frontend/css/redesign.css?v=24">
 <link rel="stylesheet" href="/frontend/css/v2-theme.css?v=1">
 <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=2">
-<link rel="stylesheet" href="/frontend/css/th-hard-funnel.css?v=6">
+<link rel="stylesheet" href="/frontend/css/th-hard-funnel.css?v=8">
 <link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=10">
-<link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=6">
+<link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=8">
 <link rel="stylesheet" href="/frontend/css/yandex-mobile.css?v=7">
 <link rel="stylesheet" href="/frontend/css/th-sheet.css?v=2">
 <?php include __DIR__ . '/mobile_site_head.php'; ?>
-<link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=3">
+<link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=5">
 <script src="/frontend/js/v2-theme.js?v=1" defer></script>
 <?php
     if (!defined('TH_LEAD_CAPTURE_JS')) {
@@ -36,7 +36,7 @@ if (!defined('TRAVELHUB_DS_HEAD')) {
         define('TH_SITE_LEAD_CSS', true);
     }
 ?>
-<script src="/frontend/js/th-mobile.js?v=13" defer></script>
+<script src="/frontend/js/th-mobile.js?v=14" defer></script>
 <script src="/frontend/js/th-modal.js?v=2" defer></script>
 <script src="/frontend/js/th-gallery.js?v=1" defer></script>
 <?php

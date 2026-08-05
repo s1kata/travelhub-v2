@@ -1,10 +1,10 @@
 <?php
 /**
- * Прогрев search-cached для главной: топ-направления из Самары и Москвы.
- * Запись в файловый кэш Tourvisor — первый поиск на сайте отдаётся за секунды.
+ * Прогрев search-cached для главной (PHP-only / SpaceWeb):
+ * топ-направления × Самара/Москва × несколько окон дат.
  *
- * Cron (2× в сутки, после promo warm):
- *   30 0,12 * * * cd /path/to/site && bash backend/cron/warm_home_search_cache.sh >> data/home_search_warm.log 2>&1
+ * Cron (3–4× в сутки):
+ *   30 0,8,14,20 * * * cd /path/to/site && bash backend/cron/warm_home_search_cache.sh >> data/home_search_warm.log 2>&1
  */
 declare(strict_types=1);
 
@@ -44,80 +44,127 @@ if (!is_array($popular) || $popular === []) {
 
 /** Города вылета для прогрева (Самара + Москва). */
 $departureIds = [7, 1];
-$dateFrom = date('Y-m-d', strtotime('+7 days'));
-$dateTo = date('Y-m-d', strtotime('+21 days'));
+
+/** Несколько окон дат — покрывает типичный выбор на главной. */
+$dateWindows = [
+    [
+        'from' => date('Y-m-d', strtotime('+7 days')),
+        'to' => date('Y-m-d', strtotime('+21 days')),
+    ],
+    [
+        'from' => date('Y-m-d', strtotime('+14 days')),
+        'to' => date('Y-m-d', strtotime('+28 days')),
+    ],
+    [
+        'from' => date('Y-m-d', strtotime('+21 days')),
+        'to' => date('Y-m-d', strtotime('+35 days')),
+    ],
+];
+
+/** Базовый диапазон ночей + alt для топ-5 (как на фронте). */
+$nightRanges = [
+    ['from' => 6, 'to' => 9],
+];
+$altNightCountries = 5; // первые N стран ещё и 5–10 ночей
+
 $proxyBase = rtrim(get_tourvisor_proxy_http_base_url(), '/');
 
 $ok = 0;
 $err = 0;
 $results = [];
+$started = microtime(true);
 
+$jobs = [];
 foreach ($departureIds as $departureId) {
+    $ci = 0;
     foreach ($popular as $row) {
         $countryId = (int) ($row['id'] ?? 0);
         if ($countryId <= 0) {
             continue;
         }
-        $qs = http_build_query([
-            'type' => 'search-cached',
-            'departureId' => $departureId,
-            'countryId' => $countryId,
-            'dateFrom' => $dateFrom,
-            'dateTo' => $dateTo,
-            'nightsFrom' => 6,
-            'nightsTo' => 9,
-            'adults' => 2,
-            'currency' => 'RUB',
-            'cacheScope' => 'country_page',
-            'live' => 1,
-        ]);
-        $url = $proxyBase . (str_contains($proxyBase, '?') ? '&' : '?') . $qs;
-
-        $ch = curl_init($url);
-        if ($ch === false) {
-            $err++;
-            $results[] = ['departureId' => $departureId, 'countryId' => $countryId, 'ok' => false, 'error' => 'curl_init'];
-            continue;
+        $ranges = $nightRanges;
+        if ($ci < $altNightCountries) {
+            $ranges[] = ['from' => 5, 'to' => 10];
         }
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 120,
-            CURLOPT_CONNECTTIMEOUT => 20,
-            CURLOPT_FOLLOWLOCATION => true,
-        ]);
-        $raw = curl_exec($ch);
-        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        $j = is_string($raw) && $raw !== '' ? json_decode($raw, true) : null;
-        $count = (is_array($j) && isset($j['data']) && is_array($j['data'])) ? count($j['data']) : 0;
-        $success = is_array($j) && !empty($j['success']) && $count > 0;
-
-        if ($success) {
-            $ok++;
-        } else {
-            $err++;
+        $ci++;
+        foreach ($dateWindows as $win) {
+            foreach ($ranges as $nr) {
+                $jobs[] = [
+                    'departureId' => $departureId,
+                    'countryId' => $countryId,
+                    'name' => (string) ($row['name'] ?? ''),
+                    'dateFrom' => $win['from'],
+                    'dateTo' => $win['to'],
+                    'nightsFrom' => $nr['from'],
+                    'nightsTo' => $nr['to'],
+                ];
+            }
         }
-        $results[] = [
-            'departureId' => $departureId,
-            'countryId' => $countryId,
-            'name' => (string) ($row['name'] ?? ''),
-            'ok' => $success,
-            'hotels' => $count,
-            'http' => $code,
-            'error' => is_array($j) ? ($j['error'] ?? null) : 'bad_json',
-        ];
-        usleep(500000);
     }
+}
+
+foreach ($jobs as $job) {
+    $qs = http_build_query([
+        'type' => 'search-cached',
+        'departureId' => $job['departureId'],
+        'countryId' => $job['countryId'],
+        'dateFrom' => $job['dateFrom'],
+        'dateTo' => $job['dateTo'],
+        'nightsFrom' => $job['nightsFrom'],
+        'nightsTo' => $job['nightsTo'],
+        'adults' => 2,
+        'currency' => 'RUB',
+        'cacheScope' => 'country_page',
+        'live' => 1,
+        'slim' => 1,
+    ]);
+    $url = $proxyBase . (str_contains($proxyBase, '?') ? '&' : '?') . $qs;
+
+    $t0 = microtime(true);
+    $ch = curl_init($url);
+    if ($ch === false) {
+        $err++;
+        $results[] = array_merge($job, ['ok' => false, 'error' => 'curl_init', 'ms' => 0]);
+        continue;
+    }
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 120,
+        CURLOPT_CONNECTTIMEOUT => 20,
+        CURLOPT_FOLLOWLOCATION => true,
+    ]);
+    $raw = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    $ms = (int) round((microtime(true) - $t0) * 1000);
+
+    $j = is_string($raw) && $raw !== '' ? json_decode($raw, true) : null;
+    $count = (is_array($j) && isset($j['data']) && is_array($j['data'])) ? count($j['data']) : 0;
+    $success = is_array($j) && !empty($j['success']) && $count > 0;
+
+    if ($success) {
+        $ok++;
+    } else {
+        $err++;
+    }
+    $results[] = array_merge($job, [
+        'ok' => $success,
+        'hotels' => $count,
+        'http' => $code,
+        'ms' => $ms,
+        'error' => is_array($j) ? ($j['error'] ?? null) : 'bad_json',
+    ]);
+    usleep(400000);
 }
 
 $out = [
     'success' => true,
     'departureIds' => $departureIds,
-    'dateFrom' => $dateFrom,
-    'dateTo' => $dateTo,
+    'dateWindows' => $dateWindows,
+    'jobs' => count($jobs),
     'warmed' => $ok,
     'errors' => $err,
+    'elapsedSec' => round(microtime(true) - $started, 1),
     'results' => $results,
 ];
 

@@ -773,6 +773,43 @@
     color: #fff;
 }
 
+/* Скелетоны выдачи (PHP-only perceived speed) */
+.th-tour-card--skeleton {
+    pointer-events: none;
+    box-shadow: none;
+    border: 1px solid rgba(26, 26, 64, 0.06);
+}
+.th-tour-card--skeleton .th-tour-card__body {
+    padding: 14px 16px 16px;
+    gap: 10px;
+    display: flex;
+    flex-direction: column;
+}
+.th-skel {
+    background: linear-gradient(90deg, #eef2f6 0%, #f7fafc 45%, #eef2f6 100%);
+    background-size: 200% 100%;
+    animation: th-skel-shimmer 1.2s ease-in-out infinite;
+    border-radius: 8px;
+}
+.th-skel--media {
+    width: 100%;
+    height: 200px;
+    border-radius: 0;
+}
+.th-skel--line { height: 12px; }
+.th-skel--w40 { width: 40%; }
+.th-skel--w55 { width: 55%; }
+.th-skel--w80 { width: 80%; }
+.th-skel--price { width: 42%; height: 22px; margin-top: 4px; }
+.th-skel--btn { width: 100%; height: 44px; margin-top: 8px; border-radius: 12px; }
+@keyframes th-skel-shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .th-skel { animation: none; }
+}
+
 /* ===== CTA «Подобрать тур» (акции / страны) ===== */
 .th-promo-pick-tour-btn {
     display: inline-flex;
@@ -3086,127 +3123,6 @@
     margin-top: 1px;
     flex-shrink: 0;
 }
-/* TopHotels guest score — brand colors (#1A1A40 / #5DA9A4) */
-.th-tour-card__guest-score {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 4px 0 6px;
-    padding: 8px 10px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, rgba(26, 26, 64, 0.06) 0%, rgba(93, 169, 164, 0.14) 100%);
-    border: 1px solid rgba(93, 169, 164, 0.35);
-}
-.th-tour-card__guest-score-main {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 1px;
-    flex-shrink: 0;
-    min-width: 2.6rem;
-}
-.th-tour-card__guest-score-value {
-    font-size: 1.35rem;
-    font-weight: 800;
-    line-height: 1;
-    color: #1A1A40;
-    letter-spacing: -0.02em;
-}
-.th-tour-card__guest-score-scale {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #5DA9A4;
-}
-.th-tour-card__guest-score-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    min-width: 0;
-}
-.th-tour-card__guest-score-label {
-    font-size: 11px;
-    font-weight: 700;
-    color: #1A1A40;
-    letter-spacing: 0.02em;
-}
-.th-tour-card__guest-score-reviews {
-    font-size: 11px;
-    font-weight: 500;
-    color: #64748b;
-}
-.th-tour-card__th-aspects {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 10px;
-    margin: 0 0 6px;
-}
-.th-tour-card__th-aspect {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 4px;
-    font-size: 11px;
-    color: #64748b;
-    font-weight: 500;
-}
-.th-tour-card__th-aspect-score {
-    color: #1A1A40;
-    font-weight: 700;
-}
-/* legacy tiny badge (if any leftover markup) */
-.th-tour-card__th-rating {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 1px;
-    padding: 2px 7px;
-    border-radius: 6px;
-    background: #5DA9A4;
-    color: #fff;
-    font-size: 11px;
-    font-weight: 700;
-}
-.th-tour-card__th-rating-scale,
-.th-tour-card__th-rating-reviews {
-    font-weight: 500;
-    opacity: 0.9;
-    font-size: 10px;
-}
-
-/* Results: guest-review sort chips */
-.tv-guest-sort {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 6px;
-}
-.tv-guest-sort__btn {
-    border: 1px solid rgba(93, 169, 164, 0.45);
-    background: #fff;
-    color: #1A1A40;
-    font-size: 12px;
-    font-weight: 650;
-    padding: 6px 10px;
-    border-radius: 999px;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-.tv-guest-sort__btn:hover {
-    border-color: #5DA9A4;
-    background: rgba(93, 169, 164, 0.1);
-}
-.tv-guest-sort__btn.is-active {
-    background: linear-gradient(135deg, #1A1A40, #5DA9A4);
-    border-color: transparent;
-    color: #fff;
-}
-.tv-sidebar-filter-group--guest .tv-sidebar-filter-label {
-    color: #1A1A40;
-}
-.tv-sidebar-filter-group--guest .tv-pf-chip.is-active,
-.tv-sidebar-filter-group--guest .tv-pf-chip[aria-pressed="true"] {
-    background: #5DA9A4 !important;
-    border-color: #5DA9A4 !important;
-    color: #fff !important;
-}
-
 /* --- Бейдж питания --- */
 .th-tour-card__meal-badge {
     display: inline-block;

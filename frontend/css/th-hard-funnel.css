@@ -64,6 +64,40 @@
     background: rgba(0, 0, 0, 0.08);
 }
 
+/* ПК: компактная плашка по центру без translateX (конфликтует с translateZ из th-mobile.js) */
+@media (min-width: 768px) {
+    .th-results-sticky-lead.th-results-sticky-lead--actions.is-visible,
+    .th-results-sticky-lead.is-visible {
+        left: 0 !important;
+        right: 0 !important;
+        width: min(420px, calc(100% - 32px)) !important;
+        max-width: 420px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        gap: 0;
+        padding: 5px;
+        border-radius: 14px 14px 0 0;
+        transform: translateZ(0) !important;
+        -webkit-transform: translateZ(0) !important;
+    }
+
+    .th-results-sticky-lead__action {
+        min-height: 40px;
+        font-size: 0.8rem;
+        border-radius: 0;
+        border-right: 1px solid rgba(255, 255, 255, 0.4);
+    }
+
+    .th-results-sticky-lead__action:first-child {
+        border-radius: 10px 0 0 10px;
+    }
+
+    .th-results-sticky-lead__action:last-child {
+        border-right: none;
+        border-radius: 0 10px 10px 0;
+    }
+}
+
 /* legacy single-button (promo page) */
 .th-results-sticky-lead__btn {
     display: flex;

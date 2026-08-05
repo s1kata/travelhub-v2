@@ -149,7 +149,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     <link rel="stylesheet" href="/frontend/css/responsive.css?v=17" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="/frontend/css/responsive.css?v=17"></noscript>
     <link rel="stylesheet" href="/frontend/css/design-system.css?v=14">
-    <link rel="stylesheet" href="/frontend/css/redesign.css?v=33">
+    <link rel="stylesheet" href="/frontend/css/redesign.css?v=34">
     <link rel="stylesheet" href="/frontend/css/v2-theme.css?v=4">
     <?php if ($th_search_ui === 'legacy'): ?>
     <link rel="stylesheet" href="/frontend/search-legacy/css/tour-search-wizard.css?v=legacy1">
@@ -159,14 +159,14 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=14">
     <link rel="stylesheet" href="/frontend/css/th-search-v2.css?v=1">
     <?php endif; ?>
-    <link rel="stylesheet" href="/frontend/css/th-hard-funnel.css?v=6">
+    <link rel="stylesheet" href="/frontend/css/th-hard-funnel.css?v=8">
     <link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=8">
-    <link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=6">
+    <link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=8">
     <link rel="stylesheet" href="/frontend/css/yandex-mobile.css?v=7">
     <link rel="stylesheet" href="/frontend/css/pages/home.css?v=7">
     <link rel="stylesheet" href="/frontend/css/th-sheet.css?v=7">
     <?php include __DIR__ . '/../backend/components/mobile_site_head.php'; ?>
-    <link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=3">
+    <link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=5">
     <!-- After unified-ui: mobile results dock overrides Call/MAX/Заявка bar -->
     <link rel="stylesheet" href="/frontend/css/th-results-ux.css?v=2">
     <script>window.__TH_YM_ID=<?php echo json_encode((string)$th_ym_id, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
@@ -181,7 +181,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     <script src="/frontend/js/th-search-v2.js?v=1" defer></script>
     <?php endif; ?>
     <script src="/frontend/js/th-lead-capture.js?v=2" defer></script>
-    <script src="/frontend/js/th-mobile.js?v=13" defer></script>
+    <script src="/frontend/js/th-mobile.js?v=14" defer></script>
     <script src="/frontend/js/th-modal.js?v=2" defer></script>
     <script src="/frontend/js/th-gallery.js?v=1" defer></script>
     
@@ -610,15 +610,6 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                             <span class="tv-sidebar-filter-label">Курорты</span>
                             <div class="tv-pf-regions" data-pf-regions><p class="tv-pf-hint">Появятся после поиска</p></div>
                         </div>
-                        <div class="tv-sidebar-filter-group tv-sidebar-filter-group--guest" data-pf-th-rating-group style="display:none">
-                            <span class="tv-sidebar-filter-label">Оценки гостей</span>
-                            <div class="tv-pf-chips">
-                                <button type="button" class="tv-pf-chip" data-pf-th-only aria-pressed="false">Только с отзывами</button>
-                                <button type="button" class="tv-pf-chip" data-pf-th-rating="8" aria-pressed="false">от 8.0</button>
-                                <button type="button" class="tv-pf-chip" data-pf-th-rating="8.5" aria-pressed="false">от 8.5</button>
-                                <button type="button" class="tv-pf-chip" data-pf-th-rating="9" aria-pressed="false">от 9.0</button>
-                            </div>
-                        </div>
                         <div class="tv-sidebar-filter-group" data-pf-beach-group style="display:none">
                             <span class="tv-sidebar-filter-label">Линия пляжа</span>
                             <div class="tv-pf-chips">
@@ -640,31 +631,9 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                                     <option value="price-asc">Сначала дешевые</option>
                                     <option value="price-desc">Сначала дорогие</option>
                                     <option value="rating">По рейтингу</option>
-                                    <option value="th-rating">По отзывам гостей</option>
-                                    <option value="best-value">Цена + оценка</option>
                                 </select>
                             </div>
                         </div>
-                        <!-- Sticky chips: mobile+tablet (sidebar hidden &lt;1024). Desktop keeps sort seg only. -->
-                        <div id="tv-results-control" class="tv-results-control" aria-label="Сортировка и оценки гостей">
-                            <div class="tv-results-control__scroll">
-                                <div class="tv-results-control__seg tv-guest-sort" role="group" aria-label="Сортировка">
-                                    <button type="button" class="tv-guest-sort__btn is-active" data-tv-sort-quick="price-asc">Дешевле</button>
-                                    <button type="button" class="tv-guest-sort__btn" data-tv-sort-quick="th-rating">По отзывам</button>
-                                    <button type="button" class="tv-guest-sort__btn" data-tv-sort-quick="best-value">Цена + оценка</button>
-                                </div>
-                                <span class="tv-results-control__divider" aria-hidden="true"></span>
-                                <div class="tv-results-control__guest" data-pf-th-rating-group data-pf-th-mobile-group>
-                                    <button type="button" class="tv-pf-chip" data-pf-th-only aria-pressed="false">С отзывами</button>
-                                    <button type="button" class="tv-pf-chip" data-pf-th-rating="8" aria-pressed="false">от 8.0</button>
-                                    <button type="button" class="tv-pf-chip" data-pf-th-rating="8.5" aria-pressed="false">от 8.5</button>
-                                    <button type="button" class="tv-pf-chip" data-pf-th-rating="9" aria-pressed="false">от 9.0</button>
-                                </div>
-                            </div>
-                        </div>
-                        <p id="tv-results-empty-guest" class="tv-results-empty-guest" role="status">
-                            По выбранным оценкам гостей ничего не найдено — смягчите фильтр или сбросьте «С отзывами».
-                        </p>
                         <div id="tv-search-progress" class="hidden mb-6 p-4 rounded-xl bg-slate-50 border border-slate-200">
                             <div class="flex items-center gap-3">
                                 <div class="animate-spin w-5 h-5 border-2 border-[#FF6B6B] border-t-transparent rounded-full"></div>
@@ -999,19 +968,6 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 <i class="fas fa-sliders-h" aria-hidden="true"></i>
                 <span>Фильтры</span>
             </button>
-            <div class="th-rsd__chips">
-                <div class="th-rsd__seg tv-guest-sort" role="group" aria-label="Сортировка">
-                    <button type="button" class="tv-guest-sort__btn is-active" data-tv-sort-quick="price-asc">Дешевле</button>
-                    <button type="button" class="tv-guest-sort__btn" data-tv-sort-quick="th-rating">Отзывы</button>
-                    <button type="button" class="tv-guest-sort__btn" data-tv-sort-quick="best-value">Цена+оценка</button>
-                </div>
-                <div class="th-rsd__guest tv-results-control__guest" data-pf-th-rating-group data-pf-th-mobile-group>
-                    <button type="button" class="tv-pf-chip" data-pf-th-only aria-pressed="false">С отзывами</button>
-                    <button type="button" class="tv-pf-chip" data-pf-th-rating="8" aria-pressed="false">от 8</button>
-                    <button type="button" class="tv-pf-chip" data-pf-th-rating="8.5" aria-pressed="false">от 8.5</button>
-                    <button type="button" class="tv-pf-chip" data-pf-th-rating="9" aria-pressed="false">от 9</button>
-                </div>
-            </div>
         </div>
         <div class="th-rsd__contact" aria-label="Быстрая связь">
             <a class="th-results-sticky-lead__action th-results-sticky-lead__action--call th-rsd__icon-btn"
@@ -1225,6 +1181,8 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 if (opts.cacheOnly) u.searchParams.set('cacheOnly', '1');
                 if (!opts.cacheOnly && !opts.backgroundRefresh) u.searchParams.set('live', '1');
                 if (opts.backgroundRefresh) u.searchParams.set('live', '1');
+                if (opts.slim !== false) u.searchParams.set('slim', '1');
+                if (opts.full) u.searchParams.set('full', '1');
                 u.searchParams.set('_t', String(Date.now()));
             }
             const url = u.toString();
@@ -1256,6 +1214,167 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 console.error('%c[Tourvisor] Ошибка запроса ✗', 'color: #ef4444; font-weight: bold', 'type:', type, '|', e.message, '| URL:', url);
                 return { success: false, error: String(e.message) };
             }
+        }
+
+        /** Session SWR: мгновенный paint повторного поиска (PHP-only / SpaceWeb). */
+        var TV_HOME_SWR_PREFIX = 'th_home_search_swr:';
+        var TV_HOME_SWR_MAX_MS = 15 * 60 * 1000;
+        var tvPrefetchTimer = null;
+        var tvPrefetchInFlight = '';
+
+        function tvHomeSwrKey(p) {
+            p = p || {};
+            return TV_HOME_SWR_PREFIX + [
+                p.departureId || '',
+                p.countryId || '',
+                p.dateFrom || '',
+                p.dateTo || '',
+                p.nightsFrom || '',
+                p.nightsTo || '',
+                p.adults || '2',
+                p.childs || '',
+                p.meal || '',
+                p.hotelCategory || '',
+                p.regionIds || ''
+            ].join(':');
+        }
+
+        function tvHomeSwrRead(params) {
+            try {
+                var raw = sessionStorage.getItem(tvHomeSwrKey(params));
+                if (!raw) return null;
+                var o = JSON.parse(raw);
+                if (!o || !Array.isArray(o.data) || !o.data.length) return null;
+                if ((Date.now() - (o.ts || 0)) > TV_HOME_SWR_MAX_MS) return null;
+                return o;
+            } catch (e) { return null; }
+        }
+
+        function tvHomeSwrWrite(params, hotels) {
+            if (!params || !Array.isArray(hotels) || !hotels.length) return;
+            try {
+                var payload = JSON.stringify({ ts: Date.now(), data: hotels });
+                if (payload.length > 4.5 * 1024 * 1024) return;
+                sessionStorage.setItem(tvHomeSwrKey(params), payload);
+            } catch (e) {
+                try { sessionStorage.removeItem(tvHomeSwrKey(params)); } catch (e2) {}
+            }
+        }
+
+        function tvCollectHomeCacheParams() {
+            var dep = '7';
+            try {
+                if (typeof tvActiveDeparture === 'function') {
+                    var da = tvActiveDeparture();
+                    if (da && da.id) dep = String(da.id);
+                } else if (document.getElementById('tv-departure') && document.getElementById('tv-departure').value) {
+                    dep = String(document.getElementById('tv-departure').value);
+                }
+            } catch (eDep) {}
+            var country = document.getElementById('tv-country') && document.getElementById('tv-country').value;
+            if (!country) return null;
+            var datesVal = (document.getElementById('tv-dates') && document.getElementById('tv-dates').value) || '';
+            var dateFrom = '', dateTo = '';
+            var parseD = function (s) {
+                s = String(s || '').trim();
+                var m = s.match(/^(\d{1,2})[.\-\/](\d{1,2})[.\-\/](\d{4})$/);
+                if (m) return m[3] + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[1]).padStart(2, '0');
+                if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+                return '';
+            };
+            if (datesVal) {
+                var parts = datesVal.split(/\s+(?:по|to)\s+|\s+[-–—]\s+/i);
+                if (parts.length >= 2) {
+                    dateFrom = parseD(parts[0]);
+                    dateTo = parseD(parts[1]);
+                }
+            }
+            if ((!dateFrom || !dateTo) && typeof flatpickr !== 'undefined' && window.tvDatePicker && window.tvDatePicker.selectedDates && window.tvDatePicker.selectedDates.length >= 1) {
+                var sel = window.tvDatePicker.selectedDates;
+                dateFrom = flatpickr.formatDate(sel[0], 'Y-m-d');
+                dateTo = sel.length >= 2 ? flatpickr.formatDate(sel[1], 'Y-m-d') : flatpickr.formatDate(new Date(sel[0].getTime() + 30 * 864e5), 'Y-m-d');
+            }
+            if (!dateFrom || !dateTo) {
+                var defWin = typeof getDefaultDateWindow === 'function' ? getDefaultDateWindow() : null;
+                if (defWin && defWin[0] && defWin[1]) {
+                    var padYmd = function (d) {
+                        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                    };
+                    dateFrom = (typeof flatpickr !== 'undefined' && flatpickr.formatDate) ? flatpickr.formatDate(defWin[0], 'Y-m-d') : padYmd(defWin[0]);
+                    dateTo = (typeof flatpickr !== 'undefined' && flatpickr.formatDate) ? flatpickr.formatDate(defWin[1], 'Y-m-d') : padYmd(defWin[1]);
+                }
+            }
+            var nFrom = (typeof tvNightsFrom !== 'undefined' ? parseInt(tvNightsFrom, 10) : 6) || 6;
+            var nTo = (typeof tvNightsTo !== 'undefined' ? parseInt(tvNightsTo, 10) : 9) || 9;
+            var adults = String(typeof tvAdultsCount !== 'undefined' ? tvAdultsCount : 2);
+            var childs = typeof tvChildsParam === 'function' ? tvChildsParam() : '';
+            var countryName = '';
+            try {
+                countryName = (document.getElementById('tv-country').selectedOptions[0].textContent || '').trim();
+            } catch (eN) {}
+            var p = {
+                departureId: dep,
+                countryId: country,
+                countryName: countryName,
+                dateFrom: dateFrom,
+                dateTo: dateTo,
+                nightsFrom: nFrom,
+                nightsTo: nTo,
+                adults: adults
+            };
+            if (childs) p.childs = childs;
+            var meal = document.getElementById('tv-meal') && document.getElementById('tv-meal').value;
+            if (meal) p.meal = meal;
+            var category = document.getElementById('tv-category') && document.getElementById('tv-category').value;
+            if (category) p.hotelCategory = category;
+            var region = document.getElementById('tv-region') && document.getElementById('tv-region').value;
+            if (region) p.regionIds = region;
+            return p;
+        }
+
+        function tvPrefetchHomeSearchCache() {
+            var params = tvCollectHomeCacheParams();
+            if (!params || !params.countryId || !params.dateFrom || !params.dateTo) return;
+            var key = tvHomeSwrKey(params);
+            if (tvPrefetchInFlight === key) return;
+            if (tvHomeSwrRead(params)) return;
+            tvPrefetchInFlight = key;
+            tvFetch('search-cached', params, { cacheOnly: true, cacheScope: 'country_page', slim: true }).then(function (r) {
+                if (r && r.success && Array.isArray(r.data) && r.data.length) {
+                    tvHomeSwrWrite(params, r.data);
+                    console.log('%c[Главная · Prefetch] Кэш прогрет', 'color: #5DA9A4', params.countryName || params.countryId, r.data.length);
+                }
+            }).catch(function () {}).finally(function () {
+                if (tvPrefetchInFlight === key) tvPrefetchInFlight = '';
+            });
+        }
+
+        function tvSchedulePrefetchHomeSearch() {
+            if (tvPrefetchTimer) clearTimeout(tvPrefetchTimer);
+            tvPrefetchTimer = setTimeout(tvPrefetchHomeSearchCache, 450);
+        }
+
+        function tvResultsSkeletonHtml(n) {
+            n = Math.max(2, Math.min(n || 4, 6));
+            var cards = '';
+            for (var i = 0; i < n; i++) {
+                cards += '<article class="th-tour-card th-tour-card--skeleton" aria-hidden="true">' +
+                    '<div class="th-skel th-skel--media"></div>' +
+                    '<div class="th-tour-card__body">' +
+                    '<div class="th-skel th-skel--line th-skel--w40"></div>' +
+                    '<div class="th-skel th-skel--line th-skel--w80"></div>' +
+                    '<div class="th-skel th-skel--line th-skel--w55"></div>' +
+                    '<div class="th-skel th-skel--price"></div>' +
+                    '<div class="th-skel th-skel--btn"></div>' +
+                    '</div></article>';
+            }
+            return cards;
+        }
+
+        function tvShowResultsSkeleton() {
+            var resultsDiv = document.getElementById('tv-search-results');
+            if (resultsDiv) resultsDiv.innerHTML = tvResultsSkeletonHtml(4);
+            showTvResultsChrome();
         }
 
         function formatPrice(price) {
@@ -1861,10 +1980,14 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             countrySel.addEventListener('change', async function() {
                 await loadTvRegions();
                 applyDefaultDateWindow();
+                tvSchedulePrefetchHomeSearch();
             });
             if (depSel) {
                 depSel.addEventListener('change', function () {
-                    if (countrySel && countrySel.value) loadTvRegions();
+                    if (countrySel && countrySel.value) {
+                        loadTvRegions();
+                        tvSchedulePrefetchHomeSearch();
+                    }
                 });
             }
             if (countrySel.value) {
@@ -1885,13 +2008,6 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             if (searchBtn) searchBtn.addEventListener('click', onSearchBtnClick);
             var tvSortEl = document.getElementById('tv-sort');
             if (tvSortEl) tvSortEl.addEventListener('change', applyTvSort);
-            document.querySelectorAll('[data-tv-sort-quick]').forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    var val = btn.getAttribute('data-tv-sort-quick') || 'price-asc';
-                    if (tvSortEl) tvSortEl.value = val;
-                    applyTvSort();
-                });
-            });
             document.getElementById('tv-load-more-btn').addEventListener('click', () => loadMoreTvResults());
 
             setDefaultNightsRange();
@@ -2060,6 +2176,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 updateTvNightsSummary();
                 closeTvNightsPopup();
                 notifyWizardNightsDone();
+                if (typeof tvSchedulePrefetchHomeSearch === 'function') tvSchedulePrefetchHomeSearch();
             });
             tvNightsPopup && tvNightsPopup.querySelectorAll('[data-th-nights-close]').forEach(function (el) {
                 el.addEventListener('click', function (e) {
@@ -2678,18 +2795,65 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             const wrapper = document.getElementById('tv-results-wrapper');
             const resultsDiv = document.getElementById('tv-search-results');
             showTvResultsChrome();
-            if (resultsDiv) resultsDiv.innerHTML = '';
             tvDisplayedCount = 0;
             tvHotelsBeforeBudgetFilter = [];
             tvLastResults = [];
             tvShowAltNightsBanner(false);
             if (tvPostFiltersCtrl && typeof tvPostFiltersCtrl.reset === 'function') tvPostFiltersCtrl.reset();
-
-            tvLoaderShow();
+            tvShowResultsSkeleton();
             if (wrapper) wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-            let progressPercent = 0;
-            const progressInterval = setInterval(function() {
+            const countryNameForCache = document.getElementById('tv-country')?.selectedOptions?.[0]?.textContent?.trim() || '';
+            const cacheParams = {
+                departureId: dep,
+                countryId: country,
+                countryName: countryNameForCache,
+                dateFrom, dateTo,
+                nightsFrom: nFrom || 6,
+                nightsTo: nTo || 9,
+                adults
+            };
+            if (childs) cacheParams.childs = childs;
+            if (meal) cacheParams.meal = meal;
+            if (category) cacheParams.hotelCategory = category;
+            if (region) cacheParams.regionIds = region;
+            if (typeof tvSelectedServiceIds !== 'undefined' && tvSelectedServiceIds.length > 0) {
+                cacheParams.hotelServices = tvSelectedServiceIds.join(',');
+            }
+
+            function tvPaintSearchHotels(list, logLabel) {
+                tvHotelsBeforeBudgetFilter = Array.isArray(list) ? list.slice() : [];
+                if (tvPostFiltersCtrl && typeof tvPostFiltersCtrl.updateFromHotels === 'function') {
+                    tvPostFiltersCtrl.updateFromHotels(tvHotelsBeforeBudgetFilter);
+                }
+                tvApplyClientFiltersAndRender();
+                showTvResultsChrome();
+                if (logLabel) console.log(logLabel, 'color: #22c55e', tvLastResults.length, 'туров');
+            }
+
+            function tvBackgroundRefreshPrices() {
+                tvFetch('search-cached', cacheParams, { backgroundRefresh: true, cacheScope: 'country_page', slim: true }).then(function (fresh) {
+                    if (!fresh || !fresh.success || !Array.isArray(fresh.data) || fresh.data.length === 0) return;
+                    if (fresh.fromCache === true) return;
+                    tvHomeSwrWrite(cacheParams, fresh.data);
+                    tvPaintSearchHotels(fresh.data, '%c[Главная · Поиск] Фоновое обновление цен');
+                }).catch(function () {});
+            }
+
+            /* Session SWR — paint до сети */
+            var swrHit = tvHomeSwrRead(cacheParams);
+            var paintedFromSwr = false;
+            if (swrHit) {
+                paintedFromSwr = true;
+                tvLoaderHide();
+                tvPaintSearchHotels(swrHit.data, '%c[Главная · Поиск] Session SWR');
+            } else {
+                tvLoaderShow();
+                tvLoaderUpdateInstantPreview(countryNameForCache, dep);
+            }
+
+            let progressPercent = paintedFromSwr ? 70 : 0;
+            const progressInterval = paintedFromSwr ? null : setInterval(function() {
                 progressPercent += 2 + Math.random() * 4;
                 if (progressPercent >= 95) progressPercent = 95;
                 tvLoaderSetProgress(progressPercent, tvLoaderMessage(progressPercent));
@@ -2697,27 +2861,8 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
 
             let rCache = { success: false, data: [] };
             try {
-                const countryNameForCache = document.getElementById('tv-country')?.selectedOptions?.[0]?.textContent?.trim() || '';
-                const cacheParams = {
-                    departureId: dep,
-                    countryId: country,
-                    countryName: countryNameForCache,
-                    dateFrom, dateTo,
-                    nightsFrom: nFrom || 6,
-                    nightsTo: nTo || 9,
-                    adults
-                };
-                if (childs) cacheParams.childs = childs;
-                if (meal) cacheParams.meal = meal;
-                if (category) cacheParams.hotelCategory = category;
-                if (region) cacheParams.regionIds = region;
-                if (typeof tvSelectedServiceIds !== 'undefined' && tvSelectedServiceIds.length > 0) {
-                    cacheParams.hotelServices = tvSelectedServiceIds.join(',');
-                }
                 console.log('%c[API → сайт] Параметры поиска отправляются в API', 'color: #5DA9A4; font-weight: bold', cacheParams);
-                console.log('[Фильтры] Поиск с параметрами:', { meal: meal || '—', regionIds: region || '—', hotelCategory: category || '—', hotelServices: (typeof tvSelectedServiceIds !== 'undefined' && tvSelectedServiceIds.length) ? tvSelectedServiceIds.join(',') : '—' });
-                tvLoaderUpdateInstantPreview(countryNameForCache, dep);
-                const cacheOpts = { cacheOnly: true, cacheScope: 'country_page' };
+                const cacheOpts = { cacheOnly: true, cacheScope: 'country_page', slim: true };
                 rCache = await tvFetch('search-cached', cacheParams, cacheOpts);
                 if ((!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0) && origNFrom === 6 && origNTo === 9) {
                     const altParams = Object.assign({}, cacheParams, { nightsFrom: 5, nightsTo: 10 });
@@ -2729,62 +2874,51 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 }
                 var hadInstantCache = rCache.success && Array.isArray(rCache.data) && rCache.data.length > 0;
                 if (hadInstantCache) {
-                    clearInterval(progressInterval);
-                    tvLoaderSetProgress(100, 'Готово!', 'Показываем результаты...');
-                    await new Promise(function (r) { setTimeout(r, 200); });
+                    if (progressInterval) clearInterval(progressInterval);
                     tvLoaderHide();
-                    tvHotelsBeforeBudgetFilter = rCache.data.slice();
-                    if (tvPostFiltersCtrl && typeof tvPostFiltersCtrl.updateFromHotels === 'function') {
-                        tvPostFiltersCtrl.updateFromHotels(tvHotelsBeforeBudgetFilter);
-                    }
-                    tvApplyClientFiltersAndRender();
-                    showTvResultsChrome();
+                    tvHomeSwrWrite(cacheParams, rCache.data);
+                    tvPaintSearchHotels(rCache.data, '%c[Главная · Поиск] Мгновенная выдача из кэша');
                     document.getElementById('tv-results-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    console.log('%c[Главная · Поиск] Мгновенная выдача из кэша', 'color: #22c55e', tvLastResults.length, 'туров');
-                    tvFetch('search-cached', cacheParams, { backgroundRefresh: true, cacheScope: 'country_page' }).then(function (fresh) {
-                        if (!fresh || !fresh.success || !Array.isArray(fresh.data) || fresh.data.length === 0) return;
-                        if (fresh.fromCache === true) return;
-                        tvHotelsBeforeBudgetFilter = fresh.data.slice();
-                        if (tvPostFiltersCtrl && typeof tvPostFiltersCtrl.updateFromHotels === 'function') {
-                            tvPostFiltersCtrl.updateFromHotels(tvHotelsBeforeBudgetFilter);
-                        }
-                        tvApplyClientFiltersAndRender();
-                        console.log('%c[Главная · Поиск] Фоновое обновление цен', 'color: #5DA9A4', tvLastResults.length, 'туров');
-                    }).catch(function () {});
+                    tvBackgroundRefreshPrices();
                     return;
                 }
-                rCache = await tvFetch('search-cached', cacheParams, { cacheScope: 'country_page' });
-                if ((!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0) && origNFrom === 6 && origNTo === 9) {
-                    const altParams = Object.assign({}, cacheParams, { nightsFrom: 5, nightsTo: 10 });
-                    var rAltLive = await tvFetch('search-cached', altParams, { cacheScope: 'country_page' });
-                    if (rAltLive.success && Array.isArray(rAltLive.data) && rAltLive.data.length > 0) {
-                        rCache = rAltLive;
-                        tvShowAltNightsBanner(true);
+                if (!paintedFromSwr) {
+                    rCache = await tvFetch('search-cached', cacheParams, { cacheScope: 'country_page', slim: true });
+                    if ((!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0) && origNFrom === 6 && origNTo === 9) {
+                        const altParams = Object.assign({}, cacheParams, { nightsFrom: 5, nightsTo: 10 });
+                        var rAltLive = await tvFetch('search-cached', altParams, { cacheScope: 'country_page', slim: true });
+                        if (rAltLive.success && Array.isArray(rAltLive.data) && rAltLive.data.length > 0) {
+                            rCache = rAltLive;
+                            tvShowAltNightsBanner(true);
+                        }
                     }
+                } else {
+                    /* Уже показали SWR — догоняем live в фоне */
+                    tvBackgroundRefreshPrices();
+                    if (progressInterval) clearInterval(progressInterval);
+                    return;
                 }
             } catch (err) {
                 console.error('[Главная · Поиск] Ошибка запроса поиска', err);
                 rCache = { success: false, data: [], error: String(err && err.message ? err.message : err) };
             } finally {
-                clearInterval(progressInterval);
+                if (progressInterval) clearInterval(progressInterval);
                 tvLoaderSetProgress(100, 'Готово!', 'Показываем результаты...');
-                await new Promise(r => setTimeout(r, 550));
+                if (!paintedFromSwr) await new Promise(r => setTimeout(r, 350));
                 tvLoaderHide();
             }
 
             if (rCache.success && Array.isArray(rCache.data) && rCache.data.length > 0) {
-                tvHotelsBeforeBudgetFilter = rCache.data.slice();
-                if (tvPostFiltersCtrl && typeof tvPostFiltersCtrl.updateFromHotels === 'function') {
-                    tvPostFiltersCtrl.updateFromHotels(tvHotelsBeforeBudgetFilter);
-                }
-                tvApplyClientFiltersAndRender();
-                showTvResultsChrome();
+                tvHomeSwrWrite(cacheParams, rCache.data);
+                tvPaintSearchHotels(rCache.data, null);
                 document.getElementById('tv-results-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 const fromCache = rCache.fromCache === true;
                 console.log('%c[API → сайт] Результаты с API получены и отображены на сайте', 'color: #22c55e; font-weight: bold', { туров: tvLastResults.length, изКэша: fromCache });
                 console.log('%c[Главная · Поиск] ' + (fromCache ? 'Показаны данные из кэша:' : 'Показаны результаты поиска Tourvisor (актуальные данные):'), 'color: #22c55e', tvLastResults.length, 'туров');
                 return;
             }
+
+            if (paintedFromSwr) return;
 
             tvHotelsBeforeBudgetFilter = [];
             tvLastResults = [];
@@ -2877,12 +3011,6 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             tvDisplayedCount = Math.min(TV_PAGE_SIZE, Math.max(tvLastResults.length, 0));
             var rC = document.getElementById('tv-result-count');
             if (rC) rC.textContent = String(tvLastResults.length);
-            var st = tvPostFiltersCtrl && tvPostFiltersCtrl.state;
-            var guestFilterOn = !!(st && (st.thOnly || (parseFloat(String(st.thMinRating || '')) > 0)));
-            var emptyGuest = document.getElementById('tv-results-empty-guest');
-            if (emptyGuest) {
-                emptyGuest.classList.toggle('is-visible', guestFilterOn && tvLastResults.length === 0);
-            }
             applyTvSort();
             updateTvLoadMoreButton();
         }
@@ -2920,41 +3048,12 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             }
             return out;
         }
-        function syncTvGuestSortButtons(sortVal) {
-            document.querySelectorAll('[data-tv-sort-quick]').forEach(function (btn) {
-                var v = btn.getAttribute('data-tv-sort-quick') || '';
-                btn.classList.toggle('is-active', v === sortVal);
-            });
-        }
         function applyTvSort() {
             const sortVal = document.getElementById('tv-sort')?.value || 'price-asc';
-            syncTvGuestSortButtons(sortVal);
             let arr = [...tvLastResults];
-            function thScore(h) {
-                const th = h && h.tophotels;
-                const r = th && th.rating != null ? Number(th.rating) : 0;
-                return (r > 0) ? r : 0;
-            }
-            function bestValueScore(h) {
-                const price = tvHotelListPrice(h) || 1;
-                const rating = thScore(h);
-                if (rating <= 0) return (1 / Math.log10(price + 10)) * 0.15;
-                return rating / Math.log10(price + 10);
-            }
             if (sortVal === 'price-asc') arr.sort((a, b) => tvHotelListPrice(a) - tvHotelListPrice(b));
             else if (sortVal === 'price-desc') arr.sort((a, b) => tvHotelListPrice(b) - tvHotelListPrice(a));
-            else if (sortVal === 'th-rating' || sortVal === 'rating') arr.sort((a, b) => {
-                const thA = thScore(a);
-                const thB = thScore(b);
-                if (thA || thB) {
-                    if (thB !== thA) return thB - thA;
-                    const revA = (a.tophotels && a.tophotels.reviewsCount) ? Number(a.tophotels.reviewsCount) : 0;
-                    const revB = (b.tophotels && b.tophotels.reviewsCount) ? Number(b.tophotels.reviewsCount) : 0;
-                    return revB - revA;
-                }
-                return (Number(b.rating) || 0) - (Number(a.rating) || 0);
-            });
-            else if (sortVal === 'best-value') arr.sort((a, b) => bestValueScore(b) - bestValueScore(a));
+            else if (sortVal === 'rating') arr.sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0));
             var slice = arr.slice(0, tvDisplayedCount);
             renderTvResults(slice);
             var tvResEl = document.getElementById('tv-search-results');

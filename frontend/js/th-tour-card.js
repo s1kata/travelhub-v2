@@ -892,7 +892,6 @@
     if (isPromo) badges += '<span class="th-tour-card__badge th-tour-card__badge--promo">\u0410\u043a\u0446\u0438\u044f</span>';
     if (options.directBadge) badges += '<span class="th-tour-card__badge th-tour-card__badge--direct">\u041f\u0440\u044f\u043c\u043e\u0439 \u0440\u0435\u0439\u0441</span>';
     if (options.badge) badges += '<span class="th-tour-card__badge th-tour-card__badge--exclusive">' + esc(options.badge) + '</span>';
-    if (options.guestScoreBadge) badges += options.guestScoreBadge;
 
     var targetAttr = options.target === '_blank' ? ' target="_blank" rel="noopener"' : '';
     var hitLink = '';
@@ -909,74 +908,6 @@
       '</div>' + badges +
       '</div>'
     );
-  }
-
-  function thHotelsScoreWord(rating) {
-    if (rating >= 9) return 'Превосходно';
-    if (rating >= 8.5) return 'Отлично';
-    if (rating >= 8) return 'Очень хорошо';
-    if (rating >= 7) return 'Хорошо';
-    return 'Нормально';
-  }
-
-  function thHotelsAspectsHtml(th) {
-    if (!th) return '';
-    var parts = [
-      { key: 'food', label: 'Еда' },
-      { key: 'service', label: 'Сервис' },
-      { key: 'placement', label: 'Расположение' }
-    ];
-    var bits = [];
-    parts.forEach(function (p) {
-      if (th[p.key] == null || th[p.key] === '') return;
-      var n = parseFloat(String(th[p.key]));
-      if (isNaN(n) || n <= 0) return;
-      var label = (Math.round(n * 10) / 10).toFixed(1).replace(/\.0$/, '');
-      bits.push(
-        '<span class="th-tour-card__th-aspect">' +
-        '<span class="th-tour-card__th-aspect-label">' + esc(p.label) + '</span>' +
-        '<span class="th-tour-card__th-aspect-score">' + esc(label) + '</span>' +
-        '</span>'
-      );
-    });
-    if (!bits.length) return '';
-    return '<div class="th-tour-card__th-aspects">' + bits.join('') + '</div>';
-  }
-
-  function thHotelsScoreBadgeHtml(th, rating, scale) {
-    if (!th) return '';
-    var label = (Math.round(rating * 10) / 10).toFixed(1).replace(/\.0$/, '');
-    return (
-      '<span class="th-tour-card__score-badge" aria-hidden="true">' +
-      '<span class="th-tour-card__score-badge-num">' + esc(label) + '</span>' +
-      '<span class="th-tour-card__score-badge-scale">/' + esc(String(scale)) + '</span>' +
-      '</span>'
-    );
-  }
-
-  function thHotelsGuestScoreHtml(h) {
-    var th = h && h.tophotels;
-    if (!th || th.rating == null || th.rating === '') return '';
-    var rating = parseFloat(String(th.rating));
-    if (isNaN(rating) || rating <= 0) return '';
-    var reviews = th.reviewsCount != null ? parseInt(String(th.reviewsCount), 10) : 0;
-    var word = thHotelsScoreWord(rating);
-    var title = 'Оценки гостей TopHotels' + (reviews > 0 ? ' · ' + reviews + ' отзывов' : '');
-    var reviewsLine = reviews > 0
-      ? '<span class="th-tour-card__guest-reviews">' + esc(String(reviews)) + ' отзывов</span>'
-      : '';
-    return (
-      '<div class="th-tour-card__guest-line" title="' + esc(title) + '" data-th-tophotels-id="' + esc(String(th.id || '')) + '">' +
-      '<span class="th-tour-card__guest-word">' + esc(word) + '</span>' +
-      reviewsLine +
-      '</div>' +
-      thHotelsAspectsHtml(th)
-    );
-  }
-
-  /** @deprecated use thHotelsGuestScoreHtml */
-  function thHotelsRatingBadgeHtml(h) {
-    return thHotelsGuestScoreHtml(h);
   }
 
   /**
@@ -1068,13 +999,6 @@
       flightMeta: options.flightMeta
     });
 
-    var thPayload = h && h.tophotels;
-    var thRating = thPayload && thPayload.rating != null ? parseFloat(String(thPayload.rating)) : 0;
-    var thScale = thPayload ? (parseInt(String(thPayload.scale || 10), 10) || 10) : 10;
-    var guestScoreBadge = (!isNaN(thRating) && thRating > 0)
-      ? thHotelsScoreBadgeHtml(thPayload, thRating, thScale)
-      : '';
-
     var mediaHtml;
     if (options.carousel !== false) {
       mediaHtml = buildCarouselMediaHtml(slides, {
@@ -1084,8 +1008,7 @@
         directBadge: showDirectBadge,
         badge: options.badge,
         detailUrl: cardHref,
-        target: options.target,
-        guestScoreBadge: guestScoreBadge
+        target: options.target
       });
     } else {
       var fbAttr = esc(fallbackImg);
@@ -1095,7 +1018,6 @@
         '<div class="th-tour-card__media">' +
         '<img src="' + esc(slides[0]) + '" data-fb="' + fbAttr + '" alt="' + esc(h.name) + '" class="th-tour-card__img" loading="eager" fetchpriority="high" decoding="async" onerror="' + imgFallbackHandler + '" onload="' + imgLoadCheckHandler + '">' +
         (options.badge ? '<span class="th-tour-card__badge th-tour-card__badge--exclusive">' + esc(options.badge) + '</span>' : '') +
-        guestScoreBadge +
         '</div>';
     }
 
@@ -1110,14 +1032,8 @@
           tourId: tourIdStr
         })
       : '';
-    var guestScoreHtml = thHotelsGuestScoreHtml(h);
-    var hasGuestScore = !!guestScoreHtml;
-    // With TopHotels: guest score replaces meal/flight clutter on the card body
-    var secondaryMeta = hasGuestScore
-      ? ''
-      : ((meal ? '<span class="th-tour-card__meal-badge">' + esc(meal) + '</span>' : '') + flightHtml);
     return (
-      '<article class="th-tour-card' + modClass + (hasGuestScore ? ' th-tour-card--guest-score' : '') + '"' + skipPatch + hotelIdAttr + tourIdAttr + depCityAttr + '>' +
+      '<article class="th-tour-card' + modClass + '"' + skipPatch + hotelIdAttr + tourIdAttr + depCityAttr + '>' +
       mediaHtml +
       '<a href="' + esc(cardHref) + '"' + targetAttr + ' class="th-tour-card__link th-tour-card__link--main">' +
       '<div class="th-tour-card__body">' +
@@ -1126,8 +1042,8 @@
       '<h3 class="th-tour-card__name">' + esc(h.name) + '</h3>' +
       (starsHtml ? '<span class="th-tour-card__stars">' + starsHtml + '</span>' : '') +
       '</div>' +
-      guestScoreHtml +
-      secondaryMeta +
+      (meal ? '<span class="th-tour-card__meal-badge">' + esc(meal) + '</span>' : '') +
+      flightHtml +
       '<div class="th-tour-card__price-block">' +
       (oldPriceNum ? '<span class="th-tour-card__old-price">' + formatPrice(oldPriceNum) + '</span>' : '') +
       '<span class="th-tour-card__price-label">' + esc(pricePartyLabel) + '</span>' +

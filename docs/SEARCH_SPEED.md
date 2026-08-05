@@ -49,27 +49,39 @@ curl -sI "https://travelhub63.ru/frontend/api/tourvisor-proxy.php?type=departure
 
 ---
 
-## 2. SWR на главной (`frontend/index.php`)
+## 2. SWR на главной (`frontend/index.php`) — PHP-only / SpaceWeb
 
-- Сначала `search-cached` + `cacheScope=country_page` + `cacheOnly` — мгновенная выдача.
-- Фоном — `live=1` для обновления цен без блокировки UI.
-- Live search (30–60 s) только если кэша нет.
+Без Go/VPS скорость = hit-rate + тонкий JSON + perceived speed.
 
-SWR работает и при L2-only (Go выключен) — просто медленнее cache hit.
+1. **SessionStorage SWR** — повтор того же поиска (до 15 мин) → paint сразу, без сети.
+2. **Скелетоны** карточек, пока идёт `cacheOnly`.
+3. **`cacheOnly` + `slim=1`** — файловый кэш, урезанный JSON списка.
+4. **Prefetch** при выборе страны / вылета / ночей (фоновый `cacheOnly`).
+5. Фоном **`live=1`** — обновление цен без блокировки UI.
+6. Cold (нет кэша) — один live-запрос; UI уже показал скелетон/SWR.
+
+Ответ списка: `X-Tourvisor-Slim: 1`. Полный hotel: `?full=1`.
 
 ---
 
-## 3. Cron прогрева
+## 3. Cron прогрева (критично на SpaceWeb)
 
 ```bash
 php backend/cron/warm_home_search_cache.php
+# или
+bash backend/cron/warm_home_search_cache.sh
 ```
 
-Прогревает все страны из `popular_countries.php` × Самара + Москва, ночи 6–9, `cacheScope=country_page`.
+Прогревает `popular_countries.php` × Самара + Москва × **3 окна дат** × ночи 6–9  
+(+ 5–10 ночей для топ-5 стран), `cacheScope=country_page`.
+
+Рекомендуется **3–4× в сутки**:
 
 ```
-30 0,12 * * * cd /path/to/travelhub-v2 && php backend/cron/warm_home_search_cache.php >> data/home_search_warm.log 2>&1
+30 0,8,14,20 * * * cd /path/to/travelhub-v2 && bash backend/cron/warm_home_search_cache.sh >> data/home_search_warm.log 2>&1
 ```
+
+На SpaceWeb часто нужен `php8.1` вместо `php` — поправьте в `.sh` при необходимости.
 
 Акции (speed-cache): см. `backend/cron/update_promotions_cache.php` / `warm_promotions_cache.sh`.
 
@@ -145,8 +157,12 @@ location = /frontend/api/tourvisor-proxy.php {
 
 ---
 
-## Roadmap (не блокирует L1/L2)
+## Roadmap
 
-1. Promo cache read в Go (`promo_cache_*`)
+**Сейчас (SpaceWeb, PHP-only):** session SWR + slim + warm + prefetch — без VPS.
+
+Позже (когда будет VPS):
+
+1. Go `search-cache-reader` (L1 read без PHP bootstrap)
 2. Async search jobs (TTFB &lt;200 ms на cold)
-3. Redis вместо файлового кэша при нескольких нодах
+3. Redis при нескольких нодах

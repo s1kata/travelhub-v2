@@ -64,17 +64,6 @@
     return 0;
   }
 
-  function hotelRating(h) {
-    var r = parseFloat(String(h.rating || h.hotelRating || ''));
-    return isNaN(r) ? 0 : r;
-  }
-
-  function tophotelsRating(h) {
-    if (!h || !h.tophotels) return 0;
-    var r = parseFloat(String(h.tophotels.rating || ''));
-    return isNaN(r) ? 0 : r;
-  }
-
   function filterHotels(list, state, helpers) {
     if (!Array.isArray(list)) return [];
     state = state || {};
@@ -128,44 +117,25 @@
       }
     }
 
-    if (state.thOnly) {
-      out = out.filter(function (h) {
-        return tophotelsRating(h) > 0;
-      });
-    }
-
-    var thMin = parseFloat(String(state.thMinRating || ''));
-    if (!isNaN(thMin) && thMin > 0) {
-      out = out.filter(function (h) {
-        var r = tophotelsRating(h);
-        // Threshold implies “with guest reviews”: hide unmatched
-        return r >= thMin;
-      });
-    }
-
     return out;
   }
 
   function collectMeta(hotels) {
     var regions = {};
     var meals = {};
-    var prices = [];
-    var hasTophotels = false;
     (hotels || []).forEach(function (h) {
       var rk = regionKey(h);
       var rl = regionLabel(h);
       if (rk && rl) regions[rk] = rl;
       var mc = normMeal(h);
       if (mc) meals[mc] = true;
-      if (tophotelsRating(h) > 0) hasTophotels = true;
     });
     return {
       regions: Object.keys(regions).map(function (k) { return { id: k, name: regions[k] }; }).sort(function (a, b) {
         return a.name.localeCompare(b.name, 'ru');
       }),
       meals: Object.keys(meals).sort(),
-      hasBeachData: (hotels || []).some(function (h) { return beachLine(h) > 0; }),
-      hasTophotels: hasTophotels
+      hasBeachData: (hotels || []).some(function (h) { return beachLine(h) > 0; })
     };
   }
 
@@ -176,9 +146,7 @@
       regions: new Set(),
       priceMin: '',
       priceMax: '',
-      beachLine: '',
-      thMinRating: '',
-      thOnly: false
+      beachLine: ''
     };
   }
 
@@ -269,32 +237,6 @@
       });
     });
 
-    root.querySelectorAll('[data-pf-th-rating]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var val = btn.getAttribute('data-pf-th-rating') || '';
-        var wasActive = btn.classList.contains('is-active');
-        var next = wasActive ? '' : val;
-        state.thMinRating = next;
-        root.querySelectorAll('[data-pf-th-rating]').forEach(function (b) {
-          var on = next !== '' && b.getAttribute('data-pf-th-rating') === next;
-          b.classList.toggle('is-active', on);
-          b.setAttribute('aria-pressed', on ? 'true' : 'false');
-        });
-        emit();
-      });
-    });
-
-    root.querySelectorAll('[data-pf-th-only]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        state.thOnly = !state.thOnly;
-        root.querySelectorAll('[data-pf-th-only]').forEach(function (b) {
-          b.classList.toggle('is-active', state.thOnly);
-          b.setAttribute('aria-pressed', state.thOnly ? 'true' : 'false');
-        });
-        emit();
-      });
-    });
-
     var minInp = root.querySelector('[data-pf-price-min]');
     var maxInp = root.querySelector('[data-pf-price-max]');
     function onPriceInput() {
@@ -322,11 +264,10 @@
         state.stars.clear();
         state.meals.clear();
         state.regions.clear();
-        state.priceMin = state.priceMax = state.beachLine = state.thMinRating = '';
-        state.thOnly = false;
+        state.priceMin = state.priceMax = state.beachLine = '';
         if (minInp) minInp.value = '';
         if (maxInp) maxInp.value = '';
-        root.querySelectorAll('.tv-pf-chip.is-active, [data-pf-beach].is-active, [data-pf-th-rating].is-active, [data-pf-th-only].is-active').forEach(function (el) {
+        root.querySelectorAll('.tv-pf-chip.is-active, [data-pf-beach].is-active').forEach(function (el) {
           el.classList.remove('is-active');
           el.setAttribute('aria-pressed', 'false');
         });
@@ -342,13 +283,6 @@
         renderRegions(meta);
         var beachGrp = root.querySelector('[data-pf-beach-group]');
         if (beachGrp) beachGrp.style.display = meta.hasBeachData ? '' : 'none';
-        root.querySelectorAll('[data-pf-th-rating-group]').forEach(function (thGrp) {
-          if (thGrp.hasAttribute('data-pf-th-mobile-group')) {
-            thGrp.classList.toggle('is-visible', !!meta.hasTophotels);
-          } else {
-            thGrp.style.display = meta.hasTophotels ? '' : 'none';
-          }
-        });
         var mealBox = root.querySelector('[data-pf-meals]');
         if (mealBox && meta.meals.length) {
           var known = MEAL_CODES.filter(function (c) { return meta.meals.indexOf(c) >= 0; });
@@ -375,7 +309,6 @@
     mount: mount,
     starCategory: starCategory,
     normMeal: normMeal,
-    tophotelsRating: tophotelsRating,
     MEAL_CODES: MEAL_CODES
   };
 })(typeof window !== 'undefined' ? window : this);

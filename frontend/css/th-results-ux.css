@@ -1,6 +1,6 @@
 /**
- * Unified results UX — Tourvisor price + TopHotels trust
- * Respects site breakpoints: 768 (sheets), 1024 (sidebar).
+ * Mobile results dock — filters sheet + Call/MAX/Заявка
+ * Breakpoints: 768 (sheets), 1024 (sidebar).
  * Brand: #1A1A40 / #5DA9A4 / #FF6B6B
  */
 
@@ -48,79 +48,6 @@
     box-shadow: 0 4px 14px rgba(26, 26, 64, 0.25);
   }
 
-  .th-results-sticky-lead--dock .th-rsd__chips {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
-    flex: 1 1 auto;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding: 2px 0;
-  }
-
-  .th-results-sticky-lead--dock .th-rsd__chips::-webkit-scrollbar {
-    display: none;
-  }
-
-  .th-results-sticky-lead--dock .th-rsd__seg {
-    display: inline-flex;
-    flex-shrink: 0;
-    padding: 2px;
-    border-radius: 999px;
-    background: #f3f4f6;
-    border: 1px solid rgba(26, 26, 64, 0.08);
-  }
-
-  .th-results-sticky-lead--dock .th-rsd__seg .tv-guest-sort__btn {
-    min-height: 36px;
-    padding: 6px 10px;
-    border: 0;
-    background: transparent;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #1A1A40;
-    white-space: nowrap;
-  }
-
-  .th-results-sticky-lead--dock .th-rsd__seg .tv-guest-sort__btn.is-active {
-    background: #1A1A40;
-    color: #fff;
-  }
-
-  .th-results-sticky-lead--dock .th-rsd__guest {
-    display: none;
-    flex-shrink: 0;
-    gap: 5px;
-    align-items: center;
-  }
-
-  .th-results-sticky-lead--dock .th-rsd__guest.is-visible {
-    display: inline-flex;
-  }
-
-  .th-results-sticky-lead--dock .th-rsd__guest .tv-pf-chip {
-    flex-shrink: 0;
-    min-height: 36px;
-    padding: 6px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(93, 169, 164, 0.45);
-    background: #fff;
-    color: #1A1A40;
-    font-size: 11px;
-    font-weight: 700;
-    white-space: nowrap;
-  }
-
-  .th-results-sticky-lead--dock .th-rsd__guest .tv-pf-chip.is-active,
-  .th-results-sticky-lead--dock .th-rsd__guest .tv-pf-chip[aria-pressed="true"] {
-    background: #5DA9A4;
-    border-color: #5DA9A4;
-    color: #fff;
-  }
-
   .th-results-sticky-lead--dock .th-rsd__contact {
     display: flex;
     flex-shrink: 0;
@@ -151,16 +78,11 @@
     line-height: 1.1;
   }
 
-  /* Mid-page control duplicates sticky dock — hide on phone/tablet */
-  #tv-results-control {
-    display: none !important;
-  }
-
   body.th-rsd-sheet-open .th-results-sticky-lead {
     display: none !important;
   }
 
-  /* Narrow phones: keep MAX + Заявка, drop call to free chips space */
+  /* Narrow phones: keep MAX + Заявка, drop call to free space */
   @media (max-width: 379.98px) {
     .th-results-sticky-lead--dock .th-rsd__icon-btn--call,
     .th-results-sticky-lead--dock .th-results-sticky-lead__action--call {
@@ -257,111 +179,6 @@
   box-shadow: 0 8px 20px rgba(26, 26, 64, 0.25);
 }
 
-/* ── Sticky control bar (desktop / when dock hidden) ── */
-.tv-results-control {
-  position: sticky;
-  top: calc(var(--th-safe-top, 0px) + 56px);
-  z-index: 40;
-  margin: 0 0 12px;
-  padding: 10px 0 8px;
-  background: linear-gradient(180deg, #f9fafb 70%, rgba(249, 250, 251, 0));
-}
-
-.tv-results-control__scroll {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding: 2px 2px 6px;
-  mask-image: linear-gradient(90deg, #000 92%, transparent);
-}
-
-.tv-results-control__scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.tv-results-control__seg {
-  display: inline-flex;
-  flex-shrink: 0;
-  padding: 3px;
-  border-radius: 999px;
-  background: #fff;
-  border: 1px solid rgba(26, 26, 64, 0.1);
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
-}
-
-.tv-results-control__seg .tv-guest-sort__btn {
-  margin: 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  border-radius: 999px;
-  padding: 8px 12px;
-  min-height: 36px;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.tv-results-control__seg .tv-guest-sort__btn.is-active {
-  background: linear-gradient(135deg, #1A1A40, #5DA9A4);
-  color: #fff;
-}
-
-.tv-results-control__guest {
-  display: none;
-  flex-shrink: 0;
-  gap: 6px;
-  align-items: center;
-}
-
-.tv-results-control__guest.is-visible {
-  display: inline-flex;
-}
-
-.tv-results-control__guest .tv-pf-chip {
-  flex-shrink: 0;
-  white-space: nowrap;
-  min-height: 36px;
-  padding: 7px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(93, 169, 164, 0.4);
-  background: #fff;
-  color: #1A1A40;
-  font-size: 12px;
-  font-weight: 650;
-}
-
-.tv-results-control__guest .tv-pf-chip.is-active,
-.tv-results-control__guest .tv-pf-chip[aria-pressed="true"] {
-  background: #5DA9A4;
-  border-color: #5DA9A4;
-  color: #fff;
-}
-
-.tv-results-control__divider {
-  width: 1px;
-  height: 28px;
-  background: rgba(26, 26, 64, 0.12);
-  flex-shrink: 0;
-  align-self: center;
-}
-
-/* Desktop: sidebar has guest filters — keep sort seg, hide duplicate guest chips */
-@media (min-width: 1024px) {
-  .tv-results-control {
-    top: 72px;
-    padding-top: 0;
-    background: transparent;
-  }
-  .tv-results-control__guest {
-    display: none !important;
-  }
-  .tv-results-control__divider {
-    display: none;
-  }
-}
-
 /* Toolbar cleanup */
 .tv-results-toolbar {
   display: flex;
@@ -375,10 +192,6 @@
 .tv-results-toolbar__title {
   font-size: 1.15rem !important;
   margin: 0 !important;
-}
-
-.tv-sort-rail .tv-guest-sort {
-  display: none; /* moved into sticky control */
 }
 
 .tv-sort-select {
@@ -395,156 +208,4 @@
   .tv-results-toolbar__title {
     font-size: 1.05rem !important;
   }
-}
-
-/* ── Card: Booking-style decision funnel ── */
-.th-tour-card__media {
-  position: relative;
-}
-
-.th-tour-card--guest-score {
-  position: relative;
-}
-
-.th-tour-card__score-badge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 5;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
-  padding: 6px 8px;
-  border-radius: 12px;
-  background: linear-gradient(145deg, #1A1A40 0%, #2a4a5e 55%, #5DA9A4 100%);
-  color: #fff;
-  box-shadow: 0 6px 16px rgba(26, 26, 64, 0.35);
-  pointer-events: none;
-}
-
-.th-tour-card__score-badge-num {
-  font-size: 1rem;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-
-.th-tour-card__score-badge-scale {
-  font-size: 9px;
-  font-weight: 600;
-  opacity: 0.85;
-  margin-top: 1px;
-}
-
-.th-tour-card__guest-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px 8px;
-  margin: 2px 0 6px;
-}
-
-.th-tour-card__guest-word {
-  font-size: 13px;
-  font-weight: 750;
-  color: #1A1A40;
-}
-
-.th-tour-card__guest-reviews {
-  font-size: 12px;
-  font-weight: 500;
-  color: #64748b;
-}
-
-.th-tour-card__th-aspects {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin: 0 0 8px;
-}
-
-.th-tour-card__th-aspect {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: rgba(93, 169, 164, 0.12);
-  border: 1px solid rgba(93, 169, 164, 0.22);
-  font-size: 11px;
-  font-weight: 550;
-  color: #475569;
-}
-
-.th-tour-card__th-aspect-score {
-  color: #1A1A40;
-  font-weight: 750;
-}
-
-/* Compact guest-score block fallback (if no photo badge) */
-.th-tour-card__guest-score {
-  display: none; /* replaced by score-badge + guest-line */
-}
-
-.th-tour-card--guest-score .th-tour-card__body {
-  padding-top: 10px;
-}
-
-.th-tour-card--guest-score .th-tour-card__price {
-  color: #FF6B6B;
-}
-
-.th-tour-card--guest-score .th-tour-card__btn {
-  background: linear-gradient(135deg, #1A1A40, #5DA9A4) !important;
-  border: 0 !important;
-}
-
-@media (max-width: 767.98px) {
-  .th-tour-card__score-badge {
-    min-width: 48px;
-    min-height: 48px;
-    top: 12px;
-    right: 12px;
-  }
-  .th-tour-card__score-badge-num {
-    font-size: 1.1rem;
-  }
-  .th-tour-card__guest-word {
-    font-size: 14px;
-  }
-  .tv-results-control {
-    top: calc(var(--th-safe-top, 0px) + 52px);
-    margin-left: -4px;
-    margin-right: -4px;
-    padding-left: 4px;
-    padding-right: 4px;
-  }
-}
-
-/* Sidebar guest group polish */
-.tv-sidebar-filter-group--guest {
-  padding: 12px;
-  margin: 0 -4px 8px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(26, 26, 64, 0.04), rgba(93, 169, 164, 0.1));
-  border: 1px solid rgba(93, 169, 164, 0.2);
-}
-
-.tv-results-empty-guest {
-  display: none;
-  margin: 8px 0 16px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: #fff;
-  border: 1px dashed rgba(93, 169, 164, 0.45);
-  color: #475569;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.tv-results-empty-guest.is-visible {
-  display: block;
 }

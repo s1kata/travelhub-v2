@@ -410,34 +410,6 @@ body.th-search-ui-v2 .th-tour-card:hover {
   box-shadow: 0 14px 32px rgba(20, 33, 43, 0.1);
 }
 
-body.th-search-ui-v2 .th-tour-card__th-rating {
-  background: var(--thsv2-teal) !important;
-  border-radius: 8px !important;
-  padding: 2px 8px !important;
-  font-size: 12px !important;
-}
-
-body.th-search-ui-v2 .th-tour-card__th-aspects {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.55rem;
-  margin: 0.15rem 0 0.35rem;
-}
-
-body.th-search-ui-v2 .th-tour-card__th-aspect {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.25rem;
-  font-size: 0.7rem;
-  color: var(--thsv2-muted);
-  font-weight: 550;
-}
-
-body.th-search-ui-v2 .th-tour-card__th-aspect-score {
-  color: var(--thsv2-teal-deep);
-  font-weight: 750;
-}
-
 body.th-search-ui-v2 .th-tour-card__price {
   color: var(--thsv2-danger) !important;
 }

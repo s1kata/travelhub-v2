@@ -217,6 +217,122 @@ function tv_enrich_hotel_pictures(array $hotels): array
     return $hotels;
 }
 
+/**
+ * Урезанная выдача для списка карточек (SpaceWeb / PHP-only):
+ * без description и лишних туров — меньше JSON и быстрее parse/paint.
+ *
+ * @param array<int, mixed> $hotels
+ * @return array<int, mixed>
+ */
+function tv_slim_hotels_for_list(array $hotels): array
+{
+    $out = [];
+    foreach ($hotels as $hotel) {
+        if (!is_array($hotel)) {
+            continue;
+        }
+        $pics = [];
+        $seen = [];
+        $addPic = static function ($u) use (&$pics, &$seen): void {
+            $u = trim((string) $u);
+            if ($u === '' || isset($seen[$u]) || count($pics) >= 6) {
+                return;
+            }
+            $seen[$u] = true;
+            $pics[] = $u;
+        };
+        $addPic($hotel['picturelink'] ?? $hotel['pictureLink'] ?? '');
+        if (!empty($hotel['pictures']) && is_array($hotel['pictures'])) {
+            foreach ($hotel['pictures'] as $p) {
+                if (is_string($p)) {
+                    $addPic($p);
+                } elseif (is_array($p)) {
+                    foreach (['src', 'url', 'link', 'picturelink', 'pictureLink'] as $k) {
+                        if (!empty($p[$k])) {
+                            $addPic($p[$k]);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        $hid = (int) ($hotel['id'] ?? $hotel['hotelId'] ?? 0);
+        if ($pics === [] && $hid > 0) {
+            $addPic('hotel_pics/main400/' . $hid . '.jpg');
+        }
+
+        $tourSlim = null;
+        if (!empty($hotel['tours']) && is_array($hotel['tours'])) {
+            $t0 = $hotel['tours'][0] ?? null;
+            if (is_array($t0)) {
+                $meal = $t0['meal'] ?? null;
+                if (is_array($meal)) {
+                    $meal = array_filter([
+                        'name' => $meal['name'] ?? null,
+                        'russianName' => $meal['russianName'] ?? null,
+                        'code' => $meal['code'] ?? null,
+                    ], static fn($v) => $v !== null && $v !== '');
+                }
+                $tourSlim = array_filter([
+                    'id' => $t0['id'] ?? $t0['tourId'] ?? null,
+                    'price' => $t0['price'] ?? null,
+                    'totalPrice' => $t0['totalPrice'] ?? null,
+                    'priceRub' => $t0['priceRub'] ?? null,
+                    'cost' => $t0['cost'] ?? null,
+                    'nights' => $t0['nights'] ?? null,
+                    'meal' => $meal ?: null,
+                    'roomType' => $t0['roomType'] ?? null,
+                    'flydate' => $t0['flydate'] ?? null,
+                    'datefrom' => $t0['datefrom'] ?? $t0['dateFrom'] ?? null,
+                    'dateto' => $t0['dateto'] ?? $t0['dateTo'] ?? null,
+                    'adults' => $t0['adults'] ?? null,
+                    'childs' => $t0['childs'] ?? null,
+                ], static fn($v) => $v !== null && $v !== '');
+            }
+        }
+
+        $country = $hotel['country'] ?? null;
+        if (is_array($country)) {
+            $country = array_filter([
+                'id' => $country['id'] ?? null,
+                'name' => $country['name'] ?? null,
+            ], static fn($v) => $v !== null && $v !== '');
+        }
+        $region = $hotel['region'] ?? null;
+        if (is_array($region)) {
+            $region = array_filter([
+                'id' => $region['id'] ?? null,
+                'name' => $region['name'] ?? null,
+            ], static fn($v) => $v !== null && $v !== '');
+        }
+
+        $row = [
+            'id' => $hotel['id'] ?? $hotel['hotelId'] ?? null,
+            'name' => $hotel['name'] ?? '',
+            'category' => $hotel['category'] ?? null,
+            'rating' => $hotel['rating'] ?? null,
+            'country' => $country ?: null,
+            'region' => $region ?: null,
+            'picturelink' => $pics[0] ?? '',
+            'pictures' => $pics,
+            'hotelDescriptionLink' => $hotel['hotelDescriptionLink'] ?? $hotel['hoteldescriptionlink'] ?? null,
+            'link' => $hotel['link'] ?? null,
+            'tours' => $tourSlim ? [$tourSlim] : [],
+        ];
+        $out[] = array_filter($row, static function ($v) {
+            if ($v === null || $v === '') {
+                return false;
+            }
+            if (is_array($v) && $v === []) {
+                return false;
+            }
+            return true;
+        });
+    }
+
+    return $out;
+}
+
 function tvCacheDir(): string {
     if (!empty($GLOBALS['tv_cache_dir_override'])) {
         $dir = $GLOBALS['tv_cache_dir_override'];
@@ -2196,12 +2312,31 @@ function tourvisor_proxy_emit(array $r): void
     header('X-Tourvisor-Fallback: ' . ($GLOBALS['tv_use_fallbacks'] ? 'on' : 'off'));
     if (!empty($r['success']) && is_array($r['data'] ?? null)) {
         $first = $r['data'][0] ?? null;
-        if (is_array($first) && (isset($first['id']) || isset($first['tours']) || isset($first['name']))) {
-            $r['data'] = tv_enrich_hotel_pictures($r['data']);
-            // TopHotels enrichment (local map). No-op until TOPHOTELS_ENABLED / fixture / enrichment.json.
-            require_once __DIR__ . '/../tophotels/bootstrap.php';
-            if (function_exists('th_tophotels_enrich_hotels')) {
-                $r['data'] = th_tophotels_enrich_hotels($r['data']);
+        $isHotelList = is_array($first) && (isset($first['id']) || isset($first['tours']) || isset($first['name']));
+        if ($isHotelList) {
+            $wantFull = isset($_GET['full']) && $_GET['full'] === '1';
+            $wantSlim = !$wantFull && (
+                (isset($_GET['slim']) && $_GET['slim'] === '1')
+                || (isset($_GET['cacheOnly']) && $_GET['cacheOnly'] === '1')
+                || in_array($type, ['search-cached', 'search'], true)
+            );
+            if ($wantSlim && function_exists('tv_slim_hotels_for_list')) {
+                $r['data'] = tv_slim_hotels_for_list($r['data']);
+                $r['slim'] = true;
+                header('X-Tourvisor-Slim: 1');
+            } else {
+                $r['data'] = tv_enrich_hotel_pictures($r['data']);
+                header('X-Tourvisor-Slim: 0');
+            }
+            $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 0;
+            $offset = isset($_GET['offset']) ? max(0, (int) $_GET['offset']) : 0;
+            if ($limit > 0 && is_array($r['data'])) {
+                $r['totalCount'] = count($r['data']);
+                $r['data'] = array_slice($r['data'], $offset, $limit);
+                $r['offset'] = $offset;
+                $r['limit'] = $limit;
+                header('X-Tourvisor-Items: ' . (string) count($r['data']));
+                header('X-Tourvisor-Total: ' . (string) $r['totalCount']);
             }
         }
     }

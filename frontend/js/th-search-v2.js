@@ -92,7 +92,7 @@
     if (qs('.th-search-v2__trust', root)) return;
     var p = document.createElement('p');
     p.className = 'th-search-v2__trust';
-    p.innerHTML = 'Цены — <strong>Tourvisor</strong> · оценки гостей — <strong>TopHotels</strong> (если есть матч)';
+    p.innerHTML = 'Цены и поиск — <strong>Tourvisor</strong>';
     root.appendChild(p);
   }
 
@@ -129,15 +129,6 @@
       lab.textContent = 'Сортировка';
       wrap.insertBefore(lab, sel);
     }
-    function addOpt(value, text) {
-      if (sel.querySelector('option[value="' + value + '"]')) return;
-      var o = document.createElement('option');
-      o.value = value;
-      o.textContent = text;
-      sel.appendChild(o);
-    }
-    addOpt('th-rating', 'Рейтинг гостей');
-    addOpt('best-value', 'Цена + рейтинг');
   }
 
   function boot() {

@@ -78,6 +78,43 @@ body.has-th-lead-bar:not(.th-promo-page) {
     background: rgba(0, 0, 0, 0.08);
 }
 
+/* ПК: компактная плашка по центру (margin:auto — без translateX) */
+@media (min-width: 768px) {
+    :root {
+        --th-lead-bar-h: 52px;
+    }
+
+    .th-site-lead-bar {
+        left: 0;
+        right: 0;
+        width: min(420px, calc(100% - 32px));
+        max-width: 420px;
+        margin-left: auto;
+        margin-right: auto;
+        gap: 0;
+        padding: 5px;
+        border-radius: 14px 14px 0 0;
+        transform: none;
+        box-shadow: 0 -6px 22px rgba(255, 107, 107, 0.32);
+    }
+
+    .th-site-lead-bar__btn {
+        min-height: 40px;
+        font-size: 0.8rem;
+        border-radius: 0;
+        border-right: 1px solid rgba(255, 255, 255, 0.4);
+    }
+
+    .th-site-lead-bar__btn:first-child {
+        border-radius: 10px 0 0 10px;
+    }
+
+    .th-site-lead-bar__btn:last-child {
+        border-right: none;
+        border-radius: 0 10px 10px 0;
+    }
+}
+
 /* Hide when another sticky funnel CTA is visible (tour results / detail) */
 body.th-sticky-cta-active .th-site-lead-bar,
 body.has-results-sticky .th-site-lead-bar,
