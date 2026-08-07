@@ -1,10 +1,7 @@
 /**
  * Календарь выгодных дат — heatmap + туры на день (promo cache).
-<<<<<<< HEAD
  * Две метки: выгодная (deal) и пониженная (reduced).
  * Навигация по «лестнице» месяцев (текущий + N вперёд).
-=======
->>>>>>> origin/master
  */
 (function () {
   'use strict';
@@ -15,7 +12,6 @@
 
   var state = {
     departureId: cfg.departureId || 7,
-<<<<<<< HEAD
     countryId: 0,
     nightsFrom: 0,
     nightsTo: 0,
@@ -23,14 +19,6 @@
     viewMonth: 0, // 0-11
     monthsAhead: typeof cfg.monthsAhead === 'number' ? cfg.monthsAhead : 3,
     viewMaxYm: cfg.viewMaxYm || '',
-=======
-    countryId: cfg.countryId || 4,
-    countryName: cfg.countryName || 'Турция',
-    nightsFrom: 6,
-    nightsTo: 9,
-    viewYear: 0,
-    viewMonth: 0, // 0-11
->>>>>>> origin/master
     priceMap: {},
     selectedDate: '',
     loadingMap: false,
@@ -55,7 +43,6 @@
     return 'от ' + n.toLocaleString('ru-RU') + ' ₽';
   }
 
-<<<<<<< HEAD
   function syncSummary() {
     var el = $('th-dc-summary');
     if (!el) return;
@@ -98,8 +85,6 @@
     return all[0] || '';
   }
 
-=======
->>>>>>> origin/master
   function formatPriceFull(n) {
     n = Math.round(Number(n) || 0);
     if (n <= 0) return '';
@@ -131,11 +116,7 @@
 
   function tourDateYmd(tour) {
     var raw = '';
-<<<<<<< HEAD
     ['date', 'startDate', 'departureDate', 'flydate', 'flyDate', 'datefrom', 'dateFrom', 'checkIn', 'checkin'].forEach(function (k) {
-=======
-    ['flydate', 'datefrom', 'dateFrom', 'checkIn', 'checkin', 'startDate', 'date'].forEach(function (k) {
->>>>>>> origin/master
       if (!raw && tour && tour[k]) raw = String(tour[k]).trim();
     });
     if (!raw) return '';
@@ -162,19 +143,12 @@
     var nights = t.nights || '';
     var dateTo = addDaysYmd(dateFrom, nights);
     var region = (hotel.region && hotel.region.name) ? hotel.region.name : '';
-<<<<<<< HEAD
     var countryName = hotel._countryName || (hotel.country && hotel.country.name) || '';
-=======
->>>>>>> origin/master
     var desc = String(hotel.description || hotel.hotelDescription || hotel.descr || '').trim().slice(0, 4000);
     var params = {
       hotel_id: hotel.id || '',
       hotel_name: hotel.name || '',
-<<<<<<< HEAD
       country: countryName,
-=======
-      country: state.countryName || '',
->>>>>>> origin/master
       departure_city: depCityName(),
       departure_id: state.departureId || '',
       nights: nights,
@@ -205,7 +179,6 @@
     state.viewMonth = now.getMonth();
   }
 
-<<<<<<< HEAD
   function viewYm() {
     return state.viewYear + '-' + pad2(state.viewMonth + 1);
   }
@@ -217,8 +190,6 @@
     return d.getFullYear() + '-' + pad2(d.getMonth() + 1);
   }
 
-=======
->>>>>>> origin/master
   function canGoPrev() {
     var now = new Date();
     return state.viewYear > now.getFullYear() ||
@@ -226,14 +197,7 @@
   }
 
   function canGoNext() {
-<<<<<<< HEAD
     return viewYm() < ladderMaxYm();
-=======
-    var now = new Date();
-    var max = new Date(now.getFullYear(), now.getMonth() + 2, 1);
-    var cur = new Date(state.viewYear, state.viewMonth, 1);
-    return cur < max;
->>>>>>> origin/master
   }
 
   function renderWeekdays() {
@@ -253,15 +217,12 @@
     if (next) next.disabled = !canGoNext();
   }
 
-<<<<<<< HEAD
   function tierLabel(info) {
     if (info && info.deal) return 'выгодная цена';
     if (info && info.reduced) return 'пониженная цена';
     return '';
   }
 
-=======
->>>>>>> origin/master
   function renderGrid() {
     var grid = $('th-dc-grid');
     if (!grid) return;
@@ -284,15 +245,11 @@
       var info = state.priceMap[key];
       var has = !!(info && info.minPrice > 0) && !past;
       var deal = !!(info && info.deal);
-<<<<<<< HEAD
       var reduced = !deal && !!(info && info.reduced);
-=======
->>>>>>> origin/master
       var cls = 'th-deals-cal__cell';
       if (past) cls += ' th-deals-cal__cell--muted';
       if (has) cls += ' th-deals-cal__cell--has';
       if (deal) cls += ' th-deals-cal__cell--deal';
-<<<<<<< HEAD
       else if (reduced) cls += ' th-deals-cal__cell--reduced';
       if (state.selectedDate === key) cls += ' th-deals-cal__cell--active';
       var priceHtml = has ? '<span class="th-deals-cal__price">' + esc(formatPrice(info.minPrice)) + '</span>' : '';
@@ -313,26 +270,11 @@
         '<span class="th-deals-cal__daynum">' + i + '</span>' +
         priceHtml +
         countryHtml +
-=======
-      if (state.selectedDate === key) cls += ' th-deals-cal__cell--active';
-      var priceHtml = has ? '<span class="th-deals-cal__price">' + esc(formatPrice(info.minPrice)) + '</span>' : '';
-      var badge = deal ? '<span class="th-deals-cal__badge" title="Выгодно"></span>' : '';
-      html.push(
-        '<button type="button" class="' + cls + '" data-date="' + key + '"' +
-        (has ? '' : ' disabled') +
-        ' aria-label="' + key + (has ? ', ' + formatPriceFull(info.minPrice) : '') + '">' +
-        badge +
-        '<span class="th-deals-cal__daynum">' + i + '</span>' +
-        priceHtml +
->>>>>>> origin/master
         '</button>'
       );
     }
     grid.innerHTML = html.join('');
-<<<<<<< HEAD
     tickGrid();
-=======
->>>>>>> origin/master
   }
 
   function setResultsPlaceholder(msg) {
@@ -342,7 +284,6 @@
     if (list) list.innerHTML = '';
     if (empty) {
       empty.classList.remove('hidden');
-<<<<<<< HEAD
       var title = empty.querySelector('.th-deals-cal__empty-title');
       var text = empty.querySelector('.th-deals-cal__empty-text');
       if (title && text) {
@@ -351,9 +292,6 @@
       } else {
         empty.textContent = msg || 'Выберите дату с ценой — покажем туры.';
       }
-=======
-      empty.textContent = msg || 'Выберите дату с ценой — покажем туры.';
->>>>>>> origin/master
     }
     if (sub) sub.textContent = '';
   }
@@ -368,7 +306,6 @@
       if (list) list.innerHTML = '';
       if (empty) {
         empty.classList.remove('hidden');
-<<<<<<< HEAD
         var emptyTitle = empty.querySelector('.th-deals-cal__empty-title');
         var emptyText = empty.querySelector('.th-deals-cal__empty-text');
         if (emptyTitle && emptyText) {
@@ -377,9 +314,6 @@
         } else {
           empty.textContent = 'На эту дату в кэше пока нет туров. Выберите соседний день или откройте акции.';
         }
-=======
-        empty.textContent = 'На эту дату в кэше пока нет туров. Выберите соседний день или откройте акции.';
->>>>>>> origin/master
       }
       if (sub) sub.textContent = '';
       return;
@@ -391,12 +325,8 @@
       var nights = t.nights ? (t.nights + ' н.') : '';
       var meal = (t.meal && (t.meal.name || t.meal.russianName)) || '';
       var stars = h.stars || h.hotelcategory || h.category || '';
-<<<<<<< HEAD
       var country = h._countryName || (h.country && h.country.name) || '';
       var meta = [country, stars ? (stars + '★') : '', nights, meal].filter(Boolean).join(' · ');
-=======
-      var meta = [stars ? (stars + '★') : '', nights, meal].filter(Boolean).join(' · ');
->>>>>>> origin/master
       var price = formatPriceFull(h._dayMinPrice || t.totalPrice || t.price);
       return (
         '<a class="th-deals-cal__card" href="' + esc(tourDetailHref(h)) + '">' +
@@ -411,7 +341,6 @@
     }).join('');
   }
 
-<<<<<<< HEAD
   function applyLadderMeta(j) {
     if (!j || !j.ladder) return;
     if (typeof j.ladder.monthsAhead === 'number') {
@@ -422,13 +351,10 @@
     }
   }
 
-=======
->>>>>>> origin/master
   function loadPriceMap() {
     var panel = $('th-dc-cal-panel');
     state.loadingMap = true;
     if (panel) panel.classList.add('th-deals-cal__loading');
-<<<<<<< HEAD
     syncSummary();
     var url = (cfg.priceMapUrl || '/backend/api/calendar_price_map.php') +
       '?departureId=' + encodeURIComponent(state.departureId) +
@@ -462,24 +388,11 @@
           return loadDay(pick);
         }
         setResultsPlaceholder('Выберите дату с ценой');
-=======
-    var url = (cfg.priceMapUrl || '/backend/api/calendar_price_map.php') +
-      '?departureId=' + encodeURIComponent(state.departureId) +
-      '&countryId=' + encodeURIComponent(state.countryId);
-    return fetch(url, { credentials: 'same-origin' })
-      .then(function (r) { return r.json(); })
-      .then(function (j) {
-        state.priceMap = (j && j.success && j.dates) ? j.dates : {};
-        renderGrid();
->>>>>>> origin/master
       })
       .catch(function () {
         state.priceMap = {};
         renderGrid();
-<<<<<<< HEAD
         setResultsPlaceholder('Не удалось загрузить карту цен');
-=======
->>>>>>> origin/master
       })
       .finally(function () {
         state.loadingMap = false;
@@ -494,17 +407,9 @@
     setResultsPlaceholder('Загружаем туры…');
     var url = (cfg.dayToursUrl || '/backend/api/calendar_day_tours.php') +
       '?departureId=' + encodeURIComponent(state.departureId) +
-<<<<<<< HEAD
       '&countryId=0' +
       '&date=' + encodeURIComponent(date) +
       '&limit=16';
-=======
-      '&countryId=' + encodeURIComponent(state.countryId) +
-      '&date=' + encodeURIComponent(date) +
-      '&nightsFrom=' + encodeURIComponent(state.nightsFrom) +
-      '&nightsTo=' + encodeURIComponent(state.nightsTo) +
-      '&limit=12';
->>>>>>> origin/master
     return fetch(url, { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (j) {
@@ -522,39 +427,16 @@
 
   function syncFiltersFromUi() {
     var dep = $('th-dc-departure');
-<<<<<<< HEAD
     if (dep) state.departureId = parseInt(dep.value, 10) || 7;
-=======
-    var country = $('th-dc-country');
-    var nights = $('th-dc-nights');
-    if (dep) state.departureId = parseInt(dep.value, 10) || 7;
-    if (country) {
-      state.countryId = parseInt(country.value, 10) || 4;
-      var opt = country.options[country.selectedIndex];
-      state.countryName = opt ? (opt.getAttribute('data-name') || opt.textContent || '') : '';
-    }
-    if (nights) {
-      var parts = String(nights.value || '6-9').split('-');
-      state.nightsFrom = parseInt(parts[0], 10) || 6;
-      state.nightsTo = parseInt(parts[1], 10) || 9;
-    }
->>>>>>> origin/master
   }
 
   function refreshAll() {
     syncFiltersFromUi();
-<<<<<<< HEAD
     syncSummary();
     state.selectedDate = '';
     setResultsPlaceholder('Обновляем календарь');
     var title = $('th-dc-results-title');
     if (title) title.textContent = 'Выберите дату';
-=======
-    state.selectedDate = '';
-    setResultsPlaceholder('Выберите дату с ценой — покажем туры.');
-    var title = $('th-dc-results-title');
-    if (title) title.textContent = 'Туры на дату';
->>>>>>> origin/master
     renderMonthHead();
     return loadPriceMap();
   }
@@ -568,15 +450,7 @@
 
   function bindChips() {
     var depChips = $('th-dc-departure-chips');
-<<<<<<< HEAD
     var depSel = $('th-dc-departure');
-=======
-    var countryChips = $('th-dc-country-chips');
-    var nightsChips = $('th-dc-nights-chips');
-    var depSel = $('th-dc-departure');
-    var countrySel = $('th-dc-country');
-    var nightsSel = $('th-dc-nights');
->>>>>>> origin/master
 
     if (depChips && depSel) {
       depChips.addEventListener('click', function (e) {
@@ -587,39 +461,14 @@
         refreshAll();
       });
     }
-<<<<<<< HEAD
-=======
-    if (countryChips && countrySel) {
-      countryChips.addEventListener('click', function (e) {
-        var btn = e.target && e.target.closest ? e.target.closest('[data-country]') : null;
-        if (!btn) return;
-        setChipActive(countryChips, btn);
-        countrySel.value = btn.getAttribute('data-country') || '4';
-        refreshAll();
-      });
-    }
-    if (nightsChips && nightsSel) {
-      nightsChips.addEventListener('click', function (e) {
-        var btn = e.target && e.target.closest ? e.target.closest('[data-nights]') : null;
-        if (!btn) return;
-        setChipActive(nightsChips, btn);
-        nightsSel.value = btn.getAttribute('data-nights') || '6-9';
-        refreshAll();
-      });
-    }
->>>>>>> origin/master
   }
 
   function bind() {
     renderWeekdays();
     initViewMonth();
     renderMonthHead();
-<<<<<<< HEAD
     syncSummary();
     setResultsPlaceholder('Выберите дату с ценой');
-=======
-    setResultsPlaceholder('Выберите дату с ценой — покажем туры.');
->>>>>>> origin/master
 
     var prev = $('th-dc-prev');
     var next = $('th-dc-next');

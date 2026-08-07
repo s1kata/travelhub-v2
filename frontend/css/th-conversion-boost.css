@@ -163,7 +163,6 @@ body.th-home-funnel-top.th-wizard-lead-visible .th-site-lead-bar__btn--lead {
     top: 8px !important;
     right: 8px !important;
     bottom: auto !important;
-<<<<<<< HEAD
 }
 @media (max-width: 479px) {
     .promo-cptile .promo-country-callback,
@@ -191,8 +190,6 @@ body.th-home-funnel-top.th-wizard-lead-visible .th-site-lead-bar__btn--lead {
         color: #1A1A40;
         line-height: 1;
     }
-=======
->>>>>>> origin/master
 }
 
 .th-lead-capture__proof {

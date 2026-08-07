@@ -232,11 +232,7 @@ $th_promo_page_config = [
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <?php include __DIR__ . '/../../backend/components/design_system_head.php'; ?>
-<<<<<<< HEAD
     <link rel="stylesheet" href="/frontend/css/pages/promotions.css?v=6">
-=======
-    <link rel="stylesheet" href="/frontend/css/pages/promotions.css?v=4">
->>>>>>> origin/master
     <script>window.__TH_YM_ID=<?php echo json_encode((string)$th_ym_id, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script></head>
 <body class="th-promo-page pb-24 md:pb-28">
     <?php include __DIR__ . '/../../backend/components/header.php'; ?>

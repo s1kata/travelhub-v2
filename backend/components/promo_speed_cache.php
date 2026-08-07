@@ -85,18 +85,11 @@ function th_promo_speed_night_windows(int $countryId = 0): array
 function th_promo_speed_date_plus_to(int $countryId): int
 {
     $countryId = th_promo_effective_rules_country_id($countryId);
-    // Базовое окно витрины + «лестница» календаря (текущий месяц + N вперёд).
-    $base = in_array($countryId, [1, 2, 4, 8, 9, 12, 13, 16, 46, 47], true) ? 21 : 7;
-    $ladderDays = $base;
-    $ladderFile = __DIR__ . '/deals_calendar.php';
-    if (is_file($ladderFile)) {
-        require_once $ladderFile;
-        if (function_exists('th_deals_calendar_ladder')) {
-            $ladderDays = (int) (th_deals_calendar_ladder()['daysAhead'] ?? $base);
-        }
+    // Короткое окно витрины акций (не путать с лестницей календаря — см. deals_calendar.php).
+    if (in_array($countryId, [1, 2, 4, 8, 9, 12, 13, 16, 46, 47], true)) {
+        return 21;
     }
-
-    return max($base, $ladderDays);
+    return 7;
 }
 
 /** @return int[] countryId с fallback на обычные ближайшие туры */
@@ -1127,7 +1120,9 @@ function th_promo_speed_cache_get_best(
 }
 
 /**
- * Те же отели, что promo-search при чтении promo_cache_*: фильтр страны, ночи, star-boost TR/EG, fallback Сочи/Мальдивы.
+ * Чтение promo_cache_* для ответа клиенту: только фильтры файла, без live Tourvisor.
+ * Live-догрузка (star-boost / nearest fallback) — при warm и при cache miss (promo-search live).
+ * Иначе каждый клик по Мальдивам/Сочи/Вьетнаму ждёт 10–60с nested search-cached.
  *
  * @param array{results?: array<int, array<string, mixed>>, dateFrom?: string, dateTo?: string} $cachePayload
  * @param callable(array<string, string>): array $dispatch
@@ -1142,40 +1137,15 @@ function th_promo_speed_hotels_from_cache_payload(
     int $adults = 2,
     ?string $childs = null
 ): array {
-    $hotelsFromFile = th_promo_filter_hotels_min_nights(
+    unset($promoDates, $dispatch, $adults, $childs, $departureId);
+
+    return th_promo_filter_hotels_min_nights(
         th_promo_filter_hotels_for_promo_country(
             is_array($cachePayload['results'] ?? null) ? $cachePayload['results'] : [],
             $countryId
         ),
         $countryId
     );
-    if (in_array($countryId, th_promo_speed_nearest_fallback_country_ids(), true)) {
-        $hotelsFromFile = th_promo_speed_finalize_merged(
-            $hotelsFromFile,
-            $countryId,
-            $departureId,
-            $promoDates,
-            $adults,
-            $childs,
-            $dispatch
-        );
-        $hotelsFromFile = th_promo_filter_hotels_min_nights($hotelsFromFile, $countryId);
-    } elseif (th_promo_speed_tr_eg_needs_star_boost($hotelsFromFile, $countryId)) {
-        $boostBase = th_promo_filter_hotels_for_promo_country($hotelsFromFile, $countryId);
-        $boostBase = th_departure_filter_hotels_for_departure($boostBase, $departureId);
-        $boosted = th_promo_speed_apply_tr_eg_star_boosts(
-            $boostBase,
-            $countryId,
-            $departureId,
-            $promoDates,
-            $adults,
-            $childs,
-            $dispatch
-        );
-        $hotelsFromFile = th_promo_filter_hotels_min_nights($boosted, $countryId);
-    }
-
-    return $hotelsFromFile;
 }
 
 /** @param array<int, array<string, mixed>> $hotels */
