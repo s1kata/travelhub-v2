@@ -568,7 +568,7 @@ $th_csrf_token = security_csrf_token();
             <div class="header__more-menu" id="site-header-more-menu" role="menu" aria-label="Дополнительные разделы">
                 <a href="/frontend/window/about.php">О нас</a>
                 <a href="/frontend/window/services.php">Услуги</a>
-                <!-- <a href="/frontend/window/tour-calendar.php">Календарь туров</a> -->
+                <a href="/frontend/window/tour-calendar.php">Календарь выгодных дат</a>
                 <!-- <a href="/frontend/window/video-tutorials.php">Видео об отелях</a> -->
                 <a href="/frontend/window/contacts.php">Контакты</a>
                 <a href="/frontend/window/turkey-vip-hotels.php">VIP отели Турции</a>
@@ -625,7 +625,7 @@ $th_csrf_token = security_csrf_token();
             <span class="site-header-mobile-muted">Ещё</span>
             <a href="/frontend/window/about.php" class="<?php echo $current_page === 'about' ? 'is-active' : ''; ?>">О нас</a>
             <a href="/frontend/window/services.php" class="<?php echo $current_page === 'services' ? 'is-active' : ''; ?>">Услуги</a>
-            <!-- <a href="/frontend/window/tour-calendar.php" class="<?php echo $current_page === 'tour-calendar' ? 'is-active' : ''; ?>">Календарь туров</a> -->
+            <a href="/frontend/window/tour-calendar.php" class="<?php echo $current_page === 'tour-calendar' ? 'is-active' : ''; ?>">Календарь выгодных дат</a>
             <!-- <a href="/frontend/window/video-tutorials.php" class="<?php echo $current_page === 'video-tutorials' ? 'is-active' : ''; ?>">Видео об отелях</a> -->
             <a href="/frontend/window/contacts.php" class="<?php echo $current_page === 'contacts' ? 'is-active' : ''; ?>">Контакты</a>
             <span class="site-header-mobile-muted">Дополнительно</span>

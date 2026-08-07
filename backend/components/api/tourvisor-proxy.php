@@ -8,7 +8,8 @@
  * Подключено во все «свои» поисковики через единый URL (backend/components/tourvisor_proxy_url.php):
  * — frontend/index.php (главная)
  * — backend/components/country_tour_search.php (все страницы стран: turkey, egypt, thailand, …)
- * Остальные страницы (tour-calendar, hotel-detail, offices, country.php) используют виджет Tourvisor (init.js) → запросы идут напрямую в api.tourvisor.ru.
+ * Остальные страницы (hotel-detail, offices, country.php) используют виджет Tourvisor (init.js) → запросы идут напрямую в api.tourvisor.ru.
+ * tour-calendar.php — свой календарь выгодных дат (promo_cache API), без виджета.
  */
 declare(strict_types=1);
 
@@ -20,6 +21,7 @@ try {
     require_once __DIR__ . '/../../config/config.php';
     require_once __DIR__ . '/../../config/departure_defaults.php';
     require_once __DIR__ . '/../security_helper.php';
+    require_once __DIR__ . '/../secure_logger.php';
 } catch (Throwable $e) {
     error_log('[tourvisor-proxy] bootstrap: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
     if (TH_TOURVISOR_PROXY_EMBED) {
@@ -128,6 +130,12 @@ function tvSearchCacheTtlSeconds(bool $onlyPromo): int {
     return (int)($GLOBALS['tv_search_cache_ttl'] ?? (14 * 24 * 3600));
 }
 
+require_once __DIR__ . '/../tourvisor_search_cover.php';
+$GLOBALS['tv_search_cover_enabled'] = filter_var(
+    getenv('TH_SEARCH_COVER_ENABLED') ?: ($_ENV['TH_SEARCH_COVER_ENABLED'] ?? '1'),
+    FILTER_VALIDATE_BOOLEAN
+);
+
 // Корень проекта (TOURVISOR_CACHE_DIR в .env — полный путь к папке кэша)
 $GLOBALS['tv_project_root'] = function_exists('th_project_root') ? th_project_root() : dirname(__DIR__, 3);
 if (!defined('TV_PROJECT_ROOT')) {
@@ -146,16 +154,7 @@ $GLOBALS['tv_bypass_cache'] = (isset($_GET['live']) && $_GET['live'] === '1') ||
 
 function tvLog(string $msg, array $ctx = []): void {
     try {
-        $line = date('Y-m-d H:i:s') . ' [tourvisor] ' . $msg;
-        if (!empty($ctx)) {
-            $line .= ' ' . json_encode($ctx, JSON_UNESCAPED_UNICODE);
-        }
-        error_log($line);
-        $dir = ($GLOBALS['tv_project_root'] ?? dirname(__DIR__, 3)) . DIRECTORY_SEPARATOR . 'data';
-        if (!is_dir($dir)) {
-            @mkdir($dir, 0755, true);
-        }
-        @file_put_contents($dir . DIRECTORY_SEPARATOR . 'tourvisor_api.log', $line . "\n", FILE_APPEND | LOCK_EX);
+        th_log_write('tourvisor_api', $msg, $ctx, 'info');
     } catch (Throwable $e) {
         error_log('[tourvisor] tvLog failed: ' . $e->getMessage());
     }
@@ -825,6 +824,155 @@ function getTvToken(): string {
     return $jwt;
 }
 
+/**
+ * Лимит исходящих запросов к Tourvisor (~30/min по доке → держим запас).
+ * @see https://api.tourvisor.ru/search/docs
+ */
+function tvOutboundRpmLimit(): int
+{
+    $n = (int) (getenv('TH_TV_OUTBOUND_RPM') ?: ($_ENV['TH_TV_OUTBOUND_RPM'] ?? 25));
+
+    return max(5, min(30, $n));
+}
+
+/**
+ * Сколько continue разрешено (каждый continue = отдельный search в суточном лимите TV).
+ * По умолчанию 0 — не жжём квоту.
+ */
+function tvContinueMax(): int
+{
+    $n = (int) (getenv('TH_TV_CONTINUE_MAX') ?: ($_ENV['TH_TV_CONTINUE_MAX'] ?? 0));
+
+    return max(0, min(2, $n));
+}
+
+/**
+ * Глобальный throttle исходящих вызовов TV (файловый sliding window).
+ */
+function tvOutboundThrottleWait(): void
+{
+    $rpm = tvOutboundRpmLimit();
+    $dir = tvCacheDir();
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+    $file = $dir . DIRECTORY_SEPARATOR . 'tv_outbound_rate.json';
+    $lock = $dir . DIRECTORY_SEPARATOR . 'tv_outbound_rate.lock';
+    $h = @fopen($lock, 'c+');
+    if ($h === false) {
+        usleep(200000);
+        return;
+    }
+    try {
+        if (!@flock($h, LOCK_EX)) {
+            usleep(200000);
+            return;
+        }
+        $now = microtime(true);
+        $window = 60.0;
+        $times = [];
+        if (is_file($file)) {
+            $raw = @file_get_contents($file);
+            $decoded = is_string($raw) ? json_decode($raw, true) : null;
+            if (is_array($decoded) && isset($decoded['t']) && is_array($decoded['t'])) {
+                foreach ($decoded['t'] as $t) {
+                    $tf = (float) $t;
+                    if (($now - $tf) < $window) {
+                        $times[] = $tf;
+                    }
+                }
+            }
+        }
+        if (count($times) >= $rpm) {
+            $oldest = min($times);
+            $wait = ($oldest + $window) - $now;
+            if ($wait > 0) {
+                // Не блокируем PHP дольше 8с за раз — иначе таймауты веб-запроса
+                $sleepUs = (int) min(8.0, $wait) * 1000000;
+                usleep(max(100000, $sleepUs));
+                $now = microtime(true);
+                $times = array_values(array_filter($times, static fn ($t) => ($now - (float) $t) < $window));
+            }
+        }
+        $times[] = microtime(true);
+        @file_put_contents($file, json_encode(['t' => array_slice($times, -$rpm)], JSON_UNESCAPED_UNICODE), LOCK_EX);
+    } finally {
+        @flock($h, LOCK_UN);
+        @fclose($h);
+    }
+}
+
+/**
+ * Polling статуса поиска по доке: пауза 3с, затем каждые 2–3с, soft timeout.
+ *
+ * @return array{ok:bool,error?:string,polls:int}
+ */
+function tvPollSearchUntilReady(int $searchId, int $maxSeconds = 24): array
+{
+    $started = time();
+    $polls = 0;
+    // Дока: результатов обычно нет раньше 3–5с
+    sleep(3);
+    while ((time() - $started) < $maxSeconds) {
+        $polls++;
+        $st = tvRequest("/tours/search/{$searchId}/status", ['operatorStatus' => true]);
+        if (!$st['success']) {
+            $err = (string) ($st['error'] ?? '');
+            if (stripos($err, '429') !== false || stripos($err, 'rate') !== false) {
+                sleep(5);
+                continue;
+            }
+            return ['ok' => false, 'error' => $err !== '' ? $err : 'status failed', 'polls' => $polls];
+        }
+        $status = isset($st['data']['status']) ? strtolower((string) $st['data']['status']) : '';
+        $progress = (int) ($st['data']['progress'] ?? 0);
+        if ($status === 'completed' || $progress >= 100) {
+            return ['ok' => true, 'polls' => $polls];
+        }
+        if ($status === 'error') {
+            return ['ok' => false, 'error' => 'Search error', 'polls' => $polls];
+        }
+        // Дока: опрашивать статус примерно каждые 2с
+        sleep(2);
+    }
+    // Soft timeout — всё равно пробуем забрать накопленные results
+    return ['ok' => true, 'polls' => $polls, 'softTimeout' => true];
+}
+
+/**
+ * Опциональные continue (сжигают суточный search-лимит TV). По умолчанию 0.
+ */
+function tvMaybeContinueSearch(int $searchId, int $hotelsSoFar = 0): int
+{
+    $max = tvContinueMax();
+    if ($max <= 0) {
+        return 0;
+    }
+    // Не продолжаем, если уже достаточно выдачи
+    if ($hotelsSoFar >= 40) {
+        return 0;
+    }
+    $done = 0;
+    for ($i = 0; $i < $max; $i++) {
+        sleep(3);
+        $res = tvRequest("/tours/search/{$searchId}/continue", []);
+        if (!$res['success']) {
+            tvLog('search_continue_skip', [
+                'searchId' => $searchId,
+                'attempt' => $i + 1,
+                'error' => $res['error'] ?? 'fail',
+            ]);
+            break;
+        }
+        $done++;
+        tvLog('search_continue', ['searchId' => $searchId, 'attempt' => $i + 1]);
+        // После continue снова короткий poll
+        tvPollSearchUntilReady($searchId, 12);
+    }
+
+    return $done;
+}
+
 function tvRequest(string $endpoint, array $params = []): array {
     $jwt = getTvToken();
     if (empty($jwt)) {
@@ -839,12 +987,13 @@ function tvRequest(string $endpoint, array $params = []): array {
     // На localhost возможны SSL connection timeout из-за сети/фаервола; увеличенные таймауты снижают число сбоев
     $connectTimeout = $isSearch ? 35 : 25;
     $totalTimeout = $isSearch ? 60 : 45;
-    $retries = $isSearch ? 4 : 2;
+    $retries = $isSearch ? 3 : 2;
     $response = null;
     $errNo = 0;
     $errMsg = '';
     $code = 0;
     while ($retries >= 0) {
+        tvOutboundThrottleWait();
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
@@ -864,10 +1013,22 @@ function tvRequest(string $endpoint, array $params = []): array {
         $errNo = curl_errno($ch);
         $errMsg = curl_error($ch);
         curl_close($ch);
-        if ($errNo === 0) break;
+        if ($errNo === 0 && $code !== 429) {
+            break;
+        }
+        // 429 / сетевые сбои — backoff по доке (не долбить API)
+        if ($code === 429 && $retries > 0) {
+            $backoff = (4 - $retries) * 3; // 3, 6, 9 сек
+            tvLog('retry_429', ['endpoint' => $endpoint, 'backoff_sec' => $backoff, 'attempts_left' => $retries]);
+            sleep(max(3, $backoff));
+            $retries--;
+            continue;
+        }
         $retryable = in_array($errNo, [28 /* CURLE_OPERATION_TIMEDOUT */, 56 /* CURLE_RECV_ERROR */, 35, 52, 7], true)
             || stripos($errMsg, 'reset') !== false || stripos($errMsg, 'timed out') !== false;
-        if ($retries <= 0 || !$retryable) break;
+        if ($retries <= 0 || !$retryable) {
+            break;
+        }
         tvLog('retry', ['endpoint' => $endpoint, 'attempts_left' => $retries, 'error' => $errMsg]);
         usleep($isSearch ? 3000000 : 500000); // 3 сек для поиска, 0.5 сек для остальных
         $retries--;
@@ -884,7 +1045,7 @@ function tvRequest(string $endpoint, array $params = []): array {
             $errMsg = trim($response);
         }
         tvLog('api_error', ['code' => $code, 'endpoint' => $endpoint, 'response' => $data, 'raw' => substr((string)$response, 0, 500)]);
-        return ['success' => false, 'error' => is_string($errMsg) ? $errMsg : json_encode($errMsg), 'data' => $data];
+        return ['success' => false, 'error' => is_string($errMsg) ? $errMsg : json_encode($errMsg), 'data' => $data, 'http' => $code];
     }
     if ($data === null && $response !== '' && $response !== '[]') {
         return ['success' => false, 'error' => 'Invalid JSON response', 'raw' => substr((string)$response, 0, 200)];
@@ -1071,6 +1232,7 @@ function tourvisor_proxy_dispatch_get(array $params = []): array
 
 function tourvisor_proxy_dispatch(): array
 {
+    $GLOBALS['tv_req_started_at'] = microtime(true);
     tv_init_firestore_project_id();
     // Nested dispatch_get() меняет $_GET — bypass нужно пересчитывать на каждый вызов
     // (иначе live=1 во вложенном search-cached не сбрасывает promo_cache родительской страны).
@@ -1092,6 +1254,18 @@ function tourvisor_proxy_dispatch(): array
         header('X-Content-Type-Options: nosniff');
         http_response_code(429);
         echo json_encode($ratePayload, JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    $guardPayload = $_SERVER['REQUEST_METHOD'] === 'POST' ? (string)file_get_contents('php://input') : '';
+    $guard = security_guard_public_api('tourvisor_proxy_api', $guardPayload, 180, 65536);
+    if (empty($guard['ok'])) {
+        if (TH_TOURVISOR_PROXY_EMBED) {
+            return ['success' => false, 'error' => (string)($guard['error'] ?? 'Bad request'), 'data' => []];
+        }
+        header('Content-Type: application/json; charset=utf-8');
+        http_response_code((int)($guard['code'] ?? 400));
+        echo json_encode(['success' => false, 'error' => (string)($guard['error'] ?? 'Bad request')], JSON_UNESCAPED_UNICODE);
+        tvLog('request_blocked', ['reason' => $guard['reason'] ?? 'unknown', 'type' => $type]);
         exit;
     }
 
@@ -1760,10 +1934,41 @@ function tourvisor_proxy_dispatch(): array
             if (is_array($cachedFull) && $cachedFull !== []) {
                 $GLOBALS['tv_cache_hit'] = true;
                 header('X-Tourvisor-Search-Mode: cache');
-                header('X-Tourvisor-Cache-Read: full');
+                header('X-Tourvisor-Cache-Read: exact');
                 tvLog('search_cache_hit', ['cache_key' => $ck, 'hotels_count' => count($cachedFull), 'cache_kind' => 'search_cached_full']);
                 $r = ['success' => true, 'data' => $cachedFull, 'fromCache' => true];
                 break;
+            }
+
+            // Cover-cache: тот же состав туристов, nights ⊇ запрос, dates ⊆ cover → filter
+            if (!empty($GLOBALS['tv_search_cover_enabled'])) {
+                $coverHit = th_search_cover_find(array_merge($sp, ['currency' => 'RUB']), $ttlSearch);
+                if (is_array($coverHit) && !empty($coverHit['hotels'])) {
+                    $coverFiltered = tvFilterToursByParams($coverHit['hotels'], $sp);
+                    if ($coverFiltered !== []) {
+                        $GLOBALS['tv_cache_hit'] = true;
+                        $GLOBALS['tv_cache_layer'] = 'L2-cover';
+                        $coverRead = (string) ($coverHit['read'] ?? 'cover');
+                        header('X-Tourvisor-Search-Mode: cache');
+                        header('X-Tourvisor-Cache-Read: ' . $coverRead);
+                        $cMeta = $coverHit['meta'] ?? [];
+                        if (!empty($cMeta['from']) && !empty($cMeta['to'])) {
+                            header('X-Tourvisor-Cache-Cover: ' . $cMeta['from'] . '..' . $cMeta['to']);
+                        }
+                        if (!empty($coverHit['identity'])) {
+                            header('X-Tourvisor-Cache-Identity: ' . rawurlencode((string) $coverHit['identity']));
+                        }
+                        tvLog('search_cache_hit', [
+                            'cache_key' => $ck,
+                            'cache_kind' => 'search_cover',
+                            'cover_read' => $coverRead,
+                            'identity' => $coverHit['identity'] ?? '',
+                            'hotels_count' => count($coverFiltered),
+                        ]);
+                        $r = ['success' => true, 'data' => $coverFiltered, 'fromCache' => true, 'fromCover' => true];
+                        break;
+                    }
+                }
             }
         }
 
@@ -1837,38 +2042,21 @@ function tourvisor_proxy_dispatch(): array
         }
         $sid = (int)$resSearch['data']['searchId'];
         tvSaveSearchParams($sid, $searchParamsApi);
-        $maxPolls = 40;
-        $pollInterval = 3;
-        $searchFailed = false;
-        for ($i = 0; $i < $maxPolls; $i++) {
-            sleep($pollInterval);
-            $st = tvRequest("/tours/search/{$sid}/status", ['operatorStatus' => true]);
-            $status = isset($st['data']['status']) ? strtolower((string)$st['data']['status']) : '';
-            $progress = (int)($st['data']['progress'] ?? 0);
-            if ($status === 'completed' || $progress >= 100) break;
-            if ($status === 'error') {
-                tvLog('search_api_error', ['searchId' => $sid]);
-                $searchFailed = true;
-                break;
-            }
-        }
-        if ($searchFailed) {
-            $r = ['success' => false, 'error' => 'Search error', 'fromCache' => false];
+        $poll = tvPollSearchUntilReady($sid, 24);
+        if (empty($poll['ok'])) {
+            tvLog('search_api_error', ['searchId' => $sid, 'error' => $poll['error'] ?? 'poll']);
+            $r = ['success' => false, 'error' => $poll['error'] ?? 'Search error', 'fromCache' => false];
             break;
         }
-        // По доке: «Продолжение поиска» — доп. запросы к операторам, результаты накапливаются. Вызываем continue 2 раза для большей выборки.
-        for ($continueNum = 0; $continueNum < 2; $continueNum++) {
-            sleep(4);
-            $resContinue = tvRequest("/tours/search/{$sid}/continue", []);
-            if (!$resContinue['success']) {
-                tvLog('search_continue_skip', ['searchId' => $sid, 'attempt' => $continueNum + 1, 'error' => $resContinue['error'] ?? 'fail']);
-                break;
-            }
-            tvLog('search_continue', ['searchId' => $sid, 'attempt' => $continueNum + 1]);
-        }
-        // Результаты поискового запроса — выдача накопленных результатов. Запрашиваем максимум (API отдаст сколько нашёл).
+        // Результаты поискового запроса — выдача накопленных результатов.
         $resResults = tvRequest("/tours/search/{$sid}", ['limit' => 1000]);
         $liveData = (isset($resResults['data']) && is_array($resResults['data'])) ? $resResults['data'] : [];
+        // continue только если мало выдачи и явно разрешено (жжёт суточный search-лимит TV)
+        if (!empty($liveData) && tvContinueMax() > 0 && count($liveData) < 25) {
+            tvMaybeContinueSearch($sid, count($liveData));
+            $resResults = tvRequest("/tours/search/{$sid}", ['limit' => 1000]);
+            $liveData = (isset($resResults['data']) && is_array($resResults['data'])) ? $resResults['data'] : [];
+        }
         if (!empty($liveData)) {
             // Логируем, есть ли туры со скидкой в сыром ответе API: по полю isPromo и по названию (promo/промо/скидка)
             $totalTours = 0;
@@ -1945,6 +2133,27 @@ function tourvisor_proxy_dispatch(): array
             if ($saveToCache) {
                 tvSaveSearchResultsCache($ck, $liveData);
                 tvMergeAllToursCache($liveData);
+                // Cover upsert: расширяем покрытие дат для того же состава туристов / ночей
+                if (
+                    !empty($GLOBALS['tv_search_cover_enabled'])
+                    && !$onlyPromo
+                    && empty($sp['regionIds'])
+                    && empty($sp['meal'])
+                    && empty($sp['hotelCategory'])
+                ) {
+                    $coverSaved = th_search_cover_upsert(
+                        array_merge($sp, [
+                            'currency' => 'RUB',
+                            'departureId' => (int) ($sp['departureId'] ?: th_departure_default_id()),
+                        ]),
+                        $liveData,
+                        $ttlSearch
+                    );
+                    if (is_array($coverSaved)) {
+                        header('X-Tourvisor-Cache-Cover: ' . $coverSaved['from'] . '..' . $coverSaved['to']);
+                        tvLog('search_cover_upsert', $coverSaved);
+                    }
+                }
                 if ($onlyPromo && !empty($dataToReturn)) {
                     tv_promo_country_cache_load();
                     // Виртуальные плитки (promoTileId=16104) пишем отдельно — не затираем кэш Вьетнама
@@ -2071,28 +2280,21 @@ function tourvisor_proxy_dispatch(): array
         }
 
         $sid = (int)$resSearch['data']['searchId'];
-        $maxPolls = 20;
-        $pollInterval = 2;
-        $searchFailed = false;
-        for ($i = 0; $i < $maxPolls; $i++) {
-            sleep($pollInterval);
-            $st = tvRequest("/tours/search/{$sid}/status", ['operatorStatus' => true]);
-            $status = isset($st['data']['status']) ? strtolower((string)$st['data']['status']) : '';
-            $progress = (int)($st['data']['progress'] ?? 0);
-            if ($status === 'completed' || $progress >= 100) break;
-            if ($status === 'error') {
-                $searchFailed = true;
-                break;
-            }
-        }
-        if ($searchFailed) {
-            $r = ['success' => false, 'error' => 'Search error', 'tours' => [], 'data' => []];
+        $poll = tvPollSearchUntilReady($sid, 20);
+        if (empty($poll['ok'])) {
+            $r = ['success' => false, 'error' => $poll['error'] ?? 'Search error', 'tours' => [], 'data' => []];
             break;
         }
 
         $resResults = tvRequest("/tours/search/{$sid}", ['limit' => 1000]);
         $liveData = (isset($resResults['data']) && is_array($resResults['data'])) ? $resResults['data'] : [];
         if (!is_array($liveData)) $liveData = [];
+        if ($liveData !== [] && tvContinueMax() > 0 && count($liveData) < 25) {
+            tvMaybeContinueSearch($sid, count($liveData));
+            $resResults = tvRequest("/tours/search/{$sid}", ['limit' => 1000]);
+            $liveData = (isset($resResults['data']) && is_array($resResults['data'])) ? $resResults['data'] : [];
+            if (!is_array($liveData)) $liveData = [];
+        }
 
         $filtered = $liveData;
         if ($isAction) {
@@ -2339,6 +2541,29 @@ function tourvisor_proxy_emit(array $r): void
                 header('X-Tourvisor-Total: ' . (string) $r['totalCount']);
             }
         }
+    }
+    $clientDebugEnabled = filter_var(getenv('TH_CLIENT_DEBUG_ENABLED') ?: ($_ENV['TH_CLIENT_DEBUG_ENABLED'] ?? '0'), FILTER_VALIDATE_BOOLEAN);
+    $clientDebugHeader = trim((string)($_SERVER['HTTP_X_TH_DEBUG'] ?? ''));
+    $clientDebugKey = trim((string)(getenv('TH_CLIENT_DEBUG_KEY') ?: ($_ENV['TH_CLIENT_DEBUG_KEY'] ?? '')));
+    $clientDebugReqKey = trim((string)($_SERVER['HTTP_X_TH_DEBUG_KEY'] ?? ''));
+    $canClientDebug = $clientDebugEnabled
+        && $clientDebugHeader === '1'
+        && ($clientDebugKey === '' || hash_equals($clientDebugKey, $clientDebugReqKey));
+    if ($canClientDebug) {
+        $elapsedMs = 0;
+        if (!empty($GLOBALS['tv_req_started_at'])) {
+            $elapsedMs = (int)round((microtime(true) - (float)$GLOBALS['tv_req_started_at']) * 1000);
+        }
+        $r['_trace'] = [
+            'type' => (string)($type ?: 'none'),
+            'success' => !empty($r['success']),
+            'cacheReader' => (string)($readerHint ?? 'php'),
+            'cacheLayer' => (string)($GLOBALS['tv_cache_layer'] ?? ''),
+            'items' => $itemsCount,
+            'elapsedMs' => $elapsedMs,
+            'fromCache' => $GLOBALS['tv_cache_hit'] === true,
+            'firestore' => (string)($GLOBALS['tv_firestore_used'] ?? 'off'),
+        ];
     }
     echo json_encode($r, JSON_UNESCAPED_UNICODE);
 }

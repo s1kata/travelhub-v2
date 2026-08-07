@@ -97,3 +97,67 @@ function security_honeypot_check(array $input, string $fieldName = 'website'): b
     $v = trim((string)($input[$fieldName] ?? ''));
     return $v === '';
 }
+
+/**
+ * Определяет клиентский IP (с учетом X-Forwarded-For).
+ */
+function security_client_ip(): string {
+    $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+    $forwarded = trim((string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
+    if ($forwarded !== '') {
+        $first = trim((string)explode(',', $forwarded)[0]);
+        if ($first !== '') {
+            $ip = $first;
+        }
+    }
+    return $ip;
+}
+
+/**
+ * Базовые security headers.
+ */
+function security_apply_default_headers(): void {
+    header('X-Frame-Options: SAMEORIGIN');
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
+    header('Cross-Origin-Opener-Policy: same-origin-allow-popups');
+}
+
+/**
+ * Примитивная проверка на инъекции/XSS-паттерны в query/body.
+ */
+function security_payload_has_attack_signatures(string $payload): bool {
+    if ($payload === '') return false;
+    if (strpos($payload, "\0") !== false) return true;
+    $patterns = [
+        '/(?:union\s+all?\s+select|select\s+.+\s+from|information_schema|sleep\s*\(|benchmark\s*\(|or\s+1\s*=\s*1)/iu',
+        '/(?:<script\b|<\/script>|javascript:|onerror\s*=|onload\s*=|<iframe\b)/iu',
+        '/(?:\.\.\/|\.\.\\\\|\/etc\/passwd|boot\.ini)/iu',
+    ];
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $payload)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Унифицированный guard для публичных API.
+ * @return array{ok:bool,code?:int,error?:string,reason?:string}
+ */
+function security_guard_public_api(string $key, string $payload = '', int $maxRpm = 120, int $maxBodyBytes = 131072): array {
+    security_apply_default_headers();
+    if ($maxBodyBytes > 0 && strlen($payload) > $maxBodyBytes) {
+        return ['ok' => false, 'code' => 413, 'error' => 'Payload too large', 'reason' => 'body_limit'];
+    }
+    if (security_rate_limit_exceeded($key, $maxRpm, 60)) {
+        return ['ok' => false, 'code' => 429, 'error' => 'Too many requests', 'reason' => 'rate_limit'];
+    }
+    $query = http_build_query($_GET ?: []);
+    if (security_payload_has_attack_signatures($query) || security_payload_has_attack_signatures($payload)) {
+        return ['ok' => false, 'code' => 400, 'error' => 'Bad request', 'reason' => 'suspicious_payload'];
+    }
+    return ['ok' => true];
+}

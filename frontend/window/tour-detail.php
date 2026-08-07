@@ -12,6 +12,9 @@ $tour_link = isset($_GET['tour_link']) ? trim((string) $_GET['tour_link']) : '';
 $tour_link = tour_link_sanitize_for_app($tour_link);
 $country = isset($_GET['country']) ? trim((string) $_GET['country']) : '';
 $hotel_name = isset($_GET['hotel_name']) ? trim((string) $_GET['hotel_name']) : '';
+if ($hotel_name === '' && isset($_GET['hotelName'])) {
+    $hotel_name = trim((string) $_GET['hotelName']);
+}
 $price = isset($_GET['price']) ? trim((string) $_GET['price']) : '';
 $nights = isset($_GET['nights']) ? trim((string) $_GET['nights']) : '';
 $meal_raw = isset($_GET['meal']) ? trim((string) $_GET['meal']) : '';
@@ -20,6 +23,9 @@ $meal = isset($meal_map[strtoupper($meal_raw)]) ? $meal_map[strtoupper($meal_raw
 $region = isset($_GET['region']) ? trim((string) $_GET['region']) : '';
 $departure_city = isset($_GET['departure_city']) ? trim((string) $_GET['departure_city']) : '';
 $departure_id_param = isset($_GET['departure_id']) ? (int) $_GET['departure_id'] : 0;
+if ($departure_id_param <= 0 && isset($_GET['departureId'])) {
+    $departure_id_param = (int) $_GET['departureId'];
+}
 $date_from = isset($_GET['date_from']) ? trim((string) $_GET['date_from']) : '';
 $date_to = isset($_GET['date_to']) ? trim((string) $_GET['date_to']) : '';
 $from_promo = isset($_GET['from_promo']) && (string) $_GET['from_promo'] === '1';
@@ -31,6 +37,12 @@ $room_category = isset($_GET['room_category']) ? trim((string) $_GET['room_categ
 $flight_info = isset($_GET['flight_info']) ? trim((string) $_GET['flight_info']) : '';
 $tour_id = isset($_GET['tour_id']) ? trim((string) $_GET['tour_id']) : '';
 $hotel_id = isset($_GET['hotel_id']) ? trim((string) $_GET['hotel_id']) : '';
+if ($hotel_id === '' && isset($_GET['hotelId'])) {
+    $hotel_id = trim((string) $_GET['hotelId']);
+}
+if ($country === '' && isset($_GET['countryName'])) {
+    $country = trim((string) $_GET['countryName']);
+}
 $return_url = isset($_GET['return_url']) ? (string) $_GET['return_url'] : '';
 $tour_search_adults = null;
 if (isset($_GET['adults']) && (string) $_GET['adults'] !== '') {
@@ -176,9 +188,8 @@ $date_range_display = ($date_from_fmt && $date_to_fmt) ? ($date_from_fmt === $da
 $nights_display = $nights !== '' && is_numeric($nights) ? ($nights . ' ночей') : $nights;
 
 $is_logged_in = isset($_SESSION['user_id']);
-$tinkoff_terminal_key = trim((string) (getenv('TINKOFF_TERMINAL_KEY') ?: ($_ENV['TINKOFF_TERMINAL_KEY'] ?? '')));
-$tinkoff_password = trim((string) (getenv('TINKOFF_PASSWORD') ?: ($_ENV['TINKOFF_PASSWORD'] ?? '')));
-$online_payment_enabled = ($tinkoff_terminal_key !== '' && $tinkoff_password !== '');
+require_once __DIR__ . '/../../backend/components/mobile_api_auth.php';
+$online_payment_enabled = th_online_payment_enabled();
 
 $current_page = 'tour-detail';
 $tv_image_proxy = get_tourvisor_image_proxy_base_url();

@@ -52,5 +52,18 @@
 
 ## Прогрев и промо
 
-- Прогрев: `php backend/scripts/tourvisor_background_update.php` или `GET /backend/scripts/warmup_tourvisor_cache.php`
+- Прогрев: `php backend/cron/warm_home_search_cache.php` (cover skip/extend) или `php backend/scripts/tourvisor_background_update.php`
 - Промо-туры: `php backend/scripts/promo_tours_refresh.php` — см. [CRON.md](CRON.md)
+
+## Лимиты API (обязательно соблюдать)
+
+Официально: [api.tourvisor.ru/search/docs](https://api.tourvisor.ru/search/docs) — порядка **~30 req/min**; метод **continue** учитывается как отдельный поисковый запрос в суточном лимите.
+
+В коде:
+- outbound throttle `TH_TV_OUTBOUND_RPM` (по умолчанию 25);
+- status poll: 3с → каждые 2с;
+- `TH_TV_CONTINUE_MAX=0` по умолчанию;
+- на HTTP 429 — backoff;
+- warm: паузы + `TH_WARM_MAX_LIVE_CHUNKS`.
+
+Подробнее: [SEARCH_SPEED.md](SEARCH_SPEED.md).

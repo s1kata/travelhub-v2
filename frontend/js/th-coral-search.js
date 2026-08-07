@@ -368,7 +368,21 @@
         var inp = sheet.querySelector('[data-th-search-input="' + type + '"]');
         if (inp) {
             inp.value = '';
-            setTimeout(function () { try { inp.focus(); } catch (e) {} }, 80);
+            setTimeout(function () {
+                try { inp.focus({ preventScroll: false }); } catch (e) {
+                    try { inp.focus(); } catch (e2) {}
+                }
+                try {
+                    if (inp.scrollIntoView) {
+                        inp.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                    }
+                } catch (e3) {}
+            }, 80);
+            setTimeout(function () {
+                try {
+                    if (inp.scrollIntoView) inp.scrollIntoView({ block: 'center', inline: 'nearest' });
+                } catch (e4) {}
+            }, 320);
         }
         var overlay = document.getElementById('tv-sc-overlay');
         if (overlay) {

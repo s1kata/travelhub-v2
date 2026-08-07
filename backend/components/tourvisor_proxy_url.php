@@ -13,7 +13,8 @@
  * Если не передан — используется TOURVISOR_TOKEN (общий).
  *
  * Где виджет Tourvisor (init.js) — идёт напрямую в api.tourvisor.ru, не через наш кэш:
- * — tour-calendar.php, hotel-detail.php, offices/*.php, country.php, guest-template.php
+ * — hotel-detail.php, offices/*.php, country.php, guest-template.php (виджет Tourvisor)
+ * — tour-calendar.php использует свой API (promo_cache), не виджет
  */
 declare(strict_types=1);
 

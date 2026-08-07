@@ -1032,6 +1032,22 @@
           tourId: tourIdStr
         })
       : '';
+    var compareEnabled = !!options.compareEnabled;
+    var compareKey = esc(String(tourIdStr || (h.id ? ('h' + h.id) : cardHref)));
+    var compareBtn = compareEnabled
+      ? ('<button type="button" class="th-tour-card__btn th-tour-card__btn--secondary th-tour-card__btn--compare" ' +
+        'data-th-compare-toggle="1" data-compare-key="' + compareKey + '"' +
+        ' data-compare-href="' + esc(cardHref) + '"' +
+        ' data-compare-hotel="' + esc(h.name) + '"' +
+        ' data-compare-country="' + esc(country) + '"' +
+        ' data-compare-region="' + esc(region) + '"' +
+        ' data-compare-price="' + esc(String(priceNum || 0)) + '"' +
+        ' data-compare-rating="' + esc(String(h.rating || 0)) + '"' +
+        ' data-compare-nights="' + esc(String(nightsNum || 0)) + '"' +
+        ' data-compare-meal="' + esc(meal) + '"' +
+        ' data-compare-dates="' + esc(datesMeta) + '"' +
+        ' aria-pressed="false">Сравнить</button>')
+      : '';
     return (
       '<article class="th-tour-card' + modClass + '"' + skipPatch + hotelIdAttr + tourIdAttr + depCityAttr + '>' +
       mediaHtml +
@@ -1056,6 +1072,7 @@
       '</a>' +
       '<div class="th-tour-card__actions">' +
       '<a href="' + esc(bookingHref(cardHref)) + '"' + targetAttr + ' class="th-tour-card__btn">' + esc(DETAIL_BTN_LABEL) + '</a>' +
+      compareBtn +
       promoLeadBtn +
       '</div>' +
       '</article>'

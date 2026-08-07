@@ -403,6 +403,22 @@
     transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Клавиатура (iOS/Android): sheet не выше visualViewport, поиск остаётся видимым */
+html.th-kb-open .th-search-choice-sheet.is-open .th-search-choice-sheet__panel,
+html.th-kb-open .th-search-filter-sheet.is-open .th-search-choice-sheet__panel {
+    max-height: calc(var(--th-vvh, 100vh) - 8px);
+}
+html.th-kb-open .th-search-choice-sheet__head {
+    padding-top: 0.65rem;
+    padding-bottom: 0.5rem;
+}
+html.th-kb-open .th-search-choice-sheet__search {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: #fff;
+}
+
 .th-search-choice-sheet.is-open .th-search-choice-sheet__panel {
     transform: translateY(0);
 }
@@ -800,8 +816,7 @@
     border: none;
     border-top: 1px solid rgba(26, 26, 64, 0.08);
     border-radius: 0;
-    background: #FF6B6B !important;
-    background: var(--thcs-coral, #FF6B6B) !important;
+    background: #1A1A40 !important;
     color: #fff !important;
     font-size: 0.9375rem;
     font-weight: 700;
@@ -858,6 +873,26 @@
     margin: 0 auto;
     position: static !important;
 }
+@media (max-width: 767px) {
+    #tv-sc-date-popup.th-coral-popup .th-coral-popup__panel,
+    .th-coral-date-popup.th-coral-popup__panel {
+        max-height: min(92vh, calc(var(--th-vvh, 100vh) - 8px)) !important;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .th-coral-date-popup .tv-sc-cal-container .flatpickr-day {
+        max-width: none;
+        height: 42px;
+        line-height: 42px;
+    }
+    .th-coral-date-popup .flatpickr-innerContainer,
+    .th-coral-date-popup .flatpickr-days,
+    .th-coral-date-popup .dayContainer {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+}
 
 .th-coral-date-popup .tv-sc-cal-container .flatpickr-months {
     padding: 8px 44px;
@@ -865,7 +900,7 @@
     align-items: center !important;
     gap: 4px;
     position: relative;
-    background: linear-gradient(135deg, #FF6B6B, #F65252) !important;
+    background: linear-gradient(135deg, #1A1A40, #2a2a5a) !important;
     overflow: visible;
 }
 
@@ -919,25 +954,25 @@
 }
 
 .th-coral-date-popup .tv-sc-cal-container .flatpickr-day.today {
-    border: 1.5px solid rgba(255, 107, 107, 0.55);
+    border: 1.5px solid rgba(93, 169, 164, 0.55);
 }
 
 .th-coral-date-popup .tv-sc-cal-container .flatpickr-day.selected,
 .th-coral-date-popup .tv-sc-cal-container .flatpickr-day.startRange,
 .th-coral-date-popup .tv-sc-cal-container .flatpickr-day.endRange {
-    background: linear-gradient(135deg, #FF6B6B, #F65252) !important;
-    border-color: #FF6B6B !important;
+    background: linear-gradient(135deg, #5DA9A4, #4a9590) !important;
+    border-color: #5DA9A4 !important;
     color: #fff !important;
 }
 
 .th-coral-date-popup .tv-sc-cal-container .flatpickr-day.inRange {
-    background: rgba(255, 107, 107, 0.14) !important;
+    background: rgba(93, 169, 164, 0.16) !important;
     box-shadow: none !important;
     color: var(--thcs-navy) !important;
 }
 
 .th-coral-date-popup .tv-sc-cal-container .flatpickr-day:hover:not(.disabled):not(.selected):not(.startRange):not(.endRange):not(.inRange) {
-    background: rgba(255, 107, 107, 0.1);
+    background: rgba(93, 169, 164, 0.12);
 }
 
 .th-coral-date-popup .tv-sc-cal-container .flatpickr-day.disabled,
@@ -1766,8 +1801,19 @@ body > #tv-tourists-block:not(.hidden) {
 }
 
 @media (max-width: 479px) {
+    .th-coral-wizard__rail {
+        display: flex;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 0;
+    }
+    .th-coral-wizard__rail::-webkit-scrollbar { display: none; }
     .th-coral-wizard__rail-item {
-        padding: 0.35rem 0.3rem;
+        flex: 0 0 auto;
+        min-width: 4.6rem;
+        max-width: 5.4rem;
+        padding: 0.35rem 0.4rem;
         min-height: 46px;
     }
 
@@ -1776,6 +1822,6 @@ body > #tv-tourists-block:not(.hidden) {
     }
 
     .th-coral-wizard__rail-value {
-        font-size: 0.58rem;
+        font-size: 0.62rem;
     }
 }
