@@ -380,6 +380,12 @@ body.th-promo-page #promo-countries-grid { min-width: 0; }
         min-height: 160px;
     }
 }
+@media (min-width: 480px) {
+    .promo-cptile {
+        aspect-ratio: 4/5;
+        min-height: 160px;
+    }
+}
 .promo-cptile:hover, .promo-cptile:focus-visible {
     transform: translateY(-4px) scale(1.01);
     box-shadow: 0 14px 36px rgba(15,23,42,0.18);
@@ -401,7 +407,11 @@ body.th-promo-page #promo-countries-grid { min-width: 0; }
 }
 .promo-cptile-name {
     position: absolute;
+<<<<<<< HEAD
     top: 10px; left: 10px; right: 88px;
+=======
+    top: 10px; left: 10px; right: 78px;
+>>>>>>> origin/master
     padding: 0;
     color: #fff;
     font-size: 0.95rem;
@@ -411,6 +421,7 @@ body.th-promo-page #promo-countries-grid { min-width: 0; }
     z-index: 2;
 }
 @media (max-width: 479px) {
+<<<<<<< HEAD
     .promo-cptile-name {
         top: 8px;
         left: 8px;
@@ -422,6 +433,9 @@ body.th-promo-page #promo-countries-grid { min-width: 0; }
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
+=======
+    .promo-cptile-name { font-size: 0.88rem; top: 8px; left: 8px; right: 72px; }
+>>>>>>> origin/master
 }
 .promo-cptile-price {
     position: absolute;

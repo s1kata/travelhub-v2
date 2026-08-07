@@ -1018,8 +1018,13 @@ html.th-kb-open .th-search-choice-sheet__search {
 .th-coral-date-popup .tv-sc-cal-container .flatpickr-day.selected,
 .th-coral-date-popup .tv-sc-cal-container .flatpickr-day.startRange,
 .th-coral-date-popup .tv-sc-cal-container .flatpickr-day.endRange {
+<<<<<<< HEAD
     background: linear-gradient(135deg, #1A1A40, #2a2a5a) !important;
     border-color: #1A1A40 !important;
+=======
+    background: linear-gradient(135deg, #5DA9A4, #4a9590) !important;
+    border-color: #5DA9A4 !important;
+>>>>>>> origin/master
     color: #fff !important;
     border-radius: 10px !important;
 }
