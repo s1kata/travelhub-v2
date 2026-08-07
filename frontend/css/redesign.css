@@ -3541,30 +3541,31 @@ body.th-promo-open { overflow: hidden; }
     transform: translateY(0);
 }
 
-/* Свёрнутая плашка промокода */
+/* Свёрнутая плашка промокода — прибита сверху под шапкой */
 .th-promo-popup__tab {
     display: none;
     position: fixed;
     left: 50%;
-    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    top: calc(var(--th-header-h, 56px) + max(6px, env(safe-area-inset-top, 0px)));
+    bottom: auto;
     transform: translateX(-50%);
     z-index: 9850;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     max-width: min(calc(100vw - 24px), 420px);
-    max-height: 48px;
+    max-height: 42px;
     overflow: hidden;
     white-space: nowrap;
     flex-wrap: nowrap;
-    padding: 10px 16px 10px 14px;
-    background: linear-gradient(135deg, #FFF5F5 0%, #ffedd5 100%);
+    padding: 8px 14px 8px 12px;
+    background: linear-gradient(135deg, #FFF8F0 0%, #ffedd5 100%);
     border: 1px solid #fdba74;
     border-radius: 999px;
-    box-shadow: 0 8px 28px rgba(255, 107, 107, 0.22), 0 2px 8px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 6px 20px rgba(154, 52, 18, 0.14), 0 2px 8px rgba(15, 23, 42, 0.06);
     cursor: pointer;
     pointer-events: auto;
     font-family: inherit;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     font-weight: 700;
     color: #9a3412;
     transition: box-shadow 0.2s, transform 0.15s;
@@ -3667,30 +3668,38 @@ body.th-abandon-open .th-promo-popup--collapsed .th-promo-popup__tab {
     transform: translateY(-1px);
 }
 
-/* Мобилка: плашка снизу — отступ у контента */
+/* Мобилка: промик сверху — лёгкий отступ контента под шапкой */
 body.th-promo-tab-bottom.th-promo-tab-visible {
-    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    padding-top: calc(var(--th-header-h, 56px) + 46px);
+    padding-bottom: calc(var(--th-lead-bar-h, 48px) + env(safe-area-inset-bottom, 0px));
 }
 body.th-promo-page.th-promo-tab-bottom.th-promo-tab-visible {
-    padding-bottom: calc(144px + env(safe-area-inset-bottom, 0px));
+    padding-top: calc(var(--th-header-h, 56px) + 46px);
+    padding-bottom: 0;
 }
-/* Над sticky lead-bar (Call / MAX / Заявка) */
+body.th-support-chat-open .th-promo-popup--collapsed .th-promo-popup__tab,
+body.th-deals-cal-page .th-promo-popup--collapsed .th-promo-popup__tab {
+    display: none !important;
+}
+/* Над sticky lead-bar — промик остаётся сверху */
 @media (max-width: 1023px) {
     body.has-th-lead-bar.th-promo-tab-bottom .th-promo-popup--collapsed .th-promo-popup__tab {
-        bottom: calc(var(--th-lead-bar-h, 64px) + 10px + env(safe-area-inset-bottom, 0px));
+        top: calc(var(--th-header-h, 56px) + max(6px, env(safe-area-inset-top, 0px)));
+        bottom: auto;
         z-index: 9985;
     }
     body.has-th-lead-bar.th-promo-tab-bottom.th-promo-tab-visible {
-        padding-bottom: calc(var(--th-lead-bar-h, 64px) + 64px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: calc(var(--th-lead-bar-h, 48px) + env(safe-area-inset-bottom, 0px));
     }
     body.has-th-lead-bar.th-promo-status-visible .promo-status {
-        bottom: calc(var(--th-lead-bar-h, 64px) + 10px + env(safe-area-inset-bottom, 0px)) !important;
+        bottom: calc(var(--th-lead-bar-h, 48px) + 10px + env(safe-area-inset-bottom, 0px)) !important;
         z-index: 9985;
     }
 }
 @media (min-width: 768px) {
     body.th-promo-tab-bottom.th-promo-tab-visible,
     body.th-promo-page.th-promo-tab-bottom.th-promo-tab-visible {
+        padding-top: 0;
         padding-bottom: 0;
     }
 }
@@ -4960,10 +4969,12 @@ body.th-promo-page {
 }
 
 body.th-promo-page.th-promo-tab-visible {
-    padding-bottom: calc(144px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
+/* Промик всегда сверху под шапкой — не конкурирует со sticky CTA внизу */
 body.th-promo-page.th-promo-tab-bottom .th-promo-popup--collapsed .th-promo-popup__tab {
-    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    top: calc(var(--th-header-h, 56px) + max(6px, env(safe-area-inset-top, 0px)));
+    bottom: auto;
 }
 @media (min-width: 768px) {
     body.th-promo-page.th-promo-tab-visible {

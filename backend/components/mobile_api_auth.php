@@ -22,6 +22,14 @@ function mobile_api_jwt_secret(): string
     return trim((string) (getenv('MOBILE_JWT_SECRET') ?: getenv('JWT_SECRET') ?: ($_ENV['MOBILE_JWT_SECRET'] ?? $_ENV['JWT_SECRET'] ?? '')));
 }
 
+/** Онлайн-оплата на сайте: Т-Касса + JWT-мост. Без этого кнопку оплаты не показываем. */
+function th_online_payment_enabled(): bool
+{
+    $key = trim((string) (getenv('TINKOFF_TERMINAL_KEY') ?: ($_ENV['TINKOFF_TERMINAL_KEY'] ?? '')));
+    $pass = trim((string) (getenv('TINKOFF_PASSWORD') ?: ($_ENV['TINKOFF_PASSWORD'] ?? '')));
+    return $key !== '' && $pass !== '' && mobile_api_jwt_secret() !== '';
+}
+
 function mobile_api_jwt_issuer(): string
 {
     $iss = trim((string) (getenv('MOBILE_JWT_ISSUER') ?: ($_ENV['MOBILE_JWT_ISSUER'] ?? 'travelhub-auth')));

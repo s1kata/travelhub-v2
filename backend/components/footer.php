@@ -87,6 +87,14 @@ $thc = th_contacts();
 <?php include __DIR__ . '/site_lead_bar.php'; ?>
 <?php include __DIR__ . '/tour_link_scripts.php'; ?>
 <?php
+if (!defined('TH_SAFE_CONSOLE_INCLUDED')) {
+    define('TH_SAFE_CONSOLE_INCLUDED', true);
+    $_th_safe_console_path = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'frontend' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'safe-console.js';
+    $_th_safe_console_v = is_file($_th_safe_console_path) ? (string) filemtime($_th_safe_console_path) : '1';
+    echo '<script src="/frontend/js/safe-console.js?v=' . htmlspecialchars($_th_safe_console_v, ENT_QUOTES, 'UTF-8') . '" defer></script>' . "\n";
+}
+?>
+<?php
 if (!defined('TH_CONVERSION_BOOST_INCLUDED')) {
     define('TH_CONVERSION_BOOST_INCLUDED', true);
     $_th_cb_css = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'frontend' . DIRECTORY_SEPARATOR . 'css' . DIRECTORY_SEPARATOR . 'th-conversion-boost.css';

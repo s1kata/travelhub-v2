@@ -20,6 +20,8 @@
     margin-left: 0;
     margin-right: 0;
     z-index: var(--th-z-lead-bar);
+    background: #1A1A40 !important;
+    box-shadow: 0 -4px 18px rgba(16, 16, 46, 0.35) !important;
 }
 
 @media (min-width: 768px) {
@@ -57,7 +59,7 @@ body.th-promo-page .th-site-lead-bar {
 /* Нижний отступ: lead bar и/или page sticky */
 body.has-th-lead-bar:not(.th-promo-page) {
     padding-bottom: calc(
-        max(var(--th-lead-bar-h, 64px), var(--th-sticky-bottom-h, 0px))
+        max(var(--th-lead-bar-h, 48px), var(--th-sticky-bottom-h, 0px))
         + env(safe-area-inset-bottom, 0px)
     );
 }

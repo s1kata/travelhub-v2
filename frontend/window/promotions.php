@@ -232,7 +232,7 @@ $th_promo_page_config = [
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <?php include __DIR__ . '/../../backend/components/design_system_head.php'; ?>
-    <link rel="stylesheet" href="/frontend/css/pages/promotions.css?v=3">
+    <link rel="stylesheet" href="/frontend/css/pages/promotions.css?v=4">
     <script>window.__TH_YM_ID=<?php echo json_encode((string)$th_ym_id, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script></head>
 <body class="th-promo-page pb-24 md:pb-28">
     <?php include __DIR__ . '/../../backend/components/header.php'; ?>
@@ -381,6 +381,12 @@ $th_promo_page_config = [
                         Перезвонить с подбором
                     </button>
                 </div>
+
+                <p class="text-center text-sm text-slate-500 mt-8 mb-2">
+                    Гибкие даты?
+                    <a href="/frontend/window/tour-calendar.php?departureId=<?php echo (int) $departure_id; ?>"
+                       class="font-semibold text-[#5DA9A4] hover:underline">Календарь выгодных дат</a>
+                </p>
             </div>
         </div>
     </section>

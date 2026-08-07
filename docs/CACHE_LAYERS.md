@@ -10,18 +10,53 @@
 | **L3** `L3-go` | Go `search-cache-reader` | Позже на VPS (сейчас не на shared) |
 | `live` | Tourvisor API | Полный miss + не `cacheOnly` |
 
+## Cover-cache (даты + фильтры)
+
+Поверх exact-key и L1/L2: покрытие по диапазону дат для одного **identity**.
+
+| | |
+|--|--|
+| Модуль | `backend/components/tourvisor_search_cover.php` |
+| Индекс | `data/tourvisor_cache/search_cover_index.json` |
+| Blob | `data/tourvisor_cache/cover_*.json` |
+
+**Identity (жёсткое):** `departure|country|adults|childs|nightsFrom-nightsTo|currency`  
+Даты — в `coverFrom`/`coverTo`, не в identity.
+
+**Read (`search-cached`, без onlyPromo):**
+1. Exact key → `X-Tourvisor-Cache-Read: exact`
+2. Cover hit (тот же состав туристов, nights cover ⊇ запрос, dates ⊆ cover) → filter → `cover` / `cover-filter`
+3. Иначе miss / live
+
+**Нельзя** отдавать cover с другими adults/childs.  
+**Можно** узкие ночи из более широкого cover (warm пишет 5–10).
+
+**Warm** (`warm_home_search_cache.php`): горизонт `today+3…+42`, nights `5–10`, skip если cover свежий и закрывает горизонт, иначе live только по дырам (≤14 дней). Туристы: `2+0` всегда, `2+1` (возраст 7) для топ-5 стран.
+
+Заголовки: `X-Tourvisor-Cache-Cover`, `X-Tourvisor-Cache-Identity`.
+
+Флаги отката:
+- `TH_SEARCH_COVER_ENABLED=0` — отключить read/write cover-слой (останется exact + live).
+- `TH_WARM_COVER_ENABLED=0` — вернуть legacy full-live warm.
+
+Housekeeping:
+- `php backend/cron/cleanup_search_cover_cache.php` (рекомендуется daily cron).
+
 ```
 Запрос search-cached / справочники
    │
    ├─ L1 Firestore  (TH_CACHE_FIRESTORE_FIRST=1, timeout ~2.5s)
    │     hit → JSON + прогрев L2 файла
    │
-   ├─ L2 файл на диске
+   ├─ L2 файл exact-key
    │     hit → JSON
+   │
+   ├─ L2-cover (nights ⊇ + dates ⊆ + те же туристы)
+   │     hit → filter → JSON
    │
    ├─ L3 Go (когда будет VPS + nginx)
    │
-   └─ live Tourvisor → пишем L2 + L1
+   └─ live Tourvisor → пишем L2 exact + cover upsert (+ L1)
 ```
 
 SWR на фронте (`cacheOnly` → paint → `live=1`) работает поверх всех слоёв.
@@ -93,6 +128,17 @@ php backend/cron/warm_home_search_cache.php
 ## Фото Tourvisor
 
 Не в Firestore. Остаются в `data/tourvisor_image_cache/` + cron `clear_image_cache.php`.
+
+## Календарь выгодных дат (promo)
+
+Страница `/frontend/window/tour-calendar.php` — heatmap без live Tourvisor.
+
+| API | Источник |
+|-----|----------|
+| `backend/api/calendar_price_map.php` | `promo_cache` → `{ dates: { Y-m-d: { minPrice, deal } } }` |
+| `backend/api/calendar_day_tours.php` | тот же кэш, фильтр по дате + ночам |
+
+Нужен рабочий прогрев акций (`promo_tours_refresh.php`). Без кэша календарь пустой, но страница живая.
 
 ## Безопасность
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * Глобальный мобильный бар: Звонок / MAX / Заявка.
+ * Глобальный мобильный бар: Звонок / MAX / Чат поддержки.
  * Подключается из footer на всех страницах.
  */
 declare(strict_types=1);
@@ -35,10 +35,11 @@ if (!defined('TH_LEAD_CAPTURE_JS')) {
         <span>MAX</span>
     </a>
     <button type="button" class="th-site-lead-bar__btn th-site-lead-bar__btn--lead"
-            data-th-site-feedback
-            data-th-track="lead_bar">
-        <i class="fas fa-comment-dots" aria-hidden="true"></i>
-        <span>Заявка</span>
+            data-th-open-support-chat
+            data-th-track="chat_bar"
+            aria-label="Открыть чат поддержки">
+        <i class="fas fa-comments" aria-hidden="true"></i>
+        <span>Чат</span>
     </button>
 </nav>
 <script>
@@ -49,11 +50,22 @@ if (!defined('TH_LEAD_CAPTURE_JS')) {
     try { document.body.appendChild(bar); } catch (eBar) {}
   }
   document.addEventListener('click', function (e) {
+    var chatBtn = e.target && e.target.closest ? e.target.closest('[data-th-open-support-chat]') : null;
+    if (chatBtn) {
+      e.preventDefault();
+      if (window.THSupportChat && typeof window.THSupportChat.open === 'function') {
+        window.THSupportChat.open();
+      } else {
+        var toggle = document.getElementById('th-support-chat-toggle');
+        if (toggle) toggle.click();
+      }
+      if (window.THLeadCapture) window.THLeadCapture.reachGoal('chat_bar_click');
+      return;
+    }
     var el = e.target && e.target.closest ? e.target.closest('[data-th-track]') : null;
     if (!el || !window.THLeadCapture) return;
     var g = el.getAttribute('data-th-track');
     if (g === 'max_bar' || g === 'wa_bar') THLeadCapture.reachGoal('max_click');
-    if (g === 'lead_bar') THLeadCapture.reachGoal('lead_bar_click');
   }, true);
 })();
 </script>

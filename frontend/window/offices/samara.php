@@ -161,7 +161,16 @@ if (!$office) {
                                         <?php if (!empty($office['phone_url']) && stripos($office['phone_url'], 'max.ru') === false): ?>
                                         <a href="<?php echo htmlspecialchars($office['phone_url'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="hover:text-sky-500"><?php echo htmlspecialchars($office['phone'] ?? ''); ?></a>
                                         <?php else: ?>
-                                        <a href="tel:<?php echo htmlspecialchars(str_replace([' ', '(', ')', '-'], '', $office['phone'] ?? '+78461234567')); ?>" class="hover:text-sky-500"><?php echo htmlspecialchars($office['phone'] ?? '+7 (846) 123-45-67'); ?></a>
+                                        <?php
+                                        require_once __DIR__ . '/../../../backend/config/contacts.php';
+                                        $_thc_fb = th_contacts();
+                                        $_ph_disp = $office['phone'] ?? $_thc_fb['phone_display'];
+                                        $_ph_tel = preg_replace('/\D+/', '', (string) $_ph_disp);
+                                        if ($_ph_tel !== '' && $_ph_tel[0] !== '+') {
+                                            $_ph_tel = '+' . $_ph_tel;
+                                        }
+                                        ?>
+                                        <a href="tel:<?php echo htmlspecialchars($_ph_tel, ENT_QUOTES, 'UTF-8'); ?>" class="hover:text-sky-500"><?php echo htmlspecialchars((string) $_ph_disp, ENT_QUOTES, 'UTF-8'); ?></a>
                                         <?php endif; ?>
                                     </p>
                                 </div>

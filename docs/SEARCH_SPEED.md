@@ -55,12 +55,22 @@ curl -sI "https://travelhub63.ru/frontend/api/tourvisor-proxy.php?type=departure
 
 1. **SessionStorage SWR** — повтор того же поиска (до 15 мин) → paint сразу, без сети.
 2. **Скелетоны** карточек, пока идёт `cacheOnly`.
-3. **`cacheOnly` + `slim=1`** — файловый кэш, урезанный JSON списка.
+3. **`cacheOnly` + `slim=1`** — файловый кэш / cover, урезанный JSON списка.
 4. **Prefetch** при выборе страны / вылета / ночей (фоновый `cacheOnly`).
 5. Фоном **`live=1`** — обновление цен без блокировки UI.
 6. Cold (нет кэша) — один live-запрос; UI уже показал скелетон/SWR.
 
 Ответ списка: `X-Tourvisor-Slim: 1`. Полный hotel: `?full=1`.
+
+### Cover-cache (даты + ночи + туристы)
+
+Не отдельный URL — слой внутри `search-cached` (`tourvisor_search_cover.php`).
+
+- Exact key → `X-Tourvisor-Cache-Read: exact`
+- Cover (даты внутри прогретого окна, nights ⊆ широкого cover, те же adults/childs) → `cover` / `cover-filter`
+- Другой состав туристов → другой identity (первый раз live)
+
+Подробнее: [CACHE_LAYERS.md](CACHE_LAYERS.md#cover-cache-даты--фильтры).
 
 ---
 
@@ -72,10 +82,31 @@ php backend/cron/warm_home_search_cache.php
 bash backend/cron/warm_home_search_cache.sh
 ```
 
-Прогревает `popular_countries.php` × Самара + Москва × **3 окна дат** × ночи 6–9  
-(+ 5–10 ночей для топ-5 стран), `cacheScope=country_page`.
+**Cover-aware warm:**
+- горизонт `today+3 … today+42`;
+- nights **5–10** (один широкий коридор);
+- Самара + Москва × popular countries;
+- `2+0` всегда, `2+1` (ребёнок 7 лет) для топ-5 стран;
+- если cover свежий и закрывает горизонт → **skip**;
+- иначе live только по **дырам** (куски ≤14 дней) → proxy делает cover upsert.
+- аварийный откат: `TH_WARM_COVER_ENABLED=0` (legacy full-live warm).
+- лимиты TV: `TH_WARM_LIVE_PAUSE_SEC` (пауза), `TH_WARM_MAX_LIVE_CHUNKS` (потолок live за прогон).
 
-Рекомендуется **3–4× в сутки**:
+### Соблюдение лимитов Tourvisor API
+
+По [документации шлюза](https://api.tourvisor.ru/search/docs) (~30 req/min; `continue` = отдельный search в суточном лимите):
+
+| Механизм | Поведение |
+|----------|-----------|
+| Outbound throttle | `TH_TV_OUTBOUND_RPM=25` в `tvRequest()` |
+| Status poll | пауза 3с → каждые 2с, soft timeout ~24с |
+| `continue` | по умолчанию **выкл** (`TH_TV_CONTINUE_MAX=0`) |
+| HTTP 429 | exponential backoff + retry |
+| Warm | skip/extend + пауза между сегментами + budget cap |
+
+В логе JSON: `skipped`, `extendedChunks`, `warmed`, `mode: cover-skip-extend`.
+
+Рекомендуется **3–4× в сутки** (не в пик пользовательского трафика):
 
 ```
 30 0,8,14,20 * * * cd /path/to/travelhub-v2 && bash backend/cron/warm_home_search_cache.sh >> data/home_search_warm.log 2>&1
@@ -84,6 +115,20 @@ bash backend/cron/warm_home_search_cache.sh
 На SpaceWeb часто нужен `php8.1` вместо `php` — поправьте в `.sh` при необходимости.
 
 Акции (speed-cache): см. `backend/cron/update_promotions_cache.php` / `warm_promotions_cache.sh`.
+
+Проверка cover:
+
+```bash
+curl -sI "https://YOUR_HOST/frontend/api/tourvisor-proxy.php?type=search-cached&departureId=7&countryId=4&dateFrom=...&dateTo=...&nightsFrom=6&nightsTo=9&adults=2&cacheOnly=1&cacheScope=country_page" \
+  | grep -iE 'x-tourvisor-cache-read|x-tourvisor-cache-cover'
+# после прогрева: cover | cover-filter | exact
+```
+
+Очистка старых cover-артефактов (рекомендуется 1× в сутки):
+
+```bash
+php backend/cron/cleanup_search_cover_cache.php
+```
 
 ---
 
@@ -159,10 +204,13 @@ location = /frontend/api/tourvisor-proxy.php {
 
 ## Roadmap
 
-**Сейчас (SpaceWeb, PHP-only):** session SWR + slim + warm + prefetch — без VPS.
+**Сейчас (SpaceWeb, PHP-only):** session SWR + slim + **cover-cache** (skip/extend warm) + prefetch — без VPS.
 
-Позже (когда будет VPS):
+Позже:
 
-1. Go `search-cache-reader` (L1 read без PHP bootstrap)
-2. Async search jobs (TTFB &lt;200 ms на cold)
-3. Redis при нескольких нодах
+1. Prefetch tourist-комбо на фронте (2+1 при открытии блока туристов)
+2. Partial paint + background delta на пользовательском запросе
+3. Go `search-cache-reader` (L1 read без PHP bootstrap) — когда будет VPS
+4. Async search jobs (TTFB &lt;200 ms на cold)
+5. Cover для promo_speed_cache
+6. Redis при нескольких нодах
