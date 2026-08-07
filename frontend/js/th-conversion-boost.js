@@ -1,5 +1,5 @@
 /**
- * Travel Hub — conversion boost: wizard sticky, abandon sheet (1m / 2m / 3m), funnel analytics.
+ * Travel Hub — conversion boost: wizard sticky, abandon sheet (1× per session @ 6m), funnel analytics.
  */
 (function (global) {
   'use strict';
@@ -8,9 +8,14 @@
   var ABANDON_START_KEY = 'th_abandon_session_start';
   var ABANDON_SHOWN_KEY = 'th_abandon_slots_shown';
   var ABANDON_SKIP_KEY = 'th_abandon_sheet_skips';
-  /** Показы: 2.5 / 5 / 8 мин — реже, меньше раздражения на мобилке */
-  var ABANDON_SCHEDULE_MS = [150000, 300000, 480000];
-  var ABANDON_MAX_SKIPS = 2;
+  /**
+   * Best practice (site-wide session):
+   * — один показ за визит вкладки;
+   * — не раньше ~6 мин активности;
+   * — закрыл/скипнул → больше не показываем до конца сессии.
+   */
+  var ABANDON_SCHEDULE_MS = [360000];
+  var ABANDON_MAX_SKIPS = 1;
   var abandonTimersBound = false;
   var sheetEl = null;
   var pendingRetries = {};
@@ -319,7 +324,7 @@
   }
 
   /** Не выскакивать в момент загрузки новой страницы, даже если слот уже «просрочен». */
-  var PAGE_LOAD_GRACE_MS = 12000;
+  var PAGE_LOAD_GRACE_MS = 20000;
 
   function bindAbandonTriggers() {
     if (!document.body || document.body.classList.contains('th-promo-page')) return;

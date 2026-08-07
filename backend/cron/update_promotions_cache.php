@@ -1,8 +1,9 @@
 <?php
 /**
- * Прогрев кэша горящих туров: promo-search live (GET /tours/hots) → data/promo_cache_{countryId}_{departureId}.json
+ * Прогрев кэша горящих туров: promo-search live → data/promo_cache_{countryId}_{departureId}.json
+ * Питает витрину главной (home_showcase_shelves) — страны из popular_countries.php.
  *
- * Cron (2 раза в сутки):
+ * Cron (2 раза в сутки, минимум 1× ночью):
  *   0 0,12 * * * cd /path/to/website-main && bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1
  *
  * Ручной прогрев по SSH (на хостинге нужен php7.4, не системный php 5.2):

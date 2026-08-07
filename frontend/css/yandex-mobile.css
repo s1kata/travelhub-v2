@@ -589,6 +589,14 @@ html.th-yandex-mobile .promo-cp-grid {
     gap: 12px !important;
 }
 
+html.th-yandex-mobile .promo-cptile,
+html.th-browser-safari .promo-cptile {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    justify-self: stretch !important;
+}
+
 html.th-yandex-mobile .th-off-hero__cta {
     flex-direction: column !important;
     align-items: stretch !important;

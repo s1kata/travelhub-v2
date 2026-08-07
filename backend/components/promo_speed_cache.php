@@ -85,10 +85,18 @@ function th_promo_speed_night_windows(int $countryId = 0): array
 function th_promo_speed_date_plus_to(int $countryId): int
 {
     $countryId = th_promo_effective_rules_country_id($countryId);
-    if (in_array($countryId, [1, 2, 4, 8, 9, 12, 13, 16, 46, 47], true)) {
-        return 21;
+    // Базовое окно витрины + «лестница» календаря (текущий месяц + N вперёд).
+    $base = in_array($countryId, [1, 2, 4, 8, 9, 12, 13, 16, 46, 47], true) ? 21 : 7;
+    $ladderDays = $base;
+    $ladderFile = __DIR__ . '/deals_calendar.php';
+    if (is_file($ladderFile)) {
+        require_once $ladderFile;
+        if (function_exists('th_deals_calendar_ladder')) {
+            $ladderDays = (int) (th_deals_calendar_ladder()['daysAhead'] ?? $base);
+        }
     }
-    return 7;
+
+    return max($base, $ladderDays);
 }
 
 /** @return int[] countryId с fallback на обычные ближайшие туры */
@@ -145,16 +153,19 @@ function th_promo_speed_fetch_regular_window_arrays(
     return $regularArrays;
 }
 
-/** Дата вылета тура YYYY-MM-DD из ответа Tourvisor. */
+/** Дата вылета тура YYYY-MM-DD из ответа Tourvisor / promo_cache. */
 function th_promo_tour_start_ymd(array $tour): string
 {
-    foreach (['date', 'startDate', 'departureDate', 'flydate', 'flyDate'] as $key) {
+    foreach (['date', 'startDate', 'departureDate', 'flydate', 'flyDate', 'datefrom', 'dateFrom', 'checkIn', 'checkin'] as $key) {
         if (!isset($tour[$key]) || $tour[$key] === '') {
             continue;
         }
         $s = trim((string) $tour[$key]);
         if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $s, $m)) {
             return $m[1];
+        }
+        if (preg_match('/^(\d{2})\.(\d{2})\.(\d{4})$/', $s, $m)) {
+            return $m[3] . '-' . $m[2] . '-' . $m[1];
         }
     }
 

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Travel Hub — главная страница (index.php).
  * Вынесено из inline <style> для mobile-first pipeline.
  */
@@ -867,12 +867,20 @@ header {
 @media (max-width: 640px) {
     .tv-field { max-width: 100% !important; }
 }
-/* Flatpickr: календарь в стиле сайта */
+/* Flatpickr: календарь в стиле сайта (navy, без teal-на-coral) */
 .flatpickr-calendar { border-radius: var(--radius-card); box-shadow: var(--shadow-card); border: 1px solid var(--border-soft); }
-.flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange { background: #5DA9A4 !important; border-color: #5DA9A4 !important; }
+.flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange { background: #1A1A40 !important; border-color: #1A1A40 !important; }
 .flatpickr-day.inRange { background: rgba(93, 169, 164, 0.18) !important; box-shadow: none !important; }
 .flatpickr-day:hover { background: rgba(93, 169, 164, 0.22) !important; border-color: #5DA9A4 !important; }
-.flatpickr-months .flatpickr-month { background: #5DA9A4 !important; }
+.flatpickr-months { background: linear-gradient(135deg, #1A1A40, #2a2a5a) !important; }
+.flatpickr-months .flatpickr-month { background: transparent !important; }
+.flatpickr-monthDropdown-months,
+select.flatpickr-monthDropdown-months {
+    background: rgba(255, 255, 255, 0.14) !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
+    color: #fff !important;
+    border-radius: 10px !important;
+}
 .flatpickr-current-month .numInputWrapper span.arrowUp:after { border-bottom-color: #fff !important; }
 .flatpickr-current-month .numInputWrapper span.arrowDown:after { border-top-color: #fff !important; }
 /* U-ON widget styling */
@@ -1007,6 +1015,10 @@ header {
 .tv-cal-day-price.is-deal,
 .flatpickr-day.tv-cal-deal .tv-cal-day-price {
     color: #15803d;
+}
+.tv-cal-day-price.is-reduced,
+.flatpickr-day.tv-cal-reduced .tv-cal-day-price {
+    color: #0f766e;
 }
 @media (max-width: 767px) {
     body.has-th-lead-bar .th-support-chat__toggle {
@@ -1240,6 +1252,69 @@ header {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
 }
+@media (min-width: 560px) {
+    .th-tour-offer-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+}
+@media (min-width: 768px) {
+    .th-showcase-toolbar {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .th-tour-offer-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+    }
+    .th-tour-offer__image {
+        height: 140px;
+    }
+}
+@media (min-width: 1100px) {
+    .th-tour-offer-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 16px;
+    }
+    .th-tour-offer__image {
+        height: 150px;
+    }
+}
+@media (min-width: 1400px) {
+    .th-tour-offer-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+}
+@media (max-width: 767px) {
+    .th-showcase-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .th-tour-offer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+    .th-tour-offer__image {
+        height: 110px;
+    }
+    .th-tour-offer__title {
+        font-size: 0.88rem;
+    }
+}
+.th-tour-offer--skeleton {
+    pointer-events: none;
+    opacity: 0.72;
+}
+.th-tour-offer--skeleton .th-tour-offer__image {
+    background: linear-gradient(90deg, #e2e8f0 0%, #f1f5f9 50%, #e2e8f0 100%);
+    background-size: 200% 100%;
+    animation: th-offer-skel 1.2s ease-in-out infinite;
+}
+@keyframes th-offer-skel {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}
 .th-tour-offer {
     display: flex;
     flex-direction: column;
@@ -1288,41 +1363,6 @@ header {
     font-size: 0.8rem;
     color: #64748b;
     line-height: 1.3;
-}
-@media (min-width: 768px) {
-    .th-showcase-toolbar {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-    }
-    .th-tour-offer-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 16px;
-    }
-    .th-tour-offer__image {
-        height: 150px;
-    }
-}
-@media (min-width: 1100px) {
-    .th-tour-offer-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-}
-@media (max-width: 767px) {
-    .th-showcase-head {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-    .th-tour-offer-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-    }
-    .th-tour-offer__image {
-        height: 110px;
-    }
-    .th-tour-offer__title {
-        font-size: 0.88rem;
-    }
 }
 .tv-results-calendar-quick {
     display: inline-flex;

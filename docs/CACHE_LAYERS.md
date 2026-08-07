@@ -31,7 +31,9 @@
 **Нельзя** отдавать cover с другими adults/childs.  
 **Можно** узкие ночи из более широкого cover (warm пишет 5–10).
 
-**Warm** (`warm_home_search_cache.php`): горизонт `today+3…+42`, nights `5–10`, skip если cover свежий и закрывает горизонт, иначе live только по дырам (≤14 дней). Туристы: `2+0` всегда, `2+1` (возраст 7) для топ-5 стран.
+**Warm** (`warm_home_search_cache.php`): горизонт `today+3…+42`, nights `5–10`, skip если cover свежий и закрывает горизонт, иначе live только по дырам (≤14 дней). Туристы: `2+0` всегда, `2+1` (возраст 7) для топ-5 стран. Страны из `popular_countries.php`.
+
+Витрина главной (`home_showcase_shelves`): читает `promo_cache_*` (не search-cover). Прогрев: `warm_promotions_cache.sh` / `update_promotions_cache.php` — cron `0 0,12 * * *` (минимум раз в сутки ночью).
 
 Заголовки: `X-Tourvisor-Cache-Cover`, `X-Tourvisor-Cache-Identity`.
 
@@ -131,14 +133,18 @@ php backend/cron/warm_home_search_cache.php
 
 ## Календарь выгодных дат (promo)
 
-Страница `/frontend/window/tour-calendar.php` — heatmap без live Tourvisor.
+Страница `/frontend/window/tour-calendar.php` — свод лучших цен по **всем** популярным направлениям.
+
+**Лестница месяцев:** текущий + `TH_DEALS_CAL_MONTHS_AHEAD` (по умолчанию 3 → из августа до ноября). С новым месяцем окно сдвигается: прошлый отпадает, впереди появляется следующий. Прогрев акций (`th_promo_speed_date_plus_to`) тянет пакет туров до конца горизонта.
+
+**Метки дня:** `deal` = выгодная цена (~40% самых дешёвых дней), `reduced` = пониженная цена (остальные дни с турами).
 
 | API | Источник |
 |-----|----------|
-| `backend/api/calendar_price_map.php` | `promo_cache` → `{ dates: { Y-m-d: { minPrice, deal } } }` |
-| `backend/api/calendar_day_tours.php` | тот же кэш, фильтр по дате + ночам |
+| `backend/api/calendar_price_map.php` | `promo_cache` → `{ dates, ladder }` |
+| `backend/api/calendar_day_tours.php` | тот же кэш, фильтр по дате |
 
-Нужен рабочий прогрев акций (`promo_tours_refresh.php`). Без кэша календарь пустой, но страница живая.
+Парсинг даты тура: `th_promo_tour_start_ymd()`. Нужен прогрев `warm_promotions_cache.sh`. Без кэша календарь пустой.
 
 ## Безопасность
 

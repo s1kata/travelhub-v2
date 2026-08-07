@@ -649,8 +649,11 @@
     }
 
     .promo-cptile {
-        min-height: 110px !important;
+        min-height: 148px !important;
         border-radius: 14px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
     }
 
     .promo-cptile-name {

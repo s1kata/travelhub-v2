@@ -164,6 +164,33 @@ body.th-home-funnel-top.th-wizard-lead-visible .th-site-lead-bar__btn--lead {
     right: 8px !important;
     bottom: auto !important;
 }
+@media (max-width: 479px) {
+    .promo-cptile .promo-country-callback,
+    .promo-country-callback {
+        width: 30px !important;
+        min-width: 30px !important;
+        max-width: 30px !important;
+        height: 30px !important;
+        padding: 0 !important;
+        border-radius: 999px !important;
+        font-size: 0 !important;
+        line-height: 30px !important;
+        text-indent: 0 !important;
+        overflow: hidden;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    .promo-cptile .promo-country-callback::before,
+    .promo-country-callback::before {
+        content: "\f095";
+        font-family: "Font Awesome 5 Free", "Font Awesome 6 Free", FontAwesome;
+        font-weight: 900;
+        font-size: 0.72rem;
+        color: #1A1A40;
+        line-height: 1;
+    }
+}
 
 .th-lead-capture__proof {
     display: flex;

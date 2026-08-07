@@ -333,6 +333,8 @@
 
     function shouldDeferPromoExpand() {
         if (document.body.classList.contains('th-modal-open') || document.body.classList.contains('th-abandon-open')) return true;
+        /* На акциях и календаре — только свёрнутый таб, без полноэкранного листа */
+        if (document.body.classList.contains('th-promo-page') || document.body.classList.contains('th-deals-cal-page')) return true;
         if (!isHomeWizardFlow()) return false;
         return getWizardStep() >= 1 && getWizardStep() <= 4;
     }

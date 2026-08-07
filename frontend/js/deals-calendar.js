@@ -1,5 +1,7 @@
 /**
  * Календарь выгодных дат — heatmap + туры на день (promo cache).
+ * Две метки: выгодная (deal) и пониженная (reduced).
+ * Навигация по «лестнице» месяцев (текущий + N вперёд).
  */
 (function () {
   'use strict';
@@ -10,12 +12,13 @@
 
   var state = {
     departureId: cfg.departureId || 7,
-    countryId: cfg.countryId || 4,
-    countryName: cfg.countryName || 'Турция',
-    nightsFrom: 6,
-    nightsTo: 9,
+    countryId: 0,
+    nightsFrom: 0,
+    nightsTo: 0,
     viewYear: 0,
     viewMonth: 0, // 0-11
+    monthsAhead: typeof cfg.monthsAhead === 'number' ? cfg.monthsAhead : 3,
+    viewMaxYm: cfg.viewMaxYm || '',
     priceMap: {},
     selectedDate: '',
     loadingMap: false,
@@ -38,6 +41,48 @@
       return 'от ' + k + 'к';
     }
     return 'от ' + n.toLocaleString('ru-RU') + ' ₽';
+  }
+
+  function syncSummary() {
+    var el = $('th-dc-summary');
+    if (!el) return;
+    el.textContent = depCityName() + ' · все направления';
+  }
+
+  function tickGrid() {
+    var grid = $('th-dc-grid');
+    if (!grid) return;
+    grid.classList.remove('is-ticking');
+    void grid.offsetWidth;
+    grid.classList.add('is-ticking');
+  }
+
+  function bestDealDate() {
+    var dealKeys = Object.keys(state.priceMap || {}).filter(function (k) {
+      return state.priceMap[k] && state.priceMap[k].deal && state.priceMap[k].minPrice > 0;
+    });
+    if (dealKeys.length) {
+      dealKeys.sort(function (a, b) {
+        return (state.priceMap[a].minPrice || 0) - (state.priceMap[b].minPrice || 0);
+      });
+      return dealKeys[0];
+    }
+    var reducedKeys = Object.keys(state.priceMap || {}).filter(function (k) {
+      return state.priceMap[k] && state.priceMap[k].reduced && state.priceMap[k].minPrice > 0;
+    });
+    if (reducedKeys.length) {
+      reducedKeys.sort(function (a, b) {
+        return (state.priceMap[a].minPrice || 0) - (state.priceMap[b].minPrice || 0);
+      });
+      return reducedKeys[0];
+    }
+    var all = Object.keys(state.priceMap || {}).filter(function (k) {
+      return state.priceMap[k] && state.priceMap[k].minPrice > 0;
+    });
+    all.sort(function (a, b) {
+      return (state.priceMap[a].minPrice || 0) - (state.priceMap[b].minPrice || 0);
+    });
+    return all[0] || '';
   }
 
   function formatPriceFull(n) {
@@ -71,7 +116,7 @@
 
   function tourDateYmd(tour) {
     var raw = '';
-    ['flydate', 'datefrom', 'dateFrom', 'checkIn', 'checkin', 'startDate', 'date'].forEach(function (k) {
+    ['date', 'startDate', 'departureDate', 'flydate', 'flyDate', 'datefrom', 'dateFrom', 'checkIn', 'checkin'].forEach(function (k) {
       if (!raw && tour && tour[k]) raw = String(tour[k]).trim();
     });
     if (!raw) return '';
@@ -98,11 +143,12 @@
     var nights = t.nights || '';
     var dateTo = addDaysYmd(dateFrom, nights);
     var region = (hotel.region && hotel.region.name) ? hotel.region.name : '';
+    var countryName = hotel._countryName || (hotel.country && hotel.country.name) || '';
     var desc = String(hotel.description || hotel.hotelDescription || hotel.descr || '').trim().slice(0, 4000);
     var params = {
       hotel_id: hotel.id || '',
       hotel_name: hotel.name || '',
-      country: state.countryName || '',
+      country: countryName,
       departure_city: depCityName(),
       departure_id: state.departureId || '',
       nights: nights,
@@ -133,6 +179,17 @@
     state.viewMonth = now.getMonth();
   }
 
+  function viewYm() {
+    return state.viewYear + '-' + pad2(state.viewMonth + 1);
+  }
+
+  function ladderMaxYm() {
+    if (state.viewMaxYm) return state.viewMaxYm;
+    var now = new Date();
+    var d = new Date(now.getFullYear(), now.getMonth() + state.monthsAhead, 1);
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1);
+  }
+
   function canGoPrev() {
     var now = new Date();
     return state.viewYear > now.getFullYear() ||
@@ -140,10 +197,7 @@
   }
 
   function canGoNext() {
-    var now = new Date();
-    var max = new Date(now.getFullYear(), now.getMonth() + 2, 1);
-    var cur = new Date(state.viewYear, state.viewMonth, 1);
-    return cur < max;
+    return viewYm() < ladderMaxYm();
   }
 
   function renderWeekdays() {
@@ -161,6 +215,12 @@
     var next = $('th-dc-next');
     if (prev) prev.disabled = !canGoPrev();
     if (next) next.disabled = !canGoNext();
+  }
+
+  function tierLabel(info) {
+    if (info && info.deal) return 'выгодная цена';
+    if (info && info.reduced) return 'пониженная цена';
+    return '';
   }
 
   function renderGrid() {
@@ -185,24 +245,36 @@
       var info = state.priceMap[key];
       var has = !!(info && info.minPrice > 0) && !past;
       var deal = !!(info && info.deal);
+      var reduced = !deal && !!(info && info.reduced);
       var cls = 'th-deals-cal__cell';
       if (past) cls += ' th-deals-cal__cell--muted';
       if (has) cls += ' th-deals-cal__cell--has';
       if (deal) cls += ' th-deals-cal__cell--deal';
+      else if (reduced) cls += ' th-deals-cal__cell--reduced';
       if (state.selectedDate === key) cls += ' th-deals-cal__cell--active';
       var priceHtml = has ? '<span class="th-deals-cal__price">' + esc(formatPrice(info.minPrice)) + '</span>' : '';
-      var badge = deal ? '<span class="th-deals-cal__badge" title="Выгодно"></span>' : '';
+      var countryHtml = (has && info.countryName)
+        ? '<span class="th-deals-cal__country">' + esc(info.countryName) + '</span>'
+        : '';
+      var badge = '';
+      if (deal) badge = '<span class="th-deals-cal__badge th-deals-cal__badge--deal" title="Выгодная цена"></span>';
+      else if (reduced) badge = '<span class="th-deals-cal__badge th-deals-cal__badge--reduced" title="Пониженная цена"></span>';
+      var ariaExtra = has
+        ? (', ' + formatPriceFull(info.minPrice) + (tierLabel(info) ? ', ' + tierLabel(info) : '') + (info.countryName ? ', ' + info.countryName : ''))
+        : '';
       html.push(
         '<button type="button" class="' + cls + '" data-date="' + key + '"' +
         (has ? '' : ' disabled') +
-        ' aria-label="' + key + (has ? ', ' + formatPriceFull(info.minPrice) : '') + '">' +
+        ' aria-label="' + key + ariaExtra + '">' +
         badge +
         '<span class="th-deals-cal__daynum">' + i + '</span>' +
         priceHtml +
+        countryHtml +
         '</button>'
       );
     }
     grid.innerHTML = html.join('');
+    tickGrid();
   }
 
   function setResultsPlaceholder(msg) {
@@ -212,7 +284,14 @@
     if (list) list.innerHTML = '';
     if (empty) {
       empty.classList.remove('hidden');
-      empty.textContent = msg || 'Выберите дату с ценой — покажем туры.';
+      var title = empty.querySelector('.th-deals-cal__empty-title');
+      var text = empty.querySelector('.th-deals-cal__empty-text');
+      if (title && text) {
+        title.textContent = msg || 'Выберите дату с ценой';
+        text.textContent = 'Красная метка — выгодная цена, бирюзовая — пониженная. Нажмите день — покажем туры.';
+      } else {
+        empty.textContent = msg || 'Выберите дату с ценой — покажем туры.';
+      }
     }
     if (sub) sub.textContent = '';
   }
@@ -227,7 +306,14 @@
       if (list) list.innerHTML = '';
       if (empty) {
         empty.classList.remove('hidden');
-        empty.textContent = 'На эту дату в кэше пока нет туров. Выберите соседний день или откройте акции.';
+        var emptyTitle = empty.querySelector('.th-deals-cal__empty-title');
+        var emptyText = empty.querySelector('.th-deals-cal__empty-text');
+        if (emptyTitle && emptyText) {
+          emptyTitle.textContent = 'На эту дату туров нет';
+          emptyText.textContent = 'Выберите соседний день с ценой или откройте все акции.';
+        } else {
+          empty.textContent = 'На эту дату в кэше пока нет туров. Выберите соседний день или откройте акции.';
+        }
       }
       if (sub) sub.textContent = '';
       return;
@@ -239,7 +325,8 @@
       var nights = t.nights ? (t.nights + ' н.') : '';
       var meal = (t.meal && (t.meal.name || t.meal.russianName)) || '';
       var stars = h.stars || h.hotelcategory || h.category || '';
-      var meta = [stars ? (stars + '★') : '', nights, meal].filter(Boolean).join(' · ');
+      var country = h._countryName || (h.country && h.country.name) || '';
+      var meta = [country, stars ? (stars + '★') : '', nights, meal].filter(Boolean).join(' · ');
       var price = formatPriceFull(h._dayMinPrice || t.totalPrice || t.price);
       return (
         '<a class="th-deals-cal__card" href="' + esc(tourDetailHref(h)) + '">' +
@@ -254,22 +341,58 @@
     }).join('');
   }
 
+  function applyLadderMeta(j) {
+    if (!j || !j.ladder) return;
+    if (typeof j.ladder.monthsAhead === 'number') {
+      state.monthsAhead = j.ladder.monthsAhead;
+    }
+    if (j.ladder.viewMaxYm) {
+      state.viewMaxYm = String(j.ladder.viewMaxYm);
+    }
+  }
+
   function loadPriceMap() {
     var panel = $('th-dc-cal-panel');
     state.loadingMap = true;
     if (panel) panel.classList.add('th-deals-cal__loading');
+    syncSummary();
     var url = (cfg.priceMapUrl || '/backend/api/calendar_price_map.php') +
       '?departureId=' + encodeURIComponent(state.departureId) +
-      '&countryId=' + encodeURIComponent(state.countryId);
+      '&countryId=0';
     return fetch(url, { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (j) {
+        applyLadderMeta(j);
         state.priceMap = (j && j.success && j.dates) ? j.dates : {};
+        renderMonthHead();
         renderGrid();
+        var keys = Object.keys(state.priceMap);
+        if (!keys.length) {
+          var reason = (j && j.emptyReason) || '';
+          if (reason === 'no_promo_cache') {
+            setResultsPlaceholder('Нет прогретых акций');
+          } else {
+            setResultsPlaceholder('Пока нет выгодных дат в кэше');
+          }
+          return;
+        }
+        var pick = bestDealDate();
+        if (pick) {
+          var parts = pick.split('-');
+          if (parts.length === 3) {
+            state.viewYear = parseInt(parts[0], 10);
+            state.viewMonth = parseInt(parts[1], 10) - 1;
+            renderMonthHead();
+            renderGrid();
+          }
+          return loadDay(pick);
+        }
+        setResultsPlaceholder('Выберите дату с ценой');
       })
       .catch(function () {
         state.priceMap = {};
         renderGrid();
+        setResultsPlaceholder('Не удалось загрузить карту цен');
       })
       .finally(function () {
         state.loadingMap = false;
@@ -284,11 +407,9 @@
     setResultsPlaceholder('Загружаем туры…');
     var url = (cfg.dayToursUrl || '/backend/api/calendar_day_tours.php') +
       '?departureId=' + encodeURIComponent(state.departureId) +
-      '&countryId=' + encodeURIComponent(state.countryId) +
+      '&countryId=0' +
       '&date=' + encodeURIComponent(date) +
-      '&nightsFrom=' + encodeURIComponent(state.nightsFrom) +
-      '&nightsTo=' + encodeURIComponent(state.nightsTo) +
-      '&limit=12';
+      '&limit=16';
     return fetch(url, { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (j) {
@@ -306,27 +427,16 @@
 
   function syncFiltersFromUi() {
     var dep = $('th-dc-departure');
-    var country = $('th-dc-country');
-    var nights = $('th-dc-nights');
     if (dep) state.departureId = parseInt(dep.value, 10) || 7;
-    if (country) {
-      state.countryId = parseInt(country.value, 10) || 4;
-      var opt = country.options[country.selectedIndex];
-      state.countryName = opt ? (opt.getAttribute('data-name') || opt.textContent || '') : '';
-    }
-    if (nights) {
-      var parts = String(nights.value || '6-9').split('-');
-      state.nightsFrom = parseInt(parts[0], 10) || 6;
-      state.nightsTo = parseInt(parts[1], 10) || 9;
-    }
   }
 
   function refreshAll() {
     syncFiltersFromUi();
+    syncSummary();
     state.selectedDate = '';
-    setResultsPlaceholder('Выберите дату с ценой — покажем туры.');
+    setResultsPlaceholder('Обновляем календарь');
     var title = $('th-dc-results-title');
-    if (title) title.textContent = 'Туры на дату';
+    if (title) title.textContent = 'Выберите дату';
     renderMonthHead();
     return loadPriceMap();
   }
@@ -340,11 +450,7 @@
 
   function bindChips() {
     var depChips = $('th-dc-departure-chips');
-    var countryChips = $('th-dc-country-chips');
-    var nightsChips = $('th-dc-nights-chips');
     var depSel = $('th-dc-departure');
-    var countrySel = $('th-dc-country');
-    var nightsSel = $('th-dc-nights');
 
     if (depChips && depSel) {
       depChips.addEventListener('click', function (e) {
@@ -355,31 +461,14 @@
         refreshAll();
       });
     }
-    if (countryChips && countrySel) {
-      countryChips.addEventListener('click', function (e) {
-        var btn = e.target && e.target.closest ? e.target.closest('[data-country]') : null;
-        if (!btn) return;
-        setChipActive(countryChips, btn);
-        countrySel.value = btn.getAttribute('data-country') || '4';
-        refreshAll();
-      });
-    }
-    if (nightsChips && nightsSel) {
-      nightsChips.addEventListener('click', function (e) {
-        var btn = e.target && e.target.closest ? e.target.closest('[data-nights]') : null;
-        if (!btn) return;
-        setChipActive(nightsChips, btn);
-        nightsSel.value = btn.getAttribute('data-nights') || '6-9';
-        refreshAll();
-      });
-    }
   }
 
   function bind() {
     renderWeekdays();
     initViewMonth();
     renderMonthHead();
-    setResultsPlaceholder('Выберите дату с ценой — покажем туры.');
+    syncSummary();
+    setResultsPlaceholder('Выберите дату с ценой');
 
     var prev = $('th-dc-prev');
     var next = $('th-dc-next');

@@ -862,6 +862,14 @@
         gap: 12px !important;
     }
 
+    .promo-cptile {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        justify-self: stretch !important;
+        align-self: stretch !important;
+    }
+
     .th-off-hero__cta {
         flex-direction: column !important;
         align-items: stretch !important;
@@ -1534,6 +1542,12 @@ html.th-kb-open .th-results-sticky-lead {
     .th-page-tour-detail,
     .th-page-hero-v2 + main {
         padding-bottom: calc(var(--th-sticky-bottom-h, 64px) + 12px) !important;
+    }
+
+    /* Чат — fixed overlay, не секция контента: не наследовать section padding */
+    #th-support-chat.th-support-chat {
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
     .th-promo-page .promo-stars-trigger,

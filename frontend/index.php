@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // Сначала только кэш — без config и без сессии, чтобы при отдаче из кэша не тратить время
 require_once __DIR__ . '/../backend/components/page_cache.php';
 // Сессия только если есть cookie (чтобы проверить авторизацию для isAdminRequest)
@@ -149,25 +149,25 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     <link rel="stylesheet" href="/frontend/css/responsive.css?v=17" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="/frontend/css/responsive.css?v=17"></noscript>
     <link rel="stylesheet" href="/frontend/css/design-system.css?v=14">
-    <link rel="stylesheet" href="/frontend/css/redesign.css?v=34">
+    <link rel="stylesheet" href="/frontend/css/redesign.css?v=35">
     <link rel="stylesheet" href="/frontend/css/v2-theme.css?v=4">
     <?php if ($th_search_ui === 'legacy'): ?>
     <link rel="stylesheet" href="/frontend/search-legacy/css/tour-search-wizard.css?v=legacy1">
-    <link rel="stylesheet" href="/frontend/search-legacy/css/th-coral-search.css?v=legacy1">
+    <link rel="stylesheet" href="/frontend/search-legacy/css/th-coral-search.css?v=legacy3">
     <?php else: ?>
     <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=11">
-    <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=16">
+    <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=17">
     <link rel="stylesheet" href="/frontend/css/th-search-v2.css?v=1">
     <?php endif; ?>
     <link rel="stylesheet" href="/frontend/css/th-hard-funnel.css?v=8">
-    <link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=8">
-    <link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=8">
-    <link rel="stylesheet" href="/frontend/css/yandex-mobile.css?v=7">
-    <link rel="stylesheet" href="/frontend/css/pages/home.css?v=10">
+    <link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=11">
+    <link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=9">
+    <link rel="stylesheet" href="/frontend/css/yandex-mobile.css?v=9">
+    <link rel="stylesheet" href="/frontend/css/pages/home.css?v=12">
     <link rel="stylesheet" href="/frontend/css/th-sheet.css?v=7">
     <?php include __DIR__ . '/../backend/components/mobile_site_head.php'; ?>
-    <link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=5">
-    <link rel="stylesheet" href="/frontend/css/support-chat.css?v=1">
+    <link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=7">
+    <link rel="stylesheet" href="/frontend/css/support-chat.css?v=9">
     <!-- After unified-ui: mobile results dock overrides Call/MAX/Заявка bar -->
     <link rel="stylesheet" href="/frontend/css/th-results-ux.css?v=2">
     <script>window.__TH_YM_ID=<?php echo json_encode((string)$th_ym_id, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
@@ -185,7 +185,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     <script src="/frontend/js/th-mobile.js?v=14" defer></script>
     <script src="/frontend/js/th-modal.js?v=2" defer></script>
     <script src="/frontend/js/th-gallery.js?v=1" defer></script>
-    <script src="/frontend/js/support-chat-widget.js?v=1" defer></script>
+    <script src="/frontend/js/support-chat-widget.js?v=3" defer></script>
     
 </head>
 <body class="text-[#111827] antialiased th-search-ui-<?php echo htmlspecialchars($th_search_ui, ENT_QUOTES, 'UTF-8'); ?>">
@@ -673,11 +673,37 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
         </div>
     </section>
 
-    <!-- Горящие туры: готовые карточки, без лишних кликов по странам -->
+    <!-- Горящие туры: готовые карточки отелей с ценой -->
     <?php
-    $homePopularDefaultCards = is_file(__DIR__ . '/../backend/config/home_popular_destinations_fallback.php')
-        ? require __DIR__ . '/../backend/config/home_popular_destinations_fallback.php'
-        : [];
+    $homeShowcaseBoot = [
+        'success' => true,
+        'departureId' => 7,
+        'departureName' => 'Самара',
+        'mode' => 'tours',
+        'source' => 'ssr_empty',
+        'moods' => [],
+        'hot' => [],
+        'tours' => [],
+    ];
+    try {
+        require_once __DIR__ . '/../backend/components/home_showcase_build.php';
+        $bootDep = (int) (function_exists('th_departure_default_id') ? th_departure_default_id() : 7);
+        if ($bootDep !== 1 && $bootDep !== 7) {
+            $bootDep = 7;
+        }
+        $homeShowcaseBoot = th_home_showcase_build($bootDep, false);
+    } catch (Throwable $e) {
+        // оставляем пустую витрину — JS догрузит
+    }
+    $homeShowcaseBootTours = [];
+    if (!empty($homeShowcaseBoot['moods']['beach']['items']) && is_array($homeShowcaseBoot['moods']['beach']['items'])) {
+        $homeShowcaseBootTours = $homeShowcaseBoot['moods']['beach']['items'];
+    } elseif (!empty($homeShowcaseBoot['hot']) && is_array($homeShowcaseBoot['hot'])) {
+        $homeShowcaseBootTours = $homeShowcaseBoot['hot'];
+    } elseif (!empty($homeShowcaseBoot['tours']) && is_array($homeShowcaseBoot['tours'])) {
+        $homeShowcaseBootTours = $homeShowcaseBoot['tours'];
+    }
+    $homeShowcaseBootTours = array_slice($homeShowcaseBootTours, 0, 12);
     ?>
     <section class="th-home-showcase py-6 md:py-10 bg-[#F9FAFB]" aria-labelledby="dest-heading">
         <div class="th-container mx-auto px-4 sm:px-6 md:px-8 max-w-7xl">
@@ -691,8 +717,8 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
 
             <div class="th-showcase-toolbar mb-4">
                 <div class="th-showcase-departure-switch" role="group" aria-label="Город вылета">
-                    <button type="button" class="th-showcase-departure-btn is-active" data-showcase-departure-city="samara" data-showcase-departure-id="7">Самара</button>
-                    <button type="button" class="th-showcase-departure-btn" data-showcase-departure-city="moscow" data-showcase-departure-id="1">Москва</button>
+                    <button type="button" class="th-showcase-departure-btn<?php echo ((int)($homeShowcaseBoot['departureId'] ?? 7) === 7) ? ' is-active' : ''; ?>" data-showcase-departure-city="samara" data-showcase-departure-id="7">Самара</button>
+                    <button type="button" class="th-showcase-departure-btn<?php echo ((int)($homeShowcaseBoot['departureId'] ?? 7) === 1) ? ' is-active' : ''; ?>" data-showcase-departure-city="moscow" data-showcase-departure-id="1">Москва</button>
                 </div>
                 <div class="th-showcase-moods__chips" role="tablist" aria-label="Подборки">
                     <button type="button" class="th-mood-chip is-active" data-home-mood="beach" role="tab" aria-selected="true">На пляж</button>
@@ -703,18 +729,45 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             </div>
 
             <div id="home-hot-tours-grid" class="th-tour-offer-grid">
-                <?php foreach (array_slice($homePopularDefaultCards, 0, 4) as $hpCard): ?>
-                <a href="/frontend/window/promotions.php?countryId=<?php echo (int) ($hpCard['countryId'] ?? 0); ?>&countryName=<?php echo rawurlencode((string) ($hpCard['name'] ?? '')); ?>" class="th-tour-offer">
-                    <div class="th-tour-offer__image" style="background-image:url('<?php echo htmlspecialchars($hpCard['image'], ENT_QUOTES, 'UTF-8'); ?>');"></div>
-                    <div class="th-tour-offer__body">
-                        <span class="th-tour-offer__badge">Горящее</span>
-                        <strong class="th-tour-offer__title"><?php echo htmlspecialchars($hpCard['name'], ENT_QUOTES, 'UTF-8'); ?></strong>
-                        <span class="th-tour-offer__meta">Открыть готовые туры</span>
-                    </div>
-                </a>
-                <?php endforeach; ?>
+                <?php if ($homeShowcaseBootTours !== []): ?>
+                    <?php foreach ($homeShowcaseBootTours as $tourCard): ?>
+                        <?php
+                        $tcHref = htmlspecialchars((string) ($tourCard['href'] ?? '/frontend/window/promotions.php'), ENT_QUOTES, 'UTF-8');
+                        $tcImg = htmlspecialchars((string) ($tourCard['image'] ?? ''), ENT_QUOTES, 'UTF-8');
+                        $tcHotel = htmlspecialchars((string) ($tourCard['hotelName'] ?? ''), ENT_QUOTES, 'UTF-8');
+                        $tcCountry = htmlspecialchars((string) ($tourCard['countryName'] ?? ''), ENT_QUOTES, 'UTF-8');
+                        $tcPrice = (int) ($tourCard['price'] ?? 0);
+                        $tcNights = (int) ($tourCard['nights'] ?? 0);
+                        $tcBadge = $tcPrice > 0 ? ('от ' . number_format($tcPrice, 0, '', ' ') . ' ₽') : 'Горящее';
+                        $tcMetaParts = array_filter([
+                            $tcCountry,
+                            $tcNights > 0 ? ($tcNights . ' н.') : '',
+                        ]);
+                        $tcMeta = htmlspecialchars(implode(' · ', $tcMetaParts) ?: 'Горящий тур', ENT_QUOTES, 'UTF-8');
+                        ?>
+                        <a href="<?php echo $tcHref; ?>" class="th-tour-offer">
+                            <div class="th-tour-offer__image" style="background-image:url('<?php echo $tcImg; ?>');"></div>
+                            <div class="th-tour-offer__body">
+                                <span class="th-tour-offer__badge"><?php echo htmlspecialchars($tcBadge, ENT_QUOTES, 'UTF-8'); ?></span>
+                                <strong class="th-tour-offer__title"><?php echo $tcHotel; ?></strong>
+                                <span class="th-tour-offer__meta"><?php echo $tcMeta; ?></span>
+                            </div>
+                        </a>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <?php for ($sk = 0; $sk < 4; $sk++): ?>
+                        <div class="th-tour-offer th-tour-offer--skeleton" aria-hidden="true">
+                            <div class="th-tour-offer__image"></div>
+                            <div class="th-tour-offer__body">
+                                <span class="th-tour-offer__badge">…</span>
+                                <strong class="th-tour-offer__title">Загружаем туры</strong>
+                                <span class="th-tour-offer__meta">актуальные цены</span>
+                            </div>
+                        </div>
+                    <?php endfor; ?>
+                <?php endif; ?>
             </div>
-            <p id="home-hot-tours-empty" class="th-showcase-empty hidden">Сейчас подгружаем актуальные туры… Если долго не появляются — откройте <a href="/frontend/window/promotions.php">все акции</a>.</p>
+            <p id="home-hot-tours-empty" class="th-showcase-empty<?php echo $homeShowcaseBootTours !== [] ? ' hidden' : ''; ?>">Сейчас подгружаем актуальные туры… Если долго не появляются — откройте <a href="/frontend/window/promotions.php">все акции</a>.</p>
             <p class="mt-5 text-center text-sm text-[#6B7280]">
                 Или смотрите <a href="/frontend/window/tour-calendar.php" class="font-semibold text-[#5DA9A4] hover:underline">календарь выгодных дат</a> — цены по дням вылета.
             </p>
@@ -1459,9 +1512,8 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             var moodChips = Array.prototype.slice.call(document.querySelectorAll('[data-home-mood]'));
             var departureButtons = Array.prototype.slice.call(document.querySelectorAll('[data-showcase-departure-city]'));
             var homeMoodActive = 'beach';
-            var homeShowcaseData = null;
+            var homeShowcaseData = <?php echo json_encode($homeShowcaseBoot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
             var homeShowcaseSeq = 0;
-            var homeFallbackItems = <?php echo json_encode($homePopularDefaultCards, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
             function escHomePopularAttr(s) {
                 return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
             }
@@ -1523,13 +1575,13 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 if (homeShowcaseData.moods && homeShowcaseData.moods[homeMoodActive]
                     && Array.isArray(homeShowcaseData.moods[homeMoodActive].items)
                     && homeShowcaseData.moods[homeMoodActive].items.length) {
-                    return homeShowcaseData.moods[homeMoodActive].items.slice(0, 16);
+                    return homeShowcaseData.moods[homeMoodActive].items.slice(0, 24);
                 }
                 if (Array.isArray(homeShowcaseData.hot) && homeShowcaseData.hot.length) {
-                    return homeShowcaseData.hot.slice(0, 16);
+                    return homeShowcaseData.hot.slice(0, 24);
                 }
                 if (Array.isArray(homeShowcaseData.tours) && homeShowcaseData.tours.length) {
-                    return homeShowcaseData.tours.slice(0, 16);
+                    return homeShowcaseData.tours.slice(0, 24);
                 }
                 return [];
             }
@@ -1537,7 +1589,11 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 if (!homeToursGrid) return;
                 var list = Array.isArray(items) ? items : [];
                 if (!list.length) {
-                    if (homeToursEmpty) homeToursEmpty.classList.remove('hidden');
+                    homeToursGrid.innerHTML = '';
+                    if (homeToursEmpty) {
+                        homeToursEmpty.classList.remove('hidden');
+                        homeToursEmpty.innerHTML = 'Пока нет готовых туров в кэше. Откройте <a href="/frontend/window/promotions.php">все акции</a> или подождите ночной прогрев.';
+                    }
                     return;
                 }
                 if (homeToursEmpty) homeToursEmpty.classList.add('hidden');
@@ -1571,31 +1627,15 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             function renderShowcaseActive() {
                 renderTourOffers(pickShowcaseTours());
             }
-            function renderFallbackCountryOffers(depId) {
-                if (!homeToursGrid || !Array.isArray(homeFallbackItems) || !homeFallbackItems.length) return;
-                var id = parseInt(String(depId || ''), 10) || 7;
-                var depName = depNameById(id) || 'Самара';
-                homeToursGrid.innerHTML = homeFallbackItems.slice(0, 8).map(function(it) {
-                    var countryId = parseInt(String(it.countryId || ''), 10) || 0;
-                    var name = escHomePopularAttr(it.name || '');
-                    var img = escHomePopularAttr(it.image || '');
-                    var href = '/frontend/window/promotions.php?departureId=' + encodeURIComponent(id)
-                        + '&departureName=' + encodeURIComponent(depName)
-                        + '&countryId=' + encodeURIComponent(countryId)
-                        + '&countryName=' + encodeURIComponent(String(it.name || ''));
-                    return '<a href="' + escHomePopularAttr(href) + '" class="th-tour-offer">' +
-                        '<div class="th-tour-offer__image" style="background-image:url(\'' + img + '\');"></div>' +
-                        '<div class="th-tour-offer__body"><span class="th-tour-offer__badge">Горящее</span>' +
-                        '<strong class="th-tour-offer__title">' + name + '</strong>' +
-                        '<span class="th-tour-offer__meta">Открыть готовые туры</span></div></a>';
-                }).join('');
-                if (homeToursEmpty) homeToursEmpty.classList.add('hidden');
-            }
             async function loadHomeShowcaseShelves(depId) {
                 var id = parseInt(String(depId || ''), 10);
                 if (!id) return;
                 var my = ++homeShowcaseSeq;
                 syncDepartureButtons(id);
+                if (homeToursEmpty) {
+                    homeToursEmpty.classList.remove('hidden');
+                    homeToursEmpty.textContent = 'Подгружаем актуальные туры…';
+                }
                 try {
                     var u = '/backend/api/home_showcase_shelves.php?departureId=' + encodeURIComponent(id);
                     var r = await fetch(u, { method: 'GET', cache: 'no-store' });
@@ -1604,15 +1644,13 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     if ((txt || '').trim()) { try { j = JSON.parse(txt); } catch (e) {} }
                     if (my !== homeShowcaseSeq) return;
                     if (!j || !j.success) {
-                        renderFallbackCountryOffers(id);
+                        renderTourOffers([]);
                         return;
                     }
                     homeShowcaseData = j;
-                    var picked = pickShowcaseTours();
-                    if (picked.length) renderTourOffers(picked);
-                    else renderFallbackCountryOffers(id);
+                    renderShowcaseActive();
                 } catch (e) {
-                    if (my === homeShowcaseSeq) renderFallbackCountryOffers(id);
+                    if (my === homeShowcaseSeq) renderTourOffers([]);
                 }
             }
             function setShowcaseDeparture(depId) {
@@ -1671,7 +1709,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     setShowcaseDeparture(id);
                 });
             });
-            renderFallbackCountryOffers(7);
+            renderShowcaseActive();
             loadHomeShowcaseShelves(parseInt(defaultDepartureIdStr(), 10) || 7);
 
             // Приоритет: города вылета, страны и питание — из кэша (__tv_refsPromises). Полный список стран: объединение onlyCharter=0 и onlyCharter=1.
@@ -1725,9 +1763,10 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                             if (!info || !info.minPrice) return;
                             dayEl.classList.add('tv-cal-has-price');
                             if (info.deal) dayEl.classList.add('tv-cal-deal');
+                            else if (info.reduced) dayEl.classList.add('tv-cal-reduced');
                             var badge = document.createElement('span');
-                            badge.className = 'tv-cal-day-price' + (info.deal ? ' is-deal' : '');
-                            badge.textContent = info.deal ? 'выгодно' : ('от ' + tvFmtCalPrice(info.minPrice));
+                            badge.className = 'tv-cal-day-price' + (info.deal ? ' is-deal' : (info.reduced ? ' is-reduced' : ''));
+                            badge.textContent = info.deal ? 'выгодно' : (info.reduced ? 'пониж.' : ('от ' + tvFmtCalPrice(info.minPrice)));
                             dayEl.appendChild(badge);
                         } catch (eDay) {}
                     }
