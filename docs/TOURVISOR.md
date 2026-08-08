@@ -53,7 +53,10 @@
 ## Прогрев и промо
 
 - Прогрев: `php backend/cron/warm_home_search_cache.php` (cover skip/extend) или `php backend/scripts/tourvisor_background_update.php`
-- Промо-туры: `php backend/scripts/promo_tours_refresh.php` — см. [CRON.md](CRON.md)
+- Акции/витрина: `bash backend/cron/warm_promotions_cache.sh`
+- Обычный поиск: `bash backend/cron/warm_home_search_cache.sh`
+- Календарь: `bash backend/cron/warm_calendar_cache.sh`
+- Актуальное расписание: [CRON.md](CRON.md)
 
 ## Лимиты API (обязательно соблюдать)
 

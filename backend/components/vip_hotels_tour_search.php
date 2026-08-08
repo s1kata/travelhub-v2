@@ -310,9 +310,16 @@ $_th_fp_vip_v = is_file($_th_fp_vip) ? (string) filemtime($_th_fp_vip) : '1';
         const base = TV_API_BASE;
         const u = new URL(base);
         u.searchParams.set('type', type);
-        Object.entries(params).forEach(([k, v]) => { if (v != null && v !== '') u.searchParams.set(k, String(v)); });
+        const forceLive = !!(params && params._forceLive);
+        const cacheOnly = !!(params && params._cacheOnly);
+        const apiParams = Object.assign({}, params);
+        delete apiParams._forceLive;
+        delete apiParams._cacheOnly;
+        Object.entries(apiParams).forEach(([k, v]) => { if (v != null && v !== '') u.searchParams.set(k, String(v)); });
         if (type === 'search-cached') {
-            u.searchParams.set('live', '1');
+            u.searchParams.set('cacheScope', 'country_page');
+            if (forceLive) u.searchParams.set('live', '1');
+            if (cacheOnly) u.searchParams.set('cacheOnly', '1');
             u.searchParams.set('_t', String(Date.now()));
         }
         const url = u.toString();
@@ -826,7 +833,10 @@ $_th_fp_vip_v = is_file($_th_fp_vip) ? (string) filemtime($_th_fp_vip) : '1';
             cacheParams.hotelServices = countryTvSelectedServiceIds.join(',');
         }
         console.log('%c[API → сайт] Параметры поиска отправляются в API (VIP отели)', 'color: #5DA9A4; font-weight: bold', cacheParams);
-        let rCache = await tvFetch('search-cached', cacheParams);
+        let rCache = await tvFetch('search-cached', Object.assign({}, cacheParams, { _cacheOnly: true }));
+        if (!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0) {
+            rCache = await tvFetch('search-cached', Object.assign({}, cacheParams, { _forceLive: true }));
+        }
         if (rCache.success && Array.isArray(rCache.data) && rCache.data.length > 0) {
             progress.classList.add('hidden');
             let rawData = rCache.data;

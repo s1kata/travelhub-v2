@@ -10,6 +10,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/components/promo_speed_cache.php';
 require_once dirname(__DIR__) . '/components/promo_sochi_filter.php';
+require_once dirname(__DIR__) . '/components/calendar_tour_cache.php';
 require_once dirname(__DIR__) . '/components/security_helper.php';
 
 header('Content-Type: application/json; charset=utf-8');
@@ -51,6 +52,65 @@ try {
 $today = new DateTimeImmutable('today');
 if ($day < $today) {
     echo json_encode(['success' => true, 'data' => [], 'fromCache' => true, 'source' => 'none'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+$calendarPayload = th_calendar_cache_get($departureId, true);
+if ($calendarPayload !== null) {
+    $calendarOut = [];
+    foreach ((array) ($calendarPayload['dates'][$date] ?? []) as $hotel) {
+        if (!is_array($hotel)) {
+            continue;
+        }
+        $hotelCountryId = (int) ($hotel['_countryId'] ?? $hotel['country']['id'] ?? 0);
+        if ($countryId > 0 && $hotelCountryId !== $countryId) {
+            continue;
+        }
+        $matching = [];
+        $bestPrice = 0;
+        foreach ((array) ($hotel['tours'] ?? []) as $tour) {
+            if (!is_array($tour) || th_promo_tour_start_ymd($tour) !== $date) {
+                continue;
+            }
+            $nights = (int) ($tour['nights'] ?? 0);
+            if ($nightsFrom > 0 && $nightsTo > 0 && $nights > 0 && ($nights < $nightsFrom || $nights > $nightsTo)) {
+                continue;
+            }
+            $price = (int) ($tour['totalPrice'] ?? $tour['price'] ?? $tour['priceRub'] ?? 0);
+            if ($price <= 0) {
+                continue;
+            }
+            $matching[] = $tour;
+            if ($bestPrice === 0 || $price < $bestPrice) {
+                $bestPrice = $price;
+            }
+        }
+        if ($matching === []) {
+            continue;
+        }
+        usort($matching, static function (array $a, array $b): int {
+            return ((int) ($a['totalPrice'] ?? $a['price'] ?? 0))
+                <=> ((int) ($b['totalPrice'] ?? $b['price'] ?? 0));
+        });
+        $hotel['tours'] = array_slice($matching, 0, 3);
+        $hotel['_dayMinPrice'] = $bestPrice;
+        $calendarOut[] = $hotel;
+    }
+    usort($calendarOut, static function (array $a, array $b): int {
+        return ((int) ($a['_dayMinPrice'] ?? 0)) <=> ((int) ($b['_dayMinPrice'] ?? 0));
+    });
+    $calendarOut = array_slice($calendarOut, 0, $limit);
+    echo json_encode([
+        'success' => true,
+        'departureId' => $departureId,
+        'countryId' => $countryId,
+        'mode' => $countryId > 0 ? 'country' : 'all',
+        'date' => $date,
+        'fromCache' => true,
+        'source' => 'calendar_cache',
+        'updatedAt' => (int) ($calendarPayload['generatedAt'] ?? 0),
+        'data' => $calendarOut,
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
 

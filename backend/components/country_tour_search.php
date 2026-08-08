@@ -448,12 +448,15 @@ $_th_fpick_ver_ctv = is_file($_th_fpick_path_ctv) ? (string) filemtime($_th_fpic
         const u = new URL(base);
         u.searchParams.set('type', type);
         const forceLive = !!(params && params._forceLive);
+        const cacheOnly = !!(params && params._cacheOnly);
         const apiParams = Object.assign({}, params);
         delete apiParams._forceLive;
+        delete apiParams._cacheOnly;
         Object.entries(apiParams).forEach(([k, v]) => { if (v != null && v !== '') u.searchParams.set(k, String(v)); });
         if (type === 'search-cached') {
             u.searchParams.set('cacheScope', 'country_page');
             if (forceLive) u.searchParams.set('live', '1');
+            if (cacheOnly) u.searchParams.set('cacheOnly', '1');
             u.searchParams.set('_t', String(Date.now()));
         }
         const url = u.toString();
@@ -1011,14 +1014,14 @@ $_th_fpick_ver_ctv = is_file($_th_fpick_path_ctv) ? (string) filemtime($_th_fpic
         }
         console.log('%c[API → сайт] Параметры поиска отправляются в API (страница страны)', 'color: #5DA9A4; font-weight: bold', cacheParams);
         console.log('[Фильтры] Поиск с параметрами:', { meal: meal || '—', regionIds: region || '—', hotelCategory: category || '—', hotelServices: (typeof countryTvSelectedServiceIds !== 'undefined' && countryTvSelectedServiceIds.length) ? countryTvSelectedServiceIds.join(',') : '—' });
-        let rCache = await tvFetch('search-cached', cacheParams);
+        let rCache = await tvFetch('search-cached', Object.assign({}, cacheParams, { _cacheOnly: true }));
         const cacheEmpty = !rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0;
         if (cacheEmpty) {
             rCache = await tvFetch('search-cached', Object.assign({}, cacheParams, { _forceLive: true }));
         }
         if ((!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0) && origNFrom === 6 && origNTo === 9) {
             const altParams = Object.assign({}, cacheParams, { nightsFrom: 5, nightsTo: 10 });
-            let rAlt = await tvFetch('search-cached', altParams);
+            let rAlt = await tvFetch('search-cached', Object.assign({}, altParams, { _cacheOnly: true }));
             if (!rAlt.success || !Array.isArray(rAlt.data) || rAlt.data.length === 0) {
                 rAlt = await tvFetch('search-cached', Object.assign({}, altParams, { _forceLive: true }));
             }

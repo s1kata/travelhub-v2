@@ -15,6 +15,7 @@ require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/components/promo_speed_cache.php';
 require_once dirname(__DIR__) . '/components/promo_sochi_filter.php';
 require_once dirname(__DIR__) . '/components/deals_calendar.php';
+require_once dirname(__DIR__) . '/components/calendar_tour_cache.php';
 require_once dirname(__DIR__) . '/components/security_helper.php';
 
 header('Content-Type: application/json; charset=utf-8');
@@ -35,6 +36,74 @@ $nightsFrom = isset($_GET['nightsFrom']) ? (int) $_GET['nightsFrom'] : 0;
 $nightsTo = isset($_GET['nightsTo']) ? (int) $_GET['nightsTo'] : 0;
 if ($departureId <= 0) {
     $departureId = 7;
+}
+
+$calendarPayload = th_calendar_cache_get($departureId, true);
+if ($calendarPayload !== null) {
+    /** @var array<string, array{minPrice:int,countryId:int,countryName:string}> $calendarByDate */
+    $calendarByDate = [];
+    foreach ((array) ($calendarPayload['dates'] ?? []) as $date => $hotels) {
+        if (!is_string($date) || !is_array($hotels)) {
+            continue;
+        }
+        foreach ($hotels as $hotel) {
+            if (!is_array($hotel)) {
+                continue;
+            }
+            $hotelCountryId = (int) ($hotel['_countryId'] ?? $hotel['country']['id'] ?? 0);
+            if ($countryId > 0 && $hotelCountryId !== $countryId) {
+                continue;
+            }
+            $hotelCountryName = (string) ($hotel['_countryName'] ?? $hotel['country']['name'] ?? '');
+            foreach ((array) ($hotel['tours'] ?? []) as $tour) {
+                if (!is_array($tour)) {
+                    continue;
+                }
+                $nights = (int) ($tour['nights'] ?? 0);
+                if ($nightsFrom > 0 && $nightsTo > 0 && $nights > 0 && ($nights < $nightsFrom || $nights > $nightsTo)) {
+                    continue;
+                }
+                $price = (int) ($tour['totalPrice'] ?? $tour['price'] ?? $tour['priceRub'] ?? 0);
+                if ($price <= 0) {
+                    continue;
+                }
+                if (!isset($calendarByDate[$date]) || $price < $calendarByDate[$date]['minPrice']) {
+                    $calendarByDate[$date] = [
+                        'minPrice' => $price,
+                        'countryId' => $hotelCountryId,
+                        'countryName' => $hotelCountryName,
+                    ];
+                }
+            }
+        }
+    }
+    ksort($calendarByDate);
+    $calendarDates = th_deals_calendar_mark_tiers($calendarByDate);
+    $horizonYmd = (string) ($calendarPayload['horizonTo'] ?? '');
+    $viewMaxYm = preg_match('/^\d{4}-\d{2}-\d{2}$/', $horizonYmd) ? substr($horizonYmd, 0, 7) : '';
+    echo json_encode([
+        'success' => true,
+        'departureId' => $departureId,
+        'countryId' => $countryId,
+        'mode' => $countryId > 0 ? 'country' : 'all',
+        'nightsFrom' => $nightsFrom,
+        'nightsTo' => $nightsTo,
+        'updatedAt' => (int) ($calendarPayload['generatedAt'] ?? time()),
+        'fromCache' => true,
+        'source' => 'calendar_cache',
+        'emptyReason' => $calendarDates === [] ? 'no_dates_in_range' : '',
+        'coverage' => [
+            'filledDays' => (int) ($calendarPayload['filledDays'] ?? count($calendarDates)),
+            'totalDays' => (int) ($calendarPayload['totalDays'] ?? 0),
+        ],
+        'ladder' => [
+            'monthsAhead' => th_deals_calendar_months_ahead(),
+            'horizon' => $horizonYmd,
+            'viewMaxYm' => $viewMaxYm,
+        ],
+        'dates' => $calendarDates,
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
 }
 
 $countries = [];

@@ -131,20 +131,27 @@ php backend/cron/warm_home_search_cache.php
 
 Не в Firestore. Остаются в `data/tourvisor_image_cache/` + cron `clear_image_cache.php`.
 
-## Календарь выгодных дат (promo)
+## Календарь выгодных дат
 
-Страница `/frontend/window/tour-calendar.php` — свод лучших цен по **всем** популярным направлениям.
+Календарь имеет отдельный rolling cache:
 
-**Лестница месяцев:** текущий + `TH_DEALS_CAL_MONTHS_AHEAD` (по умолчанию 3 → из августа до ноября). С новым месяцем окно сдвигается: прошлый отпадает, впереди появляется следующий. Горизонт календаря **не** расширяет окно прогрева акций (`th_promo_speed_date_plus_to` остаётся 7/21 день) — иначе live-догрузка на странице акций занимает десятки секунд.
+- файлы: `data/calendar_cache/calendar_{departureId}.json`;
+- горизонт: `TH_CALENDAR_WARM_DAYS` (по умолчанию 42 дня, минимум 31);
+- сборщик: `backend/cron/warm_calendar_cache.php`;
+- источники: ближайшие `promo_cache_*` + обычные реальные туры из search cover;
+- live Tourvisor из календарного cron не вызывается.
 
-**Метки дня:** `deal` = выгодная цена (~40% самых дешёвых дней), `reduced` = пониженная цена (остальные дни с турами).
+Порядок прогрева: сначала `warm_promotions_cache.sh`, затем
+`warm_home_search_cache.sh`, после него `warm_calendar_cache.sh`.
 
-| API | Источник |
-|-----|----------|
-| `backend/api/calendar_price_map.php` | `promo_cache` → `{ dates, ladder }` |
-| `backend/api/calendar_day_tours.php` | тот же кэш, фильтр по дате |
+| API | Основной источник | Fallback |
+|-----|-------------------|----------|
+| `backend/api/calendar_price_map.php` | `calendar_cache` | `promo_cache` |
+| `backend/api/calendar_day_tours.php` | `calendar_cache` | `promo_cache` |
 
-Парсинг даты тура: `th_promo_tour_start_ymd()`. Нужен прогрев `warm_promotions_cache.sh`. Без кэша календарь пустой.
+`deal` = выгодная цена (~40% самых дешёвых дней), `reduced` = пониженная
+цена. Все даты и туры реальные; если Tourvisor/cover не содержат вылет на день,
+фейковая дата не создаётся.
 
 ## Безопасность
 

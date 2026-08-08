@@ -1,153 +1,99 @@
-# Задачи по расписанию (cron)
+# Активные cron-задачи TravelHub
 
-Замените `/path/to/travelhub-v2` на абсолютный путь к проекту на сервере. Часовой пояс cron должен совпадать с поясом сервера (ниже указаны варианты для **Europe/Moscow** и **UTC**).
+Ниже — единственный актуальный набор для SpaceWeb. Задачи из раздела
+«Не запускать» нужно удалить из панели cron, но сами legacy-скрипты пока
+оставлены в репозитории для безопасного отката.
 
-## Обязательные
+Замените `/path/to/travelhub-v2` на корень сайта и проверьте путь к PHP 8.1.
+Расписание указано для Europe/Moscow.
 
-### Акционные туры (промо)
+## Канонический crontab
 
-Страница `/frontend/window/promotions.php`. Свежесть кэша — 24 ч.
+```cron
+# Акции: promo_cache для promotions, горячей витрины и первых дат календаря.
+5 0,12 * * * cd /path/to/travelhub-v2 && PHP_BIN=/usr/bin/php8.1 flock -n data/promo_warm.lock bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1
+
+# Обычный поиск: exact/cover cache, Самара+Москва, популярные страны.
+30 0,8,14,20 * * * cd /path/to/travelhub-v2 && flock -n data/search_warm.lock bash backend/cron/warm_home_search_cache.sh >> data/home_search_warm.log 2>&1
+
+# Календарь: только сборка из уже прогретых promo+cover, без live Tourvisor.
+20 1,9,15,21 * * * cd /path/to/travelhub-v2 && PHP_BIN=/usr/bin/php8.1 flock -n data/calendar_warm.lock bash backend/cron/warm_calendar_cache.sh >> data/calendar_warm.log 2>&1
+
+# YML по правилам — после ночного прогрева акций.
+20 0 * * * cd /path/to/travelhub-v2 && /usr/bin/php8.1 backend/scripts/yml_feed_rules_cron.php >> data/yandex_yml_rules_cron.log 2>&1
+
+# Housekeeping.
+0 2 * * * cd /path/to/travelhub-v2 && /usr/bin/php8.1 backend/cron/cleanup_search_cover_cache.php >> data/cover_cleanup.log 2>&1
+30 4 * * * cd /path/to/travelhub-v2 && /usr/bin/php8.1 clear_image_cache.php 14 --trim-mb=1024 >> data/image_cache_cron.log 2>&1
+0 5 * * 0 cd /path/to/travelhub-v2 && /usr/bin/php8.1 clear_cache.php 10 >> data/tourvisor_cache_cleanup.log 2>&1
+
+# Только если реально включён Firestore L1.
+30 5 * * 1,4 cd /path/to/travelhub-v2 && /usr/bin/php8.1 backend/cron/firestore_cache_cleanup.php >> data/firestore_cache_cleanup.log 2>&1
+```
+
+Если на SpaceWeb нет `flock`, уберите только `flock -n data/*.lock`, остальную
+команду оставьте. Важно не ставить search warm и promo warm на одно время.
+
+## Что обслуживает сайт
+
+- `warm_home_search_cache.sh` — обычный поиск на главной, страницах стран и VIP.
+- `warm_promotions_cache.sh` — страница акций и горячая витрина.
+- `warm_calendar_cache.sh` — отдельный rolling cache календаря на 42 дня.
+- `yml_feed_rules_cron.php` — `/feed.yml`, если фид используется.
+- cleanup-задачи — размер диска и удаление устаревших cover-файлов.
+
+Календарный warm не обращается к live API. Он запускается после search warm и
+собирает реальные туры из cover cache, добавляя ближайшие promo-туры.
+
+## Не запускать как cron
+
+- `backend/scripts/tourvisor_background_update.php` — заменён cover-aware warm.
+- `backend/scripts/promo_tours_refresh.php` — legacy onlyPromo/Yandex pipeline.
+- `backend/scripts/sync_yandex_feed_offers.php` — дублирует legacy pipeline.
+- `backend/scripts/warmup_tourvisor_cache.php` — только разовый bootstrap.
+- `backend/promo_tours_sync/fetch_tours.php` — только если отдельно используется
+  legacy/mobile таблица `promo_tours`.
+- `backend/scripts/firestore_migrate_tourvisor_cache.php` — только разовая миграция.
+
+Если в кабинете Yandex ещё указан старый `/export/services_yml.php`, сначала
+переведите его на актуальный `/feed.yml`; только после этого отключайте legacy
+Yandex cron.
+
+## Обязательные переменные `.env`
+
+```env
+SITE_URL=https://travelhub63.ru
+TOURVISOR_PROXY_RELATIVE_PATH=frontend/api/tourvisor-proxy.php
+
+TH_SEARCH_COVER_ENABLED=1
+TH_WARM_COVER_ENABLED=1
+TH_TV_OUTBOUND_RPM=25
+TH_TV_CONTINUE_MAX=0
+TH_WARM_LIVE_PAUSE_SEC=2.5
+TH_WARM_MAX_LIVE_CHUNKS=40
+
+TOURVISOR_COUNTRY_PAGE_CACHE_TTL_HOURS=24
+PROMO_SPEED_CACHE_TTL_HOURS=18
+
+TH_CALENDAR_WARM_DAYS=42
+TH_CALENDAR_CACHE_TTL_HOURS=30
+
+TOURVISOR_IMAGE_CACHE_TTL_DAYS=14
+TOURVISOR_IMAGE_CACHE_MAX_MB=1024
+YANDEX_LEGACY_OFFERS_TABLE_SYNC=0
+```
+
+## После деплоя
 
 ```bash
-php backend/scripts/promo_tours_refresh.php
-```
-
-| Время (МСК) | Cron (МСК) | Cron (UTC) |
-|-------------|------------|------------|
-| 12:00 | `0 12 * * *` | `0 9 * * *` |
-| 00:05 | `5 0 * * *` | `5 21 * * *` |
-
-Пример:
-
-```
-0 12 * * * cd /path/to/travelhub-v2 && php backend/scripts/promo_tours_refresh.php
-5 0 * * * cd /path/to/travelhub-v2 && php backend/scripts/promo_tours_refresh.php
-```
-
-Требуется `SITE_URL=https://travelhub63.ru` в `.env`.
-
-### YML-фид по правилам админки
-
-Генерация снимка для `/feed.yml` и связанных URL.
-
-```bash
-php backend/scripts/yml_feed_rules_cron.php
-```
-
-Рекомендуется **ежедневно в 00:00**:
-
-```
-0 0 * * * cd /path/to/travelhub-v2 && php backend/scripts/yml_feed_rules_cron.php >> data/yandex_yml_rules_cron.log 2>&1
-```
-
-Альтернатива вручную: `php backend/scripts/rebuild_feed.php` или `php rebuild_feed.php` из корня.
-
-### Синхронизация офферов Yandex
-
-```bash
-php backend/scripts/sync_yandex_feed_offers.php
-```
-
-Пример (ежедневно в 12:00):
-
-```
-0 12 * * * cd /path/to/travelhub-v2 && php backend/scripts/sync_yandex_feed_offers.php
-```
-
-## Рекомендуемые
-
-### Прогрев кэша Tourvisor
-
-Справочники и `all_tours`:
-
-```bash
-php backend/scripts/tourvisor_background_update.php
-```
-
-Пример (ночью):
-
-```
-0 3 * * * cd /path/to/travelhub-v2 && php backend/scripts/tourvisor_background_update.php
-```
-
-Разовый HTTP-прогрев: `GET /backend/scripts/warmup_tourvisor_cache.php`
-
-### Очистка устаревшего кэша страниц
-
-```bash
-php clear_cache.php 10
-```
-
-Удаляет JSON в `data/tourvisor_cache` старше 10 дней.
-
-### Прогрев поиска главной (SpaceWeb / PHP-only)
-
-Популярные страны × Самара/Москва × окна дат → файловый `search-cached`.  
-Без этого первый клик «Найти» часто уходит в live Tourvisor (десятки секунд).
-
-```bash
+cd /path/to/travelhub-v2
+PHP_BIN=/usr/bin/php8.1 bash backend/cron/warm_promotions_cache.sh
 bash backend/cron/warm_home_search_cache.sh
-# или: php backend/cron/warm_home_search_cache.php
+PHP_BIN=/usr/bin/php8.1 bash backend/cron/warm_calendar_cache.sh
 ```
 
-Рекомендуется **4× в сутки**:
-
-```
-30 0,8,14,20 * * * cd /path/to/travelhub-v2 && bash backend/cron/warm_home_search_cache.sh >> data/home_search_warm.log 2>&1
-```
-
-Подробнее: [SEARCH_SPEED.md](SEARCH_SPEED.md).
-
-### Кэш картинок Tourvisor (hotel_pics)
-
-Папка `data/tourvisor_image_cache/` — прокси `tourvisor-image-proxy.php`. На проде может занимать гигабайты: просроченные файлы удаляются только при повторном запросе.
-
-**Разовая чистка (освободить место сейчас):**
+Проверка результата:
 
 ```bash
-php clear_image_cache.php --stats
-php clear_image_cache.php 14 --trim-mb=1024
+php -r '$d=json_decode(file_get_contents("data/calendar_cache/calendar_7.json"),true); echo $d["filledDays"]."/".$d["totalDays"].PHP_EOL;'
 ```
-
-**Cron (рекомендуется, раз в сутки):**
-
-```
-30 4 * * * cd /path/to/travelhub-v2 && php clear_image_cache.php >> data/image_cache_cron.log 2>&1
-```
-
-В `.env`: `TOURVISOR_IMAGE_CACHE_TTL_DAYS=14`, `TOURVISOR_IMAGE_CACHE_MAX_MB=1024` — лимит диска; популярные фото перекачаются автоматически при просмотре (первая загрузка ~0.5–2 с, дальше снова из кэша).
-
-### Firestore: миграция кэша туров с хостинга + очистка
-
-Одноразово **на сервере** (где лежит `data/tourvisor_cache`), после настройки `FIREBASE_*`:
-
-```bash
-# сначала посмотреть
-php backend/scripts/firestore_migrate_tourvisor_cache.php --dry-run
-# залить search + dictionaries в Firestore
-php backend/scripts/firestore_migrate_tourvisor_cache.php --delay-ms=150
-# только поиск:
-# php backend/scripts/firestore_migrate_tourvisor_cache.php --only=search
-```
-
-Файлы тяжелее ~900 KB (лимит документа Firestore) скрипт пропускает — они останутся на диске (L2).
-
-Очистка просроченных документов **2× в неделю ночью** (Пн и Чт 03:00 МСК):
-
-```bash
-php backend/cron/firestore_cache_cleanup.php
-```
-
-```
-0 3 * * 1,4 cd /path/to/travelhub-v2 && php backend/cron/firestore_cache_cleanup.php >> data/firestore_cache_cleanup.log 2>&1
-```
-
-UTC: `0 0 * * 1,4` (если сервер в UTC).
-
-Подробнее: [CACHE_LAYERS.md](CACHE_LAYERS.md).
-
-## HTTP-cron (если нет CLI)
-
-- `GET /backend/api/cron-yml-feed.php` — логика как у `yml_feed_rules_cron.php` (защитите URL на проде).
-
-Подробнее о Tourvisor: [TOURVISOR.md](TOURVISOR.md).

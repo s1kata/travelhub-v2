@@ -14,9 +14,11 @@ data/*.db-wal
 !data/.gitkeep
 data/tourvisor_cache/
 data/tourvisor_image_cache/
+data/calendar_cache/
 data/cache/home_popular_destinations/
 data/page_cache/
 data/rate_limit/
+data/*.lock
 data/test_*.json
 data/curl_*.json
 data/phuquoc_*.json

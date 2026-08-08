@@ -21,7 +21,8 @@ if (empty($guard['ok'])) {
 }
 
 $departureId = isset($_GET['departureId']) ? (int) $_GET['departureId'] : 0;
-$allowLive = !isset($_GET['cacheOnly']) || $_GET['cacheOnly'] !== '1';
+// Витрина обслуживается promo warm; live разрешается только вручную для диагностики.
+$allowLive = isset($_GET['live']) && $_GET['live'] === '1';
 
 $payload = th_home_showcase_build($departureId, $allowLive);
 

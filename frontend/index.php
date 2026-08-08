@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // Сначала только кэш — без config и без сессии, чтобы при отдаче из кэша не тратить время
 require_once __DIR__ . '/../backend/components/page_cache.php';
 // Сессия только если есть cookie (чтобы проверить авторизацию для isAdminRequest)
@@ -1637,7 +1637,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     homeToursEmpty.textContent = 'Подгружаем актуальные туры…';
                 }
                 try {
-                    var u = '/backend/api/home_showcase_shelves.php?departureId=' + encodeURIComponent(id);
+                    var u = '/backend/api/home_showcase_shelves.php?cacheOnly=1&departureId=' + encodeURIComponent(id);
                     var r = await fetch(u, { method: 'GET', cache: 'no-store' });
                     var txt = await r.text();
                     var j = {};
@@ -3085,12 +3085,9 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             }
 
             function tvBackgroundRefreshPrices() {
-                tvFetch('search-cached', cacheParams, { backgroundRefresh: true, cacheScope: 'country_page', slim: true }).then(function (fresh) {
-                    if (!fresh || !fresh.success || !Array.isArray(fresh.data) || fresh.data.length === 0) return;
-                    if (fresh.fromCache === true) return;
-                    tvHomeSwrWrite(cacheParams, fresh.data);
-                    tvPaintSearchHotels(fresh.data, '%c[Главная · Поиск] Фоновое обновление цен');
-                }).catch(function () {});
+                // Пользовательский cache-hit не должен запускать ещё один live search.
+                // Свежесть cover-кэша поддерживает warm_home_search_cache cron.
+                return Promise.resolve();
             }
 
             /* Session SWR — paint до сети */

@@ -42,7 +42,9 @@ img/                Статика (сотрудники и пр.; фото оф
 ```bash
 composer install --no-dev          # зависимости PHP
 npm install && npm run build:css   # опционально: локальный Tailwind
-php backend/scripts/promo_tours_refresh.php
+bash backend/cron/warm_promotions_cache.sh
+bash backend/cron/warm_home_search_cache.sh
+bash backend/cron/warm_calendar_cache.sh
 php backend/scripts/rebuild_feed.php
 php backend/scripts/normalize_office_photos.php   # миграция legacy-фото офисов
 ```
