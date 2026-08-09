@@ -679,7 +679,7 @@
 
     var PROMO_CACHE_INDEX_BY_DEP = (cfg && cfg.promoCacheIndexByDeparture && typeof cfg.promoCacheIndexByDeparture === 'object')
         ? cfg.promoCacheIndexByDeparture : {};
-    var PROMO_INSTANT_CACHE_DEFAULT_IDS = ['4', '1', '16', '16104', '2', '47', '46', '8'];
+    var PROMO_INSTANT_CACHE_DEFAULT_IDS = ['4', '1', '9', '16', '16104', '2', '47', '46', '8', '12'];
     var PROMO_INSTANT_CACHE_COUNTRY_IDS = (cfg && Array.isArray(cfg.promoInstantCacheCountryIds))
         ? cfg.promoInstantCacheCountryIds.map(function (x) { return String(x); }) : PROMO_INSTANT_CACHE_DEFAULT_IDS.slice();
     var PROMO_TOURS_PREFETCH_MAX_MS = 24 * 60 * 60 * 1000;
@@ -1670,6 +1670,20 @@
                 if (j2 && j2.success && Array.isArray(j2.data) && j2.data.length) return j2;
                 return j;
             });
+        });
+    }
+
+    /**
+     * Мгновенная выдача: сначала только файл (cacheOnly), при промахе — обычный promo-search.
+     * Не уходим сразу в live, если на сервере уже есть promo_cache_*.
+     */
+    function fetchPromoSearchBundledPreferCache(countryId, timeoutMs) {
+        var cacheTimeout = Math.min(20000, Math.max(8000, (timeoutMs || 120000) / 6));
+        return fetchPromoSearchBundled(countryId, cacheTimeout, { cacheOnly: true }).then(function (j) {
+            if (j && j.success && Array.isArray(j.data) && j.data.length) {
+                return j;
+            }
+            return fetchPromoSearchBundled(countryId, timeoutMs || 120000);
         });
     }
 
@@ -2994,7 +3008,7 @@
             } else if (ldEl) {
                 ldEl.classList.add('hidden');
             }
-            fetchPromoSearchBundled(COUNTRY_ID, 120000)
+            fetchPromoSearchBundledPreferCache(COUNTRY_ID, 120000)
                 .then(function (j) {
                     if (mySeq !== promoToursFetchSeq) return;
                     console.groupCollapsed('%c[Акции] Запрос туров (' + promoSearchRequestLogTitle(j) + ')', 'color: #f59e0b; font-weight: bold');
@@ -3336,7 +3350,7 @@
                 }, 2500);
             }
 
-            fetchPromoSearchBundled(countryId, 120000)
+            fetchPromoSearchBundledPreferCache(countryId, 120000)
                 .then(function (j) {
                     if (myTourSeq !== uTourFetchSeq) return;
                     if (loadEl) loadEl.classList.add('hidden');
@@ -3675,6 +3689,13 @@
                 otherWrap.setAttribute('hidden', '');
             }
             if (gridEl) gridEl.innerHTML = '';
+            /* Deep-link: стартуем cacheOnly prefetch до загрузки туров. */
+            if (COUNTRY_ID || cfg.countryId) {
+                promoPrefetchToursForCountries(
+                    [String(COUNTRY_ID || cfg.countryId)],
+                    { cacheOnly: true }
+                );
+            }
             tryPreselectCountry();
         });
     }

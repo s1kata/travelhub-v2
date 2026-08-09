@@ -39,6 +39,9 @@ desktop.ini
 *.tmp
 *.temp
 ~*
+.tmp_*.json
+data/vn_api_test.json
+data/*_api_test.json
 
 # Ngrok
 ngrok.exe

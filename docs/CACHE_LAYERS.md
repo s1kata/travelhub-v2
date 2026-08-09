@@ -31,7 +31,7 @@
 **Нельзя** отдавать cover с другими adults/childs.  
 **Можно** узкие ночи из более широкого cover (warm пишет 5–10).
 
-**Warm** (`warm_home_search_cache.php`): горизонт `today+3…+42`, nights `5–10`, skip если cover свежий и закрывает горизонт, иначе live только по дырам (≤14 дней). Туристы: `2+0` всегда, `2+1` (возраст 7) для топ-5 стран. Страны из `popular_countries.php`.
+**Warm** (`warm_home_search_cache.php`): горизонт `today+3…+TH_HOME_COVER_DAYS` (по умолчанию 42), сначала ближние `+TH_HOME_COVER_PRIORITY_DAYS` (21), nights `5–10`, skip если cover свежий и закрывает горизонт, иначе live только по дырам (≤14 дней). Туристы: `2+0` всегда, `2+1` (возраст 7) для топ-5 стран. Страны из `popular_countries.php`. Бюджет live: `TH_WARM_MAX_LIVE_CHUNKS` (по умолчанию 80). Календарная лестница месяцев **не** расширяет этот горизонт.
 
 Витрина главной (`home_showcase_shelves`): читает `promo_cache_*` (не search-cover). Прогрев: `warm_promotions_cache.sh` / `update_promotions_cache.php` — cron `0 0,12 * * *` (минимум раз в сутки ночью).
 
@@ -133,24 +133,31 @@ php backend/cron/warm_home_search_cache.php
 
 ## Календарь выгодных дат
 
-Календарь имеет отдельный rolling cache:
+Календарь имеет отдельный rolling cache, **изолированный от акций**:
 
 - файлы: `data/calendar_cache/calendar_{departureId}.json`;
-- горизонт: `TH_CALENDAR_WARM_DAYS` (по умолчанию 42 дня, минимум 31);
-- сборщик: `backend/cron/warm_calendar_cache.php`;
-- источники: ближайшие `promo_cache_*` + обычные реальные туры из search cover;
+- горизонт: лестница `TH_DEALS_CAL_MONTHS_AHEAD` (по умолчанию 3 месяца вперёд до конца месяца);
+- сборщик: `backend/cron/warm_calendar_cache.php` — search cover + **seed** из promo
+  (копия в `calendar_cache`, файлы акций не перезаписываются);
+- акции (`data/promo_cache_*`) прогревает только `warm_promotions_cache` / promo-search;
+  календарь их **не пишет**;
 - live Tourvisor из календарного cron не вызывается.
 
-Порядок прогрева: сначала `warm_promotions_cache.sh`, затем
-`warm_home_search_cache.sh`, после него `warm_calendar_cache.sh`.
+Порядок прогрева: сначала `warm_promotions_cache.sh` (акции), затем
+`warm_home_search_cache.sh` (cover для поиска), после него `warm_calendar_cache.sh`
+(сборка calendar_cache из cover).
 
 | API | Основной источник | Fallback |
 |-----|-------------------|----------|
-| `backend/api/calendar_price_map.php` | `calendar_cache` | `promo_cache` |
-| `backend/api/calendar_day_tours.php` | `calendar_cache` | `promo_cache` |
+| `backend/api/calendar_price_map.php` | `calendar_cache` | read-only `promo_bootstrap` (не пишет promo) |
+| `backend/api/calendar_day_tours.php` | `calendar_cache` | read-only `promo_bootstrap` |
+| promo-search / страница акций | `promo_cache_*` | live onlyPromo |
+
+Календарь **не пишет** `promo_cache_*`. Warm календаря может *прочитать* promo
+и скопировать ближние даты в `calendar_cache` + добрать из search cover.
 
 `deal` = выгодная цена (~40% самых дешёвых дней), `reduced` = пониженная
-цена. Все даты и туры реальные; если Tourvisor/cover не содержат вылет на день,
+цена. Все даты и туры реальные; если cover не содержит вылет на день,
 фейковая дата не создаётся.
 
 ## Безопасность

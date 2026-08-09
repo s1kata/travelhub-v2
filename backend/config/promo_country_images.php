@@ -30,6 +30,7 @@ return [
     'Армения' => 'https://images.unsplash.com/photo-1569949230765-ebf84fecbcb8?w=800',
     'Бахрейн' => 'https://images.unsplash.com/photo-1512453979798-5ea299f496e4?w=800',
     'Абхазия' => 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800',
+    'Сочи' => '/frontend/window/img/россия/076410508be961edd39cbb41af08d2a4.jpg',
     'Венесуэла' => 'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800',
     'Россия' => 'https://images.unsplash.com/photo-1520106212299-d99c443e4568?w=800',
     'Оман' => 'https://images.unsplash.com/photo-1518638150340-f706e88654f4?w=800',

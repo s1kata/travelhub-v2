@@ -113,7 +113,7 @@ $local_country_images = [
     'Шри-Ланка' => '/frontend/window/img/шриланка/5af0ebd87bd018ea6076bf0fd7a3a524.jpg',
     'Китай' => '/frontend/window/img/китай/photo_2025-12-02_23-30-37.jpg',
     'Вьетнам' => '/frontend/window/img/вьетнам/0d1951e284d67cca12e1f58edebf5e0a.jpg',
-    'Фукуок' => '/frontend/window/img/вьетнам/0d1951e284d67cca12e1f58edebf5e0a.jpg',
+    'Фукуок' => '/frontend/window/img/фукуок/grand-world-phu-quoc.png',
     'Индонезия' => '/frontend/window/img/индонезия/0d0460b8cfd98f78d4ae7379d45dfb57.jpg',
     'Черногория' => '/frontend/window/img/черногорие/07d6f0e65f7ff0ae1570156147bd9c08.jpg',
     'Сейшелы' => '/frontend/window/img/сейшелы/35ff072cc8f8c7eda59a97b543a7f1e4.jpg',
@@ -126,6 +126,7 @@ $local_country_images = [
     'Армения' => '/frontend/window/img/армения/photo_2025-12-02_23-31-35.jpg',
     'Бахрейн' => '/frontend/window/img/бахрейн/photo_2025-12-02_23-32-08.jpg',
     'Абхазия' => '/frontend/window/img/абхазия/photo_2025-12-02_23-31-08.jpg',
+    'Сочи' => '/frontend/window/img/россия/076410508be961edd39cbb41af08d2a4.jpg',
     'Россия' => '/frontend/window/img/россия/076410508be961edd39cbb41af08d2a4.jpg',
     'Венесуэла' => '/frontend/window/img/венесуэла/64acd63a88ec243ac9ebc4b0f065279c.jpg',
 ];

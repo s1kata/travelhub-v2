@@ -62,6 +62,7 @@
       if (abandon && !abandon.classList.contains('hidden')) {
         abandon.classList.add('hidden');
         document.body.classList.remove('th-abandon-open');
+        try { sessionStorage.setItem('th_abandon_sheet_done', '1'); } catch (eSs) {}
       }
       var promo = document.getElementById('th-promo-popup');
       if (promo && promo.classList.contains('th-promo-popup--visible')) {

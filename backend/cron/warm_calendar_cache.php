@@ -1,14 +1,15 @@
 <?php
 /**
- * Builds a rolling calendar cache from already warmed search-cover files.
+ * Builds a rolling calendar cache from search-cover + read-only promo seed.
  *
- * This job never starts a live Tourvisor search. Run it after
- * warm_home_search_cache.sh. Promo files fill today/+1/+2 and regular cover
- * fills the following 39+ days.
+ * Never writes data/promo_cache_* (акции остаются отдельным пайплайном).
+ * Promo только копируется в data/calendar_cache/ как bootstrap ближних дат.
+ * Run after warm_home_search_cache.sh. No live Tourvisor.
  */
 declare(strict_types=1);
 
 require_once __DIR__ . '/../components/tourvisor_proxy_http_base.php';
+require_once __DIR__ . '/../components/tourvisor_search_cover.php';
 require_once __DIR__ . '/../components/calendar_tour_cache.php';
 require_once __DIR__ . '/../components/promo_sochi_filter.php';
 
@@ -35,15 +36,21 @@ $countries = require __DIR__ . '/../config/popular_countries.php';
 if (!is_array($countries) || $countries === []) {
     $countries = [['id' => 4, 'name' => 'Турция']];
 }
-$departures = th_promo_speed_warm_departures();
+/** Самара + Москва — те же вылеты, что у home search cover. */
+$departureIds = [7, 1];
 $proxyBase = get_tourvisor_proxy_http_base_url();
-$daysAhead = (int) (getenv('TH_CALENDAR_WARM_DAYS') ?: ($_ENV['TH_CALENDAR_WARM_DAYS'] ?? 42));
-$daysAhead = max(31, min(62, $daysAhead));
-$today = new DateTimeImmutable('today');
-$fromYmd = $today->format('Y-m-d');
-$toYmd = $today->modify('+' . $daysAhead . ' days')->format('Y-m-d');
-$coverFrom = $today->modify('+3 days');
-$coverTo = new DateTimeImmutable($toYmd);
+$horizon = th_calendar_warm_horizon();
+$fromYmd = $horizon['fromYmd'];
+$toYmd = $horizon['toYmd'];
+$daysAhead = $horizon['daysAhead'];
+$coverFrom = $horizon['coverFrom'];
+$coverTo = $horizon['coverTo'];
+$wideNights = th_search_cover_wide_nights();
+$ttlHours = (float) (getenv('TOURVISOR_COUNTRY_PAGE_CACHE_TTL_HOURS')
+    ?: ($_ENV['TOURVISOR_COUNTRY_PAGE_CACHE_TTL_HOURS'] ?? 24));
+$coverTtlSeconds = (int) (min(168, max(1, $ttlHours)) * 3600);
+/** Allow slightly stale cover when assembling calendar (2× country TTL). */
+$coverReadTtl = $coverTtlSeconds * 2;
 
 /** @return array<string,mixed> */
 function th_calendar_warm_fetch_json(string $url): array
@@ -92,9 +99,41 @@ function th_calendar_warm_windows(DateTimeImmutable $from, DateTimeImmutable $to
     return $windows;
 }
 
+/**
+ * Pull hotels from local search-cover blob (all dates in file).
+ *
+ * @param array<string,mixed> $params
+ * @return list<array<string,mixed>>
+ */
+function th_calendar_warm_cover_hotels(array $params, int $ttlSeconds): array
+{
+    $hit = th_search_cover_find($params, $ttlSeconds);
+    if ($hit === null) {
+        // Partial cover: load matching identity even if dates do not fully ⊇ query.
+        $identity = th_search_cover_identity($params);
+        $entry = th_search_cover_get_entry($identity);
+        if ($entry === null) {
+            return [];
+        }
+        $file = (string) ($entry['file'] ?? '');
+        if ($file === '') {
+            $file = th_search_cover_file_for_identity($identity);
+        } elseif ($file[0] !== '/' && strpos($file, ':') === false) {
+            $file = th_search_cover_cache_dir() . DIRECTORY_SEPARATOR . basename($file);
+        }
+        $blob = th_search_cover_load_blob($file);
+        $hotels = is_array($blob['hotels'] ?? null) ? $blob['hotels'] : [];
+
+        return is_array($hotels) ? $hotels : [];
+    }
+    $hotels = $hit['hotels'] ?? [];
+
+    return is_array($hotels) ? $hotels : [];
+}
+
 $summary = [];
-foreach ($departures as $departure) {
-    $departureId = (int) ($departure['departureId'] ?? 0);
+foreach ($departureIds as $departureId) {
+    $departureId = (int) $departureId;
     if ($departureId <= 0) {
         continue;
     }
@@ -105,7 +144,7 @@ foreach ($departures as $departure) {
     $previousDates = [];
     $previous = th_calendar_cache_get($departureId, true);
     $previousAge = isset($previous['generatedAt']) ? time() - (int) $previous['generatedAt'] : PHP_INT_MAX;
-    if ($previousAge <= 48 * 3600) {
+    if ($previousAge <= 72 * 3600) {
         foreach ((array) ($previous['dates'] ?? []) as $date => $hotels) {
             if (is_string($date) && is_array($hotels) && $date >= $fromYmd && $date <= $toYmd) {
                 $previousDates[$date] = $hotels;
@@ -115,8 +154,9 @@ foreach ($departures as $departure) {
 
     $coverHits = 0;
     $coverMisses = 0;
-    $promoCountries = 0;
     $transportErrors = 0;
+    $coverDirectHits = 0;
+    $promoCountries = 0;
     foreach ($countries as $country) {
         $countryId = (int) ($country['id'] ?? 0);
         $countryName = trim((string) ($country['name'] ?? ''));
@@ -124,10 +164,8 @@ foreach ($departures as $departure) {
             continue;
         }
 
-        $promo = th_promo_speed_cache_get($countryId, $departureId, true, $departureId);
-        if ($promo === null) {
-            $promo = th_promo_speed_cache_get_best($countryId, $departureId, true);
-        }
+        // Bootstrap ближних дат из promo → только в calendar_cache (promo файлы не трогаем).
+        $promo = th_calendar_promo_payload_for_departure($countryId, $departureId);
         $promoHotels = is_array($promo['results'] ?? null) ? $promo['results'] : [];
         if ($promoHotels !== []) {
             $promoCountries++;
@@ -143,6 +181,32 @@ foreach ($departures as $departure) {
             );
         }
 
+        $coverParams = [
+            'departureId' => $departureId,
+            'countryId' => $countryId,
+            'adults' => 2,
+            'childs' => '',
+            'nightsFrom' => $wideNights['from'],
+            'nightsTo' => $wideNights['to'],
+            'currency' => 'RUB',
+            'dateFrom' => $coverFrom->format('Y-m-d'),
+            'dateTo' => $coverTo->format('Y-m-d'),
+        ];
+        $directHotels = th_calendar_warm_cover_hotels($coverParams, $coverReadTtl);
+        if ($directHotels !== []) {
+            $coverDirectHits++;
+            $coverHits++;
+            th_calendar_cache_add_hotels(
+                $dateBuckets,
+                $directHotels,
+                $countryId,
+                $countryName,
+                $fromYmd,
+                $toYmd
+            );
+            continue;
+        }
+
         foreach (th_calendar_warm_windows($coverFrom, $coverTo) as $window) {
             $params = [
                 'type' => 'search-cached',
@@ -150,8 +214,8 @@ foreach ($departures as $departure) {
                 'countryId' => (string) $countryId,
                 'dateFrom' => $window['from'],
                 'dateTo' => $window['to'],
-                'nightsFrom' => '5',
-                'nightsTo' => '10',
+                'nightsFrom' => (string) $wideNights['from'],
+                'nightsTo' => (string) $wideNights['to'],
                 'adults' => '2',
                 'currency' => 'RUB',
                 'cacheScope' => 'country_page',
@@ -197,25 +261,29 @@ foreach ($departures as $departure) {
     ksort($dates);
     $totalDays = $daysAhead + 1;
     $payload = [
-        'version' => 1,
+        'version' => 4,
+        'source' => 'cover_plus_promo_seed',
         'generatedAt' => time(),
         'departureId' => $departureId,
         'horizonFrom' => $fromYmd,
         'horizonTo' => $toYmd,
         'daysAhead' => $daysAhead,
+        'monthsAhead' => $horizon['monthsAhead'],
         'filledDays' => count($dates),
         'totalDays' => $totalDays,
         'dates' => $dates,
     ];
     // Never replace/refresh a usable cache after a transport outage.
-    $buildHealthy = $transportErrors < 3 || $coverHits > 0;
+    $buildHealthy = $transportErrors < 3 || $coverHits > 0 || $promoCountries > 0 || $dates !== [];
     $saved = $dates !== [] && $buildHealthy && th_calendar_cache_set($departureId, $payload);
     $summary[] = [
         'departureId' => $departureId,
         'saved' => $saved,
         'filledDays' => count($dates),
         'totalDays' => $totalDays,
+        'horizonTo' => $toYmd,
         'promoCountries' => $promoCountries,
+        'coverDirectHits' => $coverDirectHits,
         'coverHits' => $coverHits,
         'coverMisses' => $coverMisses,
         'transportErrors' => $transportErrors,
@@ -224,8 +292,12 @@ foreach ($departures as $departure) {
 
 $result = [
     'success' => !in_array(false, array_column($summary, 'saved'), true),
+    'source' => 'cover_plus_promo_seed',
+    'writesPromoCache' => false,
     'horizonFrom' => $fromYmd,
     'horizonTo' => $toYmd,
+    'daysAhead' => $daysAhead,
+    'monthsAhead' => $horizon['monthsAhead'],
     'departures' => $summary,
 ];
 echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n";

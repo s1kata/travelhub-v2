@@ -1,5 +1,5 @@
 /**
- * Календарь выгодных дат — heatmap + туры на день (promo cache).
+ * Календарь выгодных дат — heatmap + туры на день (calendar_cache / search cover).
  * Две метки: выгодная (deal) и пониженная (reduced).
  * Навигация по «лестнице» месяцев (текущий + N вперёд).
  */
@@ -161,7 +161,7 @@
       description: desc,
       rating: hotel.rating || '',
       category: hotel.stars || hotel.hotelcategory || hotel.category || '',
-      from_promo: '1',
+      from_calendar: '1',
       adults: '2'
     };
     var q = [];
@@ -359,7 +359,7 @@
     var url = (cfg.priceMapUrl || '/backend/api/calendar_price_map.php') +
       '?departureId=' + encodeURIComponent(state.departureId) +
       '&countryId=0';
-    return fetch(url, { credentials: 'same-origin' })
+    return fetch(url, { credentials: 'same-origin', cache: 'no-store' })
       .then(function (r) { return r.json(); })
       .then(function (j) {
         applyLadderMeta(j);
@@ -369,8 +369,8 @@
         var keys = Object.keys(state.priceMap);
         if (!keys.length) {
           var reason = (j && j.emptyReason) || '';
-          if (reason === 'no_promo_cache') {
-            setResultsPlaceholder('Нет прогретых акций');
+          if (reason === 'no_calendar_cache') {
+            setResultsPlaceholder('Календарь ещё прогревается');
           } else {
             setResultsPlaceholder('Пока нет выгодных дат в кэше');
           }
@@ -410,7 +410,7 @@
       '&countryId=0' +
       '&date=' + encodeURIComponent(date) +
       '&limit=16';
-    return fetch(url, { credentials: 'same-origin' })
+    return fetch(url, { credentials: 'same-origin', cache: 'no-store' })
       .then(function (r) { return r.json(); })
       .then(function (j) {
         var data = (j && j.success && Array.isArray(j.data)) ? j.data : [];

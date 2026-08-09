@@ -1,26 +1,28 @@
 /**
- * Travel Hub — conversion boost: wizard sticky, abandon sheet (1× per session @ 6m), funnel analytics.
+ * Travel Hub — conversion boost: wizard sticky, abandon sheet (1× per session @ 60s), funnel analytics.
  */
 (function (global) {
   'use strict';
 
+  // Один boot на вкладку — защита от двойного подключения скрипта / гонок таймеров.
+  if (global.__TH_CONVERSION_BOOST_BOOTED) return;
+  global.__TH_CONVERSION_BOOST_BOOTED = true;
+
   var ABANDON_DONE_KEY = 'th_abandon_sheet_done';
   var ABANDON_START_KEY = 'th_abandon_session_start';
-  var ABANDON_SHOWN_KEY = 'th_abandon_slots_shown';
-  var ABANDON_SKIP_KEY = 'th_abandon_sheet_skips';
+  /** Ровно 1 минута от первого захода во вкладку. Ни раньше. */
+  var ABANDON_DELAY_MS = 60 * 1000;
   /**
-   * Best practice (site-wide session):
-   * — один показ за визит вкладки;
-   * — не раньше ~6 мин активности;
-   * — закрыл/скипнул → больше не показываем до конца сессии.
+   * Если дедлайн уже прошёл (пользователь был на сайте >1 мин и перешёл
+   * на другую страницу), не вспыхиваем в момент загрузки — короткая пауза.
+   * Никогда не укорачивает 60с ожидание.
    */
-  var ABANDON_SCHEDULE_MS = [360000];
-  var ABANDON_MAX_SKIPS = 1;
+  var PAGE_LOAD_GRACE_MS = 2500;
   var abandonTimersBound = false;
   var sheetEl = null;
-  var pendingRetries = {};
-  /** Слот, который сейчас открыт — для учёта скипа при закрытии */
-  var openSlotIndex = -1;
+  var pendingRetryTimer = null;
+  var scheduleTimer = null;
+  var openArmed = false;
   var closeWasSubmit = false;
 
   function reach(goal) {
@@ -43,30 +45,13 @@
     try { sessionStorage.setItem(ABANDON_DONE_KEY, '1'); } catch (e) {}
   }
 
-  function getSkipCount() {
-    try {
-      var n = parseInt(sessionStorage.getItem(ABANDON_SKIP_KEY) || '0', 10);
-      return isNaN(n) || n < 0 ? 0 : n;
-    } catch (e) {
-      return 0;
-    }
-  }
-
-  function registerSkip() {
-    var next = getSkipCount() + 1;
-    try { sessionStorage.setItem(ABANDON_SKIP_KEY, String(next)); } catch (e) {}
-    if (next >= ABANDON_MAX_SKIPS) {
-      markAbandonDone();
-    }
-    return next;
-  }
-
   /** Старт визита на сайт (не сбрасывается при переходах по страницам). */
   function getSessionStart() {
     try {
       var raw = sessionStorage.getItem(ABANDON_START_KEY);
       var ts = raw ? parseInt(raw, 10) : 0;
-      if (!ts || isNaN(ts) || ts > Date.now()) {
+      // Только валидный unix-ms в прошлом/настоящем. Битые значения → новый старт.
+      if (!ts || isNaN(ts) || ts < 1e12 || ts > Date.now() + 1000) {
         ts = Date.now();
         sessionStorage.setItem(ABANDON_START_KEY, String(ts));
       }
@@ -76,39 +61,23 @@
     }
   }
 
-  function getShownSlots() {
-    try {
-      var raw = sessionStorage.getItem(ABANDON_SHOWN_KEY);
-      if (!raw) return {};
-      var parsed = JSON.parse(raw);
-      return parsed && typeof parsed === 'object' ? parsed : {};
-    } catch (e) {
-      return {};
+  function getAbandonDeadline() {
+    return getSessionStart() + ABANDON_DELAY_MS;
+  }
+
+  function msUntilAbandonDeadline() {
+    return getAbandonDeadline() - Date.now();
+  }
+
+  function clearAbandonTimers() {
+    if (scheduleTimer) {
+      clearTimeout(scheduleTimer);
+      scheduleTimer = null;
     }
-  }
-
-  function markSlotShown(slotIndex) {
-    var shown = getShownSlots();
-    shown[String(slotIndex)] = 1;
-    try { sessionStorage.setItem(ABANDON_SHOWN_KEY, JSON.stringify(shown)); } catch (e) {}
-  }
-
-  function isSlotShown(slotIndex) {
-    var shown = getShownSlots();
-    return !!shown[String(slotIndex)];
-  }
-
-  function shownSlotCount() {
-    var shown = getShownSlots();
-    var n = 0;
-    for (var i = 0; i < ABANDON_SCHEDULE_MS.length; i++) {
-      if (shown[String(i)]) n++;
+    if (pendingRetryTimer) {
+      clearTimeout(pendingRetryTimer);
+      pendingRetryTimer = null;
     }
-    return n;
-  }
-
-  function sessionElapsedMs() {
-    return Math.max(0, Date.now() - getSessionStart());
   }
 
   function isHomeWizard() {
@@ -198,7 +167,7 @@
               msg.textContent = res.message || 'Заявка принята! Перезвоним за 15 минут.';
               msg.className = 'th-abandon-sheet__msg th-abandon-sheet__msg--ok';
               markAbandonDone();
-              closeWasSubmit = true; // успешная заявка — не считаем скип
+              closeWasSubmit = true;
               form.reset();
               var mu = maxUrl();
               if (mu) {
@@ -221,6 +190,7 @@
 
   function canShowAbandonNow() {
     if (isAbandonDone()) return false;
+    if (openArmed) return false;
     if (document.body.classList.contains('th-modal-open')) return false;
     if (document.body.classList.contains('th-abandon-open')) return false;
     if (document.body.classList.contains('th-support-chat-open')) return false;
@@ -230,21 +200,30 @@
     return true;
   }
 
-  function openAbandonSheet(slotIndex, reason) {
-    if (isAbandonDone()) return false;
-    if (getSkipCount() >= ABANDON_MAX_SKIPS) {
-      markAbandonDone();
+  /**
+   * Жёсткий гейт: никогда раньше дедлайна (sessionStart + 60s).
+   * Done помечается ДО открытия — второй показ в этой вкладке невозможен.
+   */
+  function tryOpenAbandonSheet(reason) {
+    if (isAbandonDone() || openArmed) return false;
+
+    var left = msUntilAbandonDeadline();
+    if (left > 0) {
+      armAbandonSchedule();
       return false;
     }
-    if (isSlotShown(slotIndex)) return false;
-    // Не показывать раньше своего времени сессии (общее для всех страниц)
-    if (sessionElapsedMs() < ABANDON_SCHEDULE_MS[slotIndex]) return false;
-    if (!canShowAbandonNow()) return false;
 
-    markSlotShown(slotIndex);
-    openSlotIndex = slotIndex;
+    if (!canShowAbandonNow()) {
+      scheduleBlockedRetry();
+      return false;
+    }
+
+    // Анти-спам: сначала done, потом UI.
+    markAbandonDone();
+    openArmed = true;
     closeWasSubmit = false;
-    reach(reason || ('abandon_sheet_timer_' + (slotIndex + 1)));
+    clearAbandonTimers();
+    reach(reason || 'abandon_sheet_timer_1');
     ensureAbandonSheet();
     sheetEl.classList.remove('hidden');
     document.body.classList.add('th-abandon-open');
@@ -258,8 +237,6 @@
 
   function closeAbandonSheet() {
     if (!sheetEl) return;
-    var wasOpen = !sheetEl.classList.contains('hidden') || document.body.classList.contains('th-abandon-open');
-    var skipThisClose = wasOpen && !closeWasSubmit && openSlotIndex >= 0;
     sheetEl.classList.add('hidden');
     document.body.classList.remove('th-abandon-open');
     var panel = sheetEl.querySelector('.th-abandon-sheet__panel');
@@ -275,87 +252,83 @@
     }
     if (global.THMobile && global.THMobile.lockScroll) global.THMobile.lockScroll(false);
 
-    if (skipThisClose) {
-      registerSkip();
-      reach('abandon_sheet_skip_' + (openSlotIndex + 1));
+    if (openArmed && !closeWasSubmit) {
+      reach('abandon_sheet_skip_1');
     }
-    openSlotIndex = -1;
+    openArmed = false;
     closeWasSubmit = false;
-
-    // Все 3 слота уже показаны или 3 скипа — больше не вызываем
-    if (isAbandonDone() || getSkipCount() >= ABANDON_MAX_SKIPS || shownSlotCount() >= ABANDON_SCHEDULE_MS.length) {
-      markAbandonDone();
-    }
+    markAbandonDone();
+    clearAbandonTimers();
   }
 
-  function clearSlotRetry(slotIndex) {
-    if (pendingRetries[slotIndex]) {
-      clearInterval(pendingRetries[slotIndex]);
-      delete pendingRetries[slotIndex];
-    }
-  }
-
-  function tryShowSlot(slotIndex) {
-    if (isAbandonDone()) return;
-    if (getSkipCount() >= ABANDON_MAX_SKIPS) {
-      markAbandonDone();
-      return;
-    }
-    if (isSlotShown(slotIndex)) return;
-    if (sessionElapsedMs() < ABANDON_SCHEDULE_MS[slotIndex]) return;
-    if (openAbandonSheet(slotIndex, 'abandon_sheet_timer_' + (slotIndex + 1))) {
-      clearSlotRetry(slotIndex);
-      return;
-    }
-    // Заблокировано модалкой/лоадером — ждём освобождения, но не раньше своего слота
-    if (pendingRetries[slotIndex]) return;
+  function scheduleBlockedRetry() {
+    if (pendingRetryTimer || isAbandonDone()) return;
     var attempts = 0;
-    pendingRetries[slotIndex] = setInterval(function () {
+    function retry() {
+      pendingRetryTimer = null;
       attempts++;
-      if (isAbandonDone() || getSkipCount() >= ABANDON_MAX_SKIPS || isSlotShown(slotIndex) || attempts > 60) {
-        clearSlotRetry(slotIndex);
+      if (isAbandonDone() || attempts > 90) return;
+      if (msUntilAbandonDeadline() > 0) {
+        armAbandonSchedule();
         return;
       }
-      if (sessionElapsedMs() < ABANDON_SCHEDULE_MS[slotIndex]) return;
-      if (openAbandonSheet(slotIndex, 'abandon_sheet_timer_' + (slotIndex + 1))) {
-        clearSlotRetry(slotIndex);
-      }
-    }, 2500);
+      if (tryOpenAbandonSheet('abandon_sheet_timer_1')) return;
+      pendingRetryTimer = setTimeout(retry, 2000);
+    }
+    pendingRetryTimer = setTimeout(retry, 2000);
   }
 
-  /** Не выскакивать в момент загрузки новой страницы, даже если слот уже «просрочен». */
-  var PAGE_LOAD_GRACE_MS = 20000;
+  /**
+   * Планирует показ ровно по дедлайну.
+   * При троттлинге фоновых вкладок перепроверяем Date.now() и перепланируем остаток.
+   */
+  function armAbandonSchedule() {
+    if (isAbandonDone()) return;
+    clearAbandonTimers();
+
+    var left = msUntilAbandonDeadline();
+    var wait;
+    if (left > 0) {
+      // Ровно остаток до 60с. Кап 30с — чтобы после сна вкладки пересчитать.
+      wait = Math.min(left, 30000);
+    } else {
+      // Дедлайн уже был — только grace после загрузки страницы, не раньше 60с сессии.
+      wait = PAGE_LOAD_GRACE_MS;
+    }
+
+    scheduleTimer = setTimeout(function onDue() {
+      scheduleTimer = null;
+      if (isAbandonDone()) return;
+      var stillLeft = msUntilAbandonDeadline();
+      if (stillLeft > 16) {
+        // Ещё рано (троттлинг/сон) — дожимаем остаток, никогда не открываем раньше.
+        armAbandonSchedule();
+        return;
+      }
+      tryOpenAbandonSheet('abandon_sheet_timer_1');
+    }, wait);
+  }
 
   function bindAbandonTriggers() {
     if (!document.body || document.body.classList.contains('th-promo-page')) return;
     if (isAbandonDone()) return;
-    if (getSkipCount() >= ABANDON_MAX_SKIPS) {
-      markAbandonDone();
-      return;
-    }
-    if (shownSlotCount() >= ABANDON_SCHEDULE_MS.length) {
-      markAbandonDone();
-      return;
-    }
     if (abandonTimersBound) return;
     abandonTimersBound = true;
 
+    // Миграция со старых ключей мульти-слотов / скипов.
     try {
       sessionStorage.removeItem('th_abandon_sheet_count');
+      sessionStorage.removeItem('th_abandon_slots_shown');
+      sessionStorage.removeItem('th_abandon_sheet_skips');
     } catch (eClean) {}
 
-    getSessionStart(); // один таймер на всю вкладку / все страницы
+    getSessionStart();
+    armAbandonSchedule();
 
-    ABANDON_SCHEDULE_MS.forEach(function (delayMs, index) {
-      if (isSlotShown(index)) return;
-      var elapsed = sessionElapsedMs();
-      var wait = Math.max(0, delayMs - elapsed);
-      // Просроченный слот после перехода — не сразу, а после короткой паузы на странице
-      if (wait === 0) wait = PAGE_LOAD_GRACE_MS;
-      setTimeout(function () {
-        if (isAbandonDone() || getSkipCount() >= ABANDON_MAX_SKIPS) return;
-        tryShowSlot(index);
-      }, wait);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible' && !isAbandonDone()) {
+        armAbandonSchedule();
+      }
     });
   }
 

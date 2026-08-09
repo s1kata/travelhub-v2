@@ -10,13 +10,13 @@
 ## Канонический crontab
 
 ```cron
-# Акции: promo_cache для promotions, горячей витрины и первых дат календаря.
+# Акции: только promo_cache (страница акций / витрина). Календарь этот кэш не пишет.
 5 0,12 * * * cd /path/to/travelhub-v2 && PHP_BIN=/usr/bin/php8.1 flock -n data/promo_warm.lock bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1
 
-# Обычный поиск: exact/cover cache, Самара+Москва, популярные страны.
+# Обычный поиск: exact/cover cache, Самара+Москва, популярные страны (~42 дня, near-first).
 30 0,8,14,20 * * * cd /path/to/travelhub-v2 && flock -n data/search_warm.lock bash backend/cron/warm_home_search_cache.sh >> data/home_search_warm.log 2>&1
 
-# Календарь: только сборка из уже прогретых promo+cover, без live Tourvisor.
+# Календарь: calendar_cache из cover + seed из promo (копия, без перезаписи promo_cache).
 20 1,9,15,21 * * * cd /path/to/travelhub-v2 && PHP_BIN=/usr/bin/php8.1 flock -n data/calendar_warm.lock bash backend/cron/warm_calendar_cache.sh >> data/calendar_warm.log 2>&1
 
 # YML по правилам — после ночного прогрева акций.
@@ -37,13 +37,13 @@
 ## Что обслуживает сайт
 
 - `warm_home_search_cache.sh` — обычный поиск на главной, страницах стран и VIP.
-- `warm_promotions_cache.sh` — страница акций и горячая витрина.
-- `warm_calendar_cache.sh` — отдельный rolling cache календаря на 42 дня.
+- `warm_promotions_cache.sh` — страница акций и горячая витрина (`promo_cache_*` только).
+- `warm_calendar_cache.sh` — `calendar_cache` из search cover + seed из promo (read-only).
 - `yml_feed_rules_cron.php` — `/feed.yml`, если фид используется.
 - cleanup-задачи — размер диска и удаление устаревших cover-файлов.
 
-Календарный warm не обращается к live API. Он запускается после search warm и
-собирает реальные туры из cover cache, добавляя ближайшие promo-туры.
+Календарный warm не обращается к live API и **не пишет** promo_cache (seed — только чтение).
+Он запускается после search warm: cover + опциональный seed из promo.
 
 ## Не запускать как cron
 
@@ -70,12 +70,16 @@ TH_WARM_COVER_ENABLED=1
 TH_TV_OUTBOUND_RPM=25
 TH_TV_CONTINUE_MAX=0
 TH_WARM_LIVE_PAUSE_SEC=2.5
-TH_WARM_MAX_LIVE_CHUNKS=40
+TH_WARM_MAX_LIVE_CHUNKS=80
+TH_HOME_COVER_DAYS=42
+TH_HOME_COVER_PRIORITY_DAYS=21
 
 TOURVISOR_COUNTRY_PAGE_CACHE_TTL_HOURS=24
 PROMO_SPEED_CACHE_TTL_HOURS=18
 
-TH_CALENDAR_WARM_DAYS=42
+# Горизонт календаря = текущий месяц + N вперёд (3 → до конца ноября из августа).
+# Не влияет на promo_cache и не расширяет home cover warm.
+TH_DEALS_CAL_MONTHS_AHEAD=3
 TH_CALENDAR_CACHE_TTL_HOURS=30
 
 TOURVISOR_IMAGE_CACHE_TTL_DAYS=14

@@ -1453,6 +1453,12 @@ function tourvisor_proxy_dispatch(): array
                 $r = $promoBuildFileResponse($promoFile, false);
                 break;
             }
+            // Stale файл лучше медленного /tours/hots — и для cacheOnly, и для обычного запроса.
+            $promoStaleEarly = th_promo_speed_cache_get_best($promoCntId, $promoDepId, true);
+            if ($promoStaleEarly !== null) {
+                $r = $promoBuildFileResponse($promoStaleEarly, true);
+                break;
+            }
             if ($promoCacheOnly) {
                 th_promo_speed_log('promo_search_cache_only_miss', [
                     'countryId' => $promoCntId,

@@ -367,7 +367,9 @@ function th_promo_speed_promo_search_live(
 }
 
 /**
- * Гибрид: свежий promo_cache_* → иначе live search → откладка в файл.
+ * Гибрид: promo_cache_* (в т.ч. stale) → иначе live search → откладка в файл.
+ * cacheOnly=1 обязан читать файл (иначе плитки/мгновенный paint всегда пустые для ОАЭ и др.).
+ * Live только при bypass или полном отсутствииusable файла — не ждём Tourvisor, если есть кэш.
  *
  * @param callable(array<string, string>): array $dispatch
  * @return array{hotels: array<int, array<string, mixed>>, source: string, fromCache: bool}
@@ -382,22 +384,26 @@ function th_promo_speed_promo_search_hybrid(
     bool $bypassFile = false,
     bool $cacheOnly = false
 ): array {
-    if (!$bypassFile && !$cacheOnly) {
-        $file = th_promo_speed_cache_get($countryId, $departureId, false, $departureId);
-        if ($file !== null && th_promo_speed_cache_is_fresh($file, $promoDates)) {
+    if (!$bypassFile) {
+        // allowStale=true: для мгновенной выдачи лучше отдать вчерашний файл, чем идти в live.
+        $file = th_promo_speed_cache_get($countryId, $departureId, true, $departureId);
+        if ($file !== null) {
             $fromFile = is_array($file['results'] ?? null) ? $file['results'] : [];
             $hotels = th_promo_speed_prepare_live_search_hotels($fromFile, $countryId, $departureId, $promoDates);
             if ($hotels !== []) {
-                th_promo_speed_log('promo_search_hybrid_file_hit', [
+                $fresh = th_promo_speed_cache_is_fresh($file, $promoDates);
+                th_promo_speed_log($fresh ? 'promo_search_hybrid_file_hit' : 'promo_search_hybrid_file_stale', [
                     'countryId' => $countryId,
                     'departureId' => $departureId,
                     'hotels' => count($hotels),
                     'fileDateFrom' => $file['dateFrom'] ?? '',
+                    'cacheOnly' => $cacheOnly,
+                    'fresh' => $fresh,
                 ]);
 
                 return [
                     'hotels' => $hotels,
-                    'source' => 'promo_search_live_file',
+                    'source' => $fresh ? 'promo_search_live_file' : 'promo_search_live_file_stale',
                     'fromCache' => true,
                 ];
             }
@@ -1052,9 +1058,15 @@ function th_promo_speed_hotel_min_price(array $hotel): int
  */
 /**
  * @param int|null $filterDepartureId город вылета для фильтра туров (если файл с другого departureId — fallback)
+ * @param bool $applyDepartureFilter false = отдать tours как в файле (для calendar bootstrap родного dep)
  */
-function th_promo_speed_cache_get(int $countryId, int $departureId, bool $ignoreTtl = false, ?int $filterDepartureId = null): ?array
-{
+function th_promo_speed_cache_get(
+    int $countryId,
+    int $departureId,
+    bool $ignoreTtl = false,
+    ?int $filterDepartureId = null,
+    bool $applyDepartureFilter = true
+): ?array {
     if ($countryId <= 0 || $departureId <= 0) {
         return null;
     }
@@ -1079,10 +1091,12 @@ function th_promo_speed_cache_get(int $countryId, int $departureId, bool $ignore
     if ($d['results'] === []) {
         return null;
     }
-    $filterDep = ($filterDepartureId !== null && $filterDepartureId > 0) ? $filterDepartureId : $departureId;
-    $d['results'] = th_departure_filter_hotels_for_departure($d['results'], $filterDep);
-    if ($d['results'] === []) {
-        return null;
+    if ($applyDepartureFilter) {
+        $filterDep = ($filterDepartureId !== null && $filterDepartureId > 0) ? $filterDepartureId : $departureId;
+        $d['results'] = th_departure_filter_hotels_for_departure($d['results'], $filterDep);
+        if ($d['results'] === []) {
+            return null;
+        }
     }
 
     return $d;

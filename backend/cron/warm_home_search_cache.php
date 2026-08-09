@@ -1,15 +1,19 @@
 <?php
 /**
- * Прогрев search-cached для главной:
+ * Прогрев search-cached для главной / стран:
  * — широкий nights 5–10;
- * — горизонт today+3…+42;
+ * — горизонт today+3…+TH_HOME_COVER_DAYS (по умолчанию 42; НЕ лестница календаря);
+ * — сначала ближние окна (+3…+21) по всем странам/вылетам, потом добор до горизонта;
  * — skip если cover свежий и закрывает горизонт;
  * — иначе live только по дырам (куски ≤14 дней);
  * — туристические комбо: 2+0 всегда, 2+1 (возраст 7) для топ-5 стран.
  *
- * Cron (ежедневно + доп. прогоны днём — витрина главной питается из promo_cache):
+ * Важно: длинный горизонт календаря собирает warm_calendar_cache.php из cover.
+ * Cover warm нельзя тянуть на 3 месяца в один прогон — бюджет live кончается,
+ * ближний кэш холодеет → поиск уходит в live (~1 мин).
+ *
+ * Cron:
  *   30 0,8,14,20 * * * cd /path/to/site && bash backend/cron/warm_home_search_cache.sh >> data/home_search_warm.log 2>&1
- * Рекомендуется минимум 1 полный прогон ночью (00:30), чтобы утром на главной были свежие туры.
  */
 declare(strict_types=1);
 
@@ -48,10 +52,16 @@ if (!is_array($popular) || $popular === []) {
     $popular = [['id' => 4, 'name' => 'Турция']];
 }
 
+/** Самара первой — основной трафик; Москва добирается тем же бюджетом. */
 $departureIds = [7, 1];
 $wideNights = th_search_cover_wide_nights();
+$coverDays = (int) (getenv('TH_HOME_COVER_DAYS') ?: ($_ENV['TH_HOME_COVER_DAYS'] ?? 42));
+$coverDays = max(21, min(62, $coverDays));
+$priorityDays = (int) (getenv('TH_HOME_COVER_PRIORITY_DAYS') ?: ($_ENV['TH_HOME_COVER_PRIORITY_DAYS'] ?? 21));
+$priorityDays = max(14, min($coverDays, $priorityDays));
 $targetFrom = date('Y-m-d', strtotime('+3 days'));
-$targetTo = date('Y-m-d', strtotime('+42 days'));
+$targetTo = date('Y-m-d', strtotime('+' . $coverDays . ' days'));
+$priorityTo = date('Y-m-d', strtotime('+' . $priorityDays . ' days'));
 $warmCoverEnabled = filter_var(
     getenv('TH_WARM_COVER_ENABLED') ?: ($_ENV['TH_WARM_COVER_ENABLED'] ?? '1'),
     FILTER_VALIDATE_BOOLEAN
@@ -74,11 +84,11 @@ $touristCombosTop = [
 
 $proxyBase = rtrim(get_tourvisor_proxy_http_base_url(), '/');
 
-/** Пауза между live-сегментами (мс) — не упираться в ~30 req/min Tourvisor. */
+/** Пауза между live-сегментами — не упираться в ~30 req/min Tourvisor. */
 $warmPauseUs = (int) (max(1.5, min(8.0, (float) (getenv('TH_WARM_LIVE_PAUSE_SEC') ?: ($_ENV['TH_WARM_LIVE_PAUSE_SEC'] ?? 2.5)))) * 1000000);
-/** Жёсткий потолок live-сегментов за один прогон (защита суточной квоты). */
-$maxLiveChunks = (int) (getenv('TH_WARM_MAX_LIVE_CHUNKS') ?: ($_ENV['TH_WARM_MAX_LIVE_CHUNKS'] ?? 40));
-$maxLiveChunks = max(5, min(120, $maxLiveChunks));
+/** Потолок live-сегментов за прогон (приоритет ближних окон заполняет поиск). */
+$maxLiveChunks = (int) (getenv('TH_WARM_MAX_LIVE_CHUNKS') ?: ($_ENV['TH_WARM_MAX_LIVE_CHUNKS'] ?? 80));
+$maxLiveChunks = max(5, min(160, $maxLiveChunks));
 $liveChunksDone = 0;
 
 $ok = 0;
@@ -153,13 +163,7 @@ if (!$warmCoverEnabled) {
     $ok = 0;
     $err = 0;
     $results = [];
-    $legacyDateWindows = [
-        ['from' => date('Y-m-d', strtotime('+3 days')), 'to' => date('Y-m-d', strtotime('+17 days'))],
-        ['from' => date('Y-m-d', strtotime('+7 days')), 'to' => date('Y-m-d', strtotime('+21 days'))],
-        ['from' => date('Y-m-d', strtotime('+14 days')), 'to' => date('Y-m-d', strtotime('+28 days'))],
-        ['from' => date('Y-m-d', strtotime('+21 days')), 'to' => date('Y-m-d', strtotime('+35 days'))],
-        ['from' => date('Y-m-d', strtotime('+28 days')), 'to' => date('Y-m-d', strtotime('+42 days'))],
-    ];
+    $legacyDateWindows = th_search_cover_split_chunks($targetFrom, $targetTo, 14);
     foreach ($departureIds as $departureId) {
         $ci = 0;
         foreach ($popular as $row) {
@@ -219,9 +223,10 @@ foreach ($popular as $row) {
     }
     $name = (string) ($row['name'] ?? '');
     $combos = $ci < $childComboTopCountries ? $touristCombosTop : $touristCombosBase;
+    $countryRank = $ci;
     $ci++;
 
-    foreach ($departureIds as $departureId) {
+    foreach ($departureIds as $depRank => $departureId) {
         foreach ($combos as $combo) {
             $params = [
                 'departureId' => $departureId,
@@ -237,10 +242,15 @@ foreach ($popular as $row) {
                 'identity' => $identity,
                 'params' => $params,
                 'name' => $name,
+                'countryRank' => $countryRank,
+                'depRank' => (int) $depRank,
             ];
         }
     }
 }
+
+/** @var list<array<string,mixed>> $liveJobs */
+$liveJobs = [];
 
 foreach ($identities as $item) {
     $identity = $item['identity'];
@@ -273,7 +283,6 @@ foreach ($identities as $item) {
         continue;
     }
 
-    // Свежий, но дыры — только extend; протухший — полный горизонт
     $gapCoverFrom = ($fresh && $coverFrom !== '') ? $coverFrom : null;
     $gapCoverTo = ($fresh && $coverTo !== '') ? $coverTo : null;
     $gaps = th_search_cover_date_gaps($targetFrom, $targetTo, $gapCoverFrom, $gapCoverTo);
@@ -291,69 +300,91 @@ foreach ($identities as $item) {
     }
 
     $didExtend = $gapCoverFrom !== null;
-    $chunks = [];
     foreach ($gaps as $gap) {
         foreach (th_search_cover_split_chunks($gap['from'], $gap['to'], 14) as $chunk) {
-            $chunks[] = $chunk;
-        }
-    }
-
-    foreach ($chunks as $chunk) {
-        if ($liveChunksDone >= $maxLiveChunks) {
-            $results[] = [
-                'action' => 'budget_stop',
-                'ok' => true,
-                'identity' => $identity,
+            $near = ($chunk['from'] <= $priorityTo);
+            $liveJobs[] = [
+                'departureId' => $params['departureId'],
+                'countryId' => $params['countryId'],
                 'name' => $item['name'],
-                'reason' => 'max_live_chunks',
-                'maxLiveChunks' => $maxLiveChunks,
-                'ms' => 0,
+                'dateFrom' => $chunk['from'],
+                'dateTo' => $chunk['to'],
+                'nightsFrom' => $params['nightsFrom'],
+                'nightsTo' => $params['nightsTo'],
+                'adults' => $params['adults'],
+                'childs' => $params['childs'],
+                'identity' => $identity,
+                'mode' => $didExtend ? 'extended' : 'full',
+                'priorityBand' => $near ? 0 : 1,
+                'depRank' => (int) ($item['depRank'] ?? 99),
+                'countryRank' => (int) ($item['countryRank'] ?? 99),
             ];
-            break 2;
         }
-        $job = [
-            'departureId' => $params['departureId'],
-            'countryId' => $params['countryId'],
-            'name' => $item['name'],
-            'dateFrom' => $chunk['from'],
-            'dateTo' => $chunk['to'],
-            'nightsFrom' => $params['nightsFrom'],
-            'nightsTo' => $params['nightsTo'],
-            'adults' => $params['adults'],
-            'childs' => $params['childs'],
-            'identity' => $identity,
-            'mode' => $didExtend ? 'extended' : 'full',
-        ];
-        $rowOut = $runLiveChunk($job);
-        $liveChunksDone++;
-        if (!empty($rowOut['ok'])) {
-            $ok++;
-            if ($didExtend) {
-                $extended++;
-            }
-        } else {
-            $err++;
-            // При 429 / ошибках — удлиняем паузу, не долбим TV
-            usleep((int) ($warmPauseUs * 1.5));
-        }
-        $results[] = $rowOut;
-        usleep($warmPauseUs);
     }
+}
+
+usort($liveJobs, static function (array $a, array $b): int {
+    if ($a['priorityBand'] !== $b['priorityBand']) {
+        return $a['priorityBand'] <=> $b['priorityBand'];
+    }
+    if ($a['depRank'] !== $b['depRank']) {
+        return $a['depRank'] <=> $b['depRank'];
+    }
+    if ($a['countryRank'] !== $b['countryRank']) {
+        return $a['countryRank'] <=> $b['countryRank'];
+    }
+    return strcmp((string) $a['dateFrom'], (string) $b['dateFrom']);
+});
+
+$budgetStopped = false;
+foreach ($liveJobs as $job) {
+    if ($liveChunksDone >= $maxLiveChunks) {
+        $budgetStopped = true;
+        $results[] = [
+            'action' => 'budget_stop',
+            'ok' => true,
+            'identity' => $job['identity'],
+            'name' => $job['name'],
+            'reason' => 'max_live_chunks',
+            'maxLiveChunks' => $maxLiveChunks,
+            'remainingJobs' => max(0, count($liveJobs) - $liveChunksDone),
+            'ms' => 0,
+        ];
+        break;
+    }
+    $rowOut = $runLiveChunk($job);
+    $liveChunksDone++;
+    if (!empty($rowOut['ok'])) {
+        $ok++;
+        if (($job['mode'] ?? '') === 'extended') {
+            $extended++;
+        }
+    } else {
+        $err++;
+        usleep((int) ($warmPauseUs * 1.5));
+    }
+    $results[] = $rowOut;
+    usleep($warmPauseUs);
 }
 
 $out = [
     'success' => true,
-    'mode' => 'cover-skip-extend',
+    'mode' => 'cover-skip-extend-near-first',
     'departureIds' => $departureIds,
     'targetFrom' => $targetFrom,
     'targetTo' => $targetTo,
+    'priorityTo' => $priorityTo,
+    'coverDays' => $coverDays,
+    'priorityDays' => $priorityDays,
     'nights' => $wideNights,
     'ttlSeconds' => $ttlSeconds,
     'identities' => count($identities),
+    'queuedJobs' => count($liveJobs),
     'skipped' => $skipped,
     'extendedChunks' => $extended,
     'liveChunksDone' => $liveChunksDone,
     'maxLiveChunks' => $maxLiveChunks,
+    'budgetStopped' => $budgetStopped,
     'warmed' => $ok,
     'errors' => $err,
     'elapsedSec' => round(microtime(true) - $started, 1),

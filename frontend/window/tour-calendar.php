@@ -15,7 +15,6 @@ $defaultDepartureId = ($qDepartureId === 1) ? 1 : 7;
 $imageProxy = get_tourvisor_image_proxy_base_url();
 require_once __DIR__ . '/../../backend/components/deals_calendar.php';
 $ladder = th_deals_calendar_ladder();
-$assetV = '8';
 
 $popularCountries = [];
 $countriesFile = __DIR__ . '/../../backend/config/popular_countries.php';
@@ -48,7 +47,7 @@ if ($qCountryId > 0) {
 }
 $defaultDepartureId = ($qDepartureId === 1) ? 1 : 7;
 $imageProxy = get_tourvisor_image_proxy_base_url();
-$assetV = '1';
+$assetV = '9';
 
 ?>
 <!DOCTYPE html>
