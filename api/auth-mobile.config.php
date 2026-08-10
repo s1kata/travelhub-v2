@@ -1,4 +1,8 @@
 <?php
+/**
+ * Mobile / next-patch API config for travelhub63.ru
+ * НЕ коммитьте с реальными секретами в публичный репозиторий.
+ */
 return [
     'debug' => false,
 
@@ -11,13 +15,12 @@ return [
         'charset' => 'utf8mb4',
     ],
 
-    // Сначала env, потом fallback
     'jwt_secret' => 'KJr+f91X21KfBSg+6nAKxVGWLtZjCmbJR1gf4NDgF00CeiTcHGhqxir+LPh9AcQX',
-'uon_api_key' => getenv('UON_API_KEY') ?: 'sb8V0iM9BqqZX44gM21u1777975308',
-'tinkoff_terminal_key' => getenv('TINKOFF_TERMINAL_KEY') ?: '1773332116483',
-'tinkoff_password' => getenv('TINKOFF_PASSWORD') ?: 'H7!7mXlXMQmuAsik',
-'app_url' => rtrim(getenv('APP_URL') ?: 'https://travelhub63.ru', '/'),
-'api_url' => rtrim(getenv('API_URL') ?: 'https://travelhub63.ru', '/'),
+    'uon_api_key' => getenv('UON_API_KEY') ?: 'sb8V0iM9BqqZX44gM21u1777975308',
+    'tinkoff_terminal_key' => getenv('TINKOFF_TERMINAL_KEY') ?: '1773332116483',
+    'tinkoff_password' => getenv('TINKOFF_PASSWORD') ?: 'H7!7mXlXMQmuAsik',
+    'app_url' => rtrim(getenv('APP_URL') ?: 'https://travelhub63.ru', '/'),
+    'api_url' => rtrim(getenv('API_URL') ?: 'https://travelhub63.ru', '/'),
     'access_ttl' => 3600,
     'refresh_ttl' => 31536000,
 
@@ -46,8 +49,16 @@ return [
     'send_reset_email' => true,
     'allow_cors' => true,
     'health_check_token' => 'cd4d9b575b4d83189b84e0ca6eb8d94018b14848d0129f9da012e88d2d4e43ad',
-'jwt_issuer' => 'travelhub-auth',
-'allowed_origins' => [
-    'https://travelhub63.ru',
-],
+    'jwt_issuer' => 'travelhub-auth',
+    'allowed_origins' => [
+        'https://travelhub63.ru',
+    ],
+
+    // ОБЯЗАТЕЛЬНО для /api/hotels/* и /api/tours/* (приложение).
+    'tourvisor_token' => getenv('TOURVISOR_TOKEN') ?: 'eyJhbGciOiJFZERTQSIsImtpZCI6IjIwMzNkMzE0LTdlNTktNDAyYS05ZDBmLWZlMjMzYzhiODFkOCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ0di1hcGktYXV0aCIsInN1YiI6IjM0ODAiLCJhdWQiOlsic2VhcmNoIl0sImV4cCI6MTg1Mzg3MDQwMCwibmJmIjoxNzc2NDM0NDQxLCJpYXQiOjE3NzY0MzQ0NDEsImp0aSI6IjAxOWQ5YmJlLTZlOGEtN2YxMy05NDI4LTRkNDMxM2E2OWZhYSJ9.Q0zL7s8XRyy0Cr15XortLPhfkiou1AMq4EJE00equheDhQpfErRTo-MY9xJdC6HVyAGWVrjQOE6JSM3dd8ZBBA',
+    'tourvisor_api_base' => rtrim(
+        getenv('TOURVISOR_API_BASE') ?: 'https://api.tourvisor.ru/search/api/v1',
+        '/'
+    ),
+    'cron_token' => getenv('CRON_TOKEN') ?: 'cd4d9b575b4d83189b84e0ca6eb8d94018b14848d0129f9da012e88d2d4e43ad',
 ];
