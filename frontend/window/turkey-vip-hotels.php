@@ -218,19 +218,11 @@ session_start();
                         <h3 class="heading-font text-xl font-bold text-slate-900 mb-2">${nameSafe}</h3>
                         ${descSafe ? `<p class="text-slate-600 text-sm mb-3 line-clamp-2">${descSafe}</p>` : ''}
 
-                        <!-- Блок цены (динамически из Tourvisor по slug) -->
-                        <div class="vip-price-block" style="min-height:44px;margin-bottom:14px;opacity:0.4;transition:opacity 0.3s">
-                            <div class="vip-price-val" data-slug="${escHtml(slug)}">
-                                <span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#94a3b8">
-                                    <span style="display:inline-block;width:14px;height:14px;border:2px solid #e2e8f0;border-top-color:#FF6B6B;border-radius:50%;animation:vip-spin 0.8s linear infinite"></span>
-                                    загружаем цену…
-                                </span>
-                            </div>
-                        </div>
+                        <p class="text-sm text-slate-500 mb-4">Цены — в турах на странице отеля</p>
 
-                        <a href="/frontend/window/hotels/hotel-detail.php?slug=${encodeURIComponent(slug)}"
-                           class="inline-flex items-center gap-2 text-indigo-600 font-medium hover:text-indigo-800 transition">
-                            Подробнее <i class="fas fa-arrow-right text-sm"></i>
+                        <a href="/frontend/window/hotels/hotel-detail.php?slug=${encodeURIComponent(slug)}#vip-tour-search-section"
+                           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition">
+                            Смотреть туры <i class="fas fa-arrow-right text-sm"></i>
                         </a>
                     </div>
                 </div>`;
@@ -238,12 +230,6 @@ session_start();
 
             container.querySelectorAll('.vip-card-photo').forEach(img => {
                 img.addEventListener('error', () => { img.src = fallbackImg; }, { once: true });
-            });
-
-            /* Загружаем цены параллельно */
-            unique.forEach(hotel => {
-                if (!hotel.slug) return;
-                loadHotelPrice(hotel.slug).then(price => applyPrice(hotel.slug, price));
             });
         }
 

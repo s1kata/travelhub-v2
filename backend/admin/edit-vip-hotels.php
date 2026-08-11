@@ -44,6 +44,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $checkOutTime = trim($_POST['check_out_time'] ?? '');
         $displayOrder = (int)($_POST['display_order'] ?? 0);
         $isActive = isset($_POST['is_active']) ? 1 : 0;
+        $tourvisorHotelId = (int)($_POST['tourvisor_hotel_id'] ?? 0);
+        if ($tourvisorHotelId <= 0) {
+            $tourvisorHotelId = null;
+        }
 
         $features = json_decode($_POST['features_json'] ?? '[]', true);
         $features = is_array($features) ? array_filter(array_map('trim', $features)) : [];
@@ -56,14 +60,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             if ($pdo) {
                 try {
+                    vip_hotels_ensure_table($pdo);
                     if ($action === 'add') {
-                        $stmt = $pdo->prepare("INSERT INTO vip_hotels (name, slug, city, rating, description, bio, cuisine, meal_plan, location, beach_type, distance_to_airport, check_in_time, check_out_time, features, images, display_order, is_active, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                        $stmt->execute([$name, $slug, $city, $rating, $description, $bio, $cuisine, $mealPlan, $location, $beachType, $distanceToAirport, $checkInTime, $checkOutTime, json_encode($features), json_encode($images), $displayOrder, $isActive, $_SESSION['user_id']]);
+                        $stmt = $pdo->prepare("INSERT INTO vip_hotels (name, slug, tourvisor_hotel_id, city, rating, description, bio, cuisine, meal_plan, location, beach_type, distance_to_airport, check_in_time, check_out_time, features, images, display_order, is_active, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$name, $slug, $tourvisorHotelId, $city, $rating, $description, $bio, $cuisine, $mealPlan, $location, $beachType, $distanceToAirport, $checkInTime, $checkOutTime, json_encode($features), json_encode($images), $displayOrder, $isActive, $_SESSION['user_id']]);
                         $message = 'VIP отель успешно добавлен';
                     } else {
                         $id = (int)$_POST['id'];
-                        $stmt = $pdo->prepare("UPDATE vip_hotels SET name = ?, slug = ?, city = ?, rating = ?, description = ?, bio = ?, cuisine = ?, meal_plan = ?, location = ?, beach_type = ?, distance_to_airport = ?, check_in_time = ?, check_out_time = ?, features = ?, images = ?, display_order = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP, updated_by = ? WHERE id = ?");
-                        $stmt->execute([$name, $slug, $city, $rating, $description, $bio, $cuisine, $mealPlan, $location, $beachType, $distanceToAirport, $checkInTime, $checkOutTime, json_encode($features), json_encode($images), $displayOrder, $isActive, $_SESSION['user_id'], $id]);
+                        $stmt = $pdo->prepare("UPDATE vip_hotels SET name = ?, slug = ?, tourvisor_hotel_id = ?, city = ?, rating = ?, description = ?, bio = ?, cuisine = ?, meal_plan = ?, location = ?, beach_type = ?, distance_to_airport = ?, check_in_time = ?, check_out_time = ?, features = ?, images = ?, display_order = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP, updated_by = ? WHERE id = ?");
+                        $stmt->execute([$name, $slug, $tourvisorHotelId, $city, $rating, $description, $bio, $cuisine, $mealPlan, $location, $beachType, $distanceToAirport, $checkInTime, $checkOutTime, json_encode($features), json_encode($images), $displayOrder, $isActive, $_SESSION['user_id'], $id]);
                         $message = 'VIP отель успешно обновлен';
                     }
                     $messageType = 'success';
@@ -329,6 +334,11 @@ $ratings = ['3*', '4*', '5*', '5* Deluxe', '6*'];
                                     <div>
                                         <label class="block text-sm font-medium text-slate-700 mb-2">Slug *</label>
                                         <input type="text" name="slug" value="<?php echo htmlspecialchars($selectedHotel['slug'] ?? ''); ?>" class="form-input" placeholder="unique-slug" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Tourvisor hotel ID</label>
+                                        <input type="number" name="tourvisor_hotel_id" value="<?php echo htmlspecialchars((string) ($selectedHotel['tourvisor_hotel_id'] ?? '')); ?>" class="form-input" placeholder="например 2238 — для точных туров">
+                                        <p class="text-xs text-slate-500 mt-1">ID отеля в Tourvisor (hotelIds). Без него фильтр по названию.</p>
                                     </div>
                                 </div>
 

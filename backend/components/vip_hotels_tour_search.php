@@ -4,12 +4,13 @@
  * Фиксированная страна (Турция, countryId=4), выбор курорта вместо страны
  */
 
-// Турция: countryId=4; курорты: Анталья 20, Белек 21, Кемер 22
-$VIP_COUNTRY_ID = 4;
+// По умолчанию Турция (VIP). На hotel-hub из каталога Tourvisor можно передать $vipCountryId.
+$VIP_COUNTRY_ID = isset($vipCountryId) && (int) $vipCountryId > 0 ? (int) $vipCountryId : 4;
 
 // Режим «страница отеля»: при заданных $vipHotelName и $vipHotelCity — фильтрация по отелю, свой заголовок
 $vipHotelName = $vipHotelName ?? null;
 $vipHotelCity = $vipHotelCity ?? null;
+$vipHotelTvIds = $vipHotelTvIds ?? null; // comma-separated Tourvisor hotel ids
 $regionIdsMap = ['Antalya' => '20', 'Belek' => '21', 'Kemer' => '22'];
 $vipHotelRegionId = ($vipHotelCity && isset($regionIdsMap[$vipHotelCity])) ? $regionIdsMap[$vipHotelCity] : '';
 
@@ -252,6 +253,7 @@ $_th_fp_vip_v = is_file($_th_fp_vip) ? (string) filemtime($_th_fp_vip) : '1';
     const VIP_COUNTRY_ID = <?php echo (int)$VIP_COUNTRY_ID; ?>;
     const HOTEL_FILTER_NAME = <?php echo json_encode($vipHotelName ?? ''); ?>;
     const HOTEL_REGION_ID = <?php echo json_encode($vipHotelRegionId); ?>;
+    const HOTEL_TV_IDS = <?php echo json_encode($vipHotelTvIds ? (string) $vipHotelTvIds : ''); ?>;
 
     function hotelNameMatches(ourName, tvName) {
         if (!ourName || !tvName) return false;
@@ -283,7 +285,7 @@ $_th_fp_vip_v = is_file($_th_fp_vip) ? (string) filemtime($_th_fp_vip) : '1';
         var styleDim = 'color: #64748b; font-size: 10px;';
         console.group('%c[Tourvisor · VIP Отели] Поиск подключён: прокси + кэш', style);
         console.log('%cBase URL:', styleDim, TV_API_BASE);
-        console.log('%cТурция (VIP отели):', styleDim, 'countryId:', VIP_COUNTRY_ID);
+        console.log('%cСтрана поиска:', styleDim, 'countryId:', VIP_COUNTRY_ID);
         console.log('%cЦепочка кэша: файл → Firestore → all_tours → живой поиск.', styleDim);
         console.groupEnd();
     })();
@@ -718,6 +720,11 @@ $_th_fp_vip_v = is_file($_th_fp_vip) ? (string) filemtime($_th_fp_vip) : '1';
         document.getElementById('vip-tv-search-btn').addEventListener('click', () => performCountryTvSearch());
         document.getElementById('vip-tv-sort').addEventListener('change', applyCountryTvSort);
         document.getElementById('vip-tv-load-more-btn').addEventListener('click', () => loadMoreCountryTvResults());
+
+        // Страница отеля: автопоиск туров (hotel-first hub)
+        if (HOTEL_FILTER_NAME || HOTEL_TV_IDS) {
+            setTimeout(function() { performCountryTvSearch(); }, 400);
+        }
     });
 
     function updateCountryTvLoadMoreButton() {
@@ -802,13 +809,17 @@ $_th_fp_vip_v = is_file($_th_fp_vip) ? (string) filemtime($_th_fp_vip) : '1';
             currency: 'RUB'
         });
         if (childs) params.set('childs', childs);
-        const meal = document.getElementById('vip-tv-meal').value;
+        const mealEl = document.getElementById('vip-tv-meal');
+        const meal = mealEl ? mealEl.value : '';
         if (meal) params.set('meal', meal);
-        let category = document.getElementById('vip-tv-category').value;
-        if (HOTEL_FILTER_NAME && !category) category = '5';
+        const categoryEl = document.getElementById('vip-tv-category');
+        let category = categoryEl ? categoryEl.value : '';
+        // При точном hotelIds не форсируем 5★ — иначе режем выдачу
+        if (HOTEL_FILTER_NAME && !category && !HOTEL_TV_IDS) category = '5';
         if (category) params.set('hotelCategory', category);
-        let region = document.getElementById('vip-tv-region').value;
-        if (!region && HOTEL_REGION_ID) region = HOTEL_REGION_ID;
+        const regionEl = document.getElementById('vip-tv-region');
+        let region = regionEl ? regionEl.value : '';
+        if (!region && HOTEL_REGION_ID && !HOTEL_TV_IDS) region = HOTEL_REGION_ID;
         if (region) params.set('regionIds', region);
         if (typeof countryTvSelectedServiceIds !== 'undefined' && countryTvSelectedServiceIds.length > 0) {
             params.set('hotelServices', countryTvSelectedServiceIds.join(','));
@@ -818,7 +829,7 @@ $_th_fp_vip_v = is_file($_th_fp_vip) ? (string) filemtime($_th_fp_vip) : '1';
         const cacheParams = {
             departureId: dep,
             countryId: effectiveCountryId,
-            countryName: 'Турция',
+            countryName: 'country-' + effectiveCountryId,
             dateFrom, dateTo,
             nightsFrom: nFrom || 7,
             nightsTo: nTo || 14,
@@ -828,7 +839,8 @@ $_th_fp_vip_v = is_file($_th_fp_vip) ? (string) filemtime($_th_fp_vip) : '1';
         if (meal) cacheParams.meal = meal;
         if (category) cacheParams.hotelCategory = category;
         if (region) cacheParams.regionIds = region;
-        if (!region && HOTEL_REGION_ID) cacheParams.regionIds = HOTEL_REGION_ID;
+        if (!region && HOTEL_REGION_ID && !HOTEL_TV_IDS) cacheParams.regionIds = HOTEL_REGION_ID;
+        if (HOTEL_TV_IDS) cacheParams.hotelIds = HOTEL_TV_IDS;
         if (typeof countryTvSelectedServiceIds !== 'undefined' && countryTvSelectedServiceIds.length > 0) {
             cacheParams.hotelServices = countryTvSelectedServiceIds.join(',');
         }
@@ -840,14 +852,17 @@ $_th_fp_vip_v = is_file($_th_fp_vip) ? (string) filemtime($_th_fp_vip) : '1';
         if (rCache.success && Array.isArray(rCache.data) && rCache.data.length > 0) {
             progress.classList.add('hidden');
             let rawData = rCache.data;
-            if (HOTEL_FILTER_NAME) {
+            if (HOTEL_TV_IDS) {
+                const want = HOTEL_TV_IDS.split(',').map(function(x) { return parseInt(x, 10); }).filter(Boolean);
+                rawData = rawData.filter(function(h) { return want.indexOf(parseInt(h.id, 10)) >= 0; });
+            } else if (HOTEL_FILTER_NAME) {
                 rawData = rawData.filter(function(h) { return hotelNameMatches(HOTEL_FILTER_NAME, h.name); });
-                if (rawData.length === 1 && rawData[0].tours && rawData[0].tours.length > 0) {
-                    var h = rawData[0];
-                    countryTvLastResults = h.tours.map(function(t) { return { _hotel: h, _tour: t }; });
-                } else {
-                    countryTvLastResults = rawData;
-                }
+            }
+            if ((HOTEL_TV_IDS || HOTEL_FILTER_NAME) && rawData.length === 1 && rawData[0].tours && rawData[0].tours.length > 0) {
+                var h = rawData[0];
+                countryTvLastResults = h.tours.map(function(t) { return { _hotel: h, _tour: t }; });
+            } else if (HOTEL_TV_IDS || HOTEL_FILTER_NAME) {
+                countryTvLastResults = rawData;
             } else {
                 countryTvLastResults = rawData;
             }

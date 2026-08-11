@@ -71,6 +71,18 @@
     root.style.setProperty('--th-vv-offset-left', Math.round(offsetLeft) + 'px');
   }
 
+  function setHeaderH() {
+    var header = document.getElementById('site-header');
+    if (!header) return;
+    var h = 0;
+    try {
+      h = header.getBoundingClientRect().height || header.offsetHeight || 0;
+    } catch (e4) {}
+    if (h > 40 && h < 160) {
+      root.style.setProperty('--th-header-h', Math.round(h) + 'px');
+    }
+  }
+
   function elVisible(el) {
     if (!el) return false;
     var style = window.getComputedStyle(el);
@@ -236,6 +248,7 @@
   function syncAll() {
     syncBrowserClass();
     setVvh();
+    setHeaderH();
     syncHomeFunnel();
     syncStickyPad();
     syncModalLock();
@@ -445,6 +458,7 @@
   /* Синхронно при загрузке скрипта */
   syncBrowserClass();
   setVvh();
+  setHeaderH();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bind);

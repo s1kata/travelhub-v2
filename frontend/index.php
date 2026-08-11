@@ -163,7 +163,8 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     <link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=11">
     <link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=9">
     <link rel="stylesheet" href="/frontend/css/yandex-mobile.css?v=9">
-    <link rel="stylesheet" href="/frontend/css/pages/home.css?v=12">
+    <link rel="stylesheet" href="/frontend/css/pages/home.css?v=15">
+    <link rel="stylesheet" href="/frontend/css/pages/home-hotels-promo.css?v=1">
     <link rel="stylesheet" href="/frontend/css/th-sheet.css?v=7">
     <?php include __DIR__ . '/../backend/components/mobile_site_head.php'; ?>
     <link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=7">
@@ -771,6 +772,48 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             <p class="mt-5 text-center text-sm text-[#6B7280]">
                 Или смотрите <a href="/frontend/window/tour-calendar.php" class="font-semibold text-[#5DA9A4] hover:underline">календарь выгодных дат</a> — цены по дням вылета.
             </p>
+        </div>
+    </section>
+
+    <!-- Продающая витрина: отели с турами -->
+    <section class="th-hh" aria-labelledby="home-hotels-heading">
+        <div class="th-container mx-auto px-4 sm:px-6 md:px-8 max-w-7xl">
+            <div class="th-hh__stage">
+                <div class="th-hh__media" aria-hidden="true"></div>
+                <div class="th-hh__glow" aria-hidden="true"></div>
+                <div class="th-hh__body">
+                    <div class="th-hh__copy">
+                        <span class="th-hh__badge"><i class="fas fa-bolt" aria-hidden="true"></i> Новое</span>
+                        <h2 id="home-hotels-heading" class="heading-font th-hh__title">Сначала отель — сразу туры</h2>
+                        <p class="th-hh__lead">Только отели с реальными ценами. Страна → отель → тур. Без пустых карточек и лишних форм.</p>
+                        <div class="th-hh__actions">
+                            <a class="th-hh__cta" href="/frontend/window/popular-hotels.php">
+                                Смотреть отели
+                                <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                            </a>
+                            <a class="th-hh__ghost" href="/frontend/window/turkey-vip-hotels.php">VIP Турция</a>
+                        </div>
+                        <div class="th-hh__chips" aria-label="Быстрый переход">
+                            <a class="th-hh__chip" href="/frontend/window/popular-hotels.php?country=4">Турция</a>
+                            <a class="th-hh__chip" href="/frontend/window/popular-hotels.php?country=1">Египет</a>
+                            <a class="th-hh__chip" href="/frontend/window/popular-hotels.php?country=9">ОАЭ</a>
+                            <a class="th-hh__chip" href="/frontend/window/tour-calendar.php">Календарь дат</a>
+                        </div>
+                    </div>
+                    <div class="th-hh__preview">
+                        <a class="th-hh__preview-card" href="/frontend/window/popular-hotels.php">
+                            <strong>Отели с ценой на карточке</strong>
+                            <span>Открыли — и сразу видите, сколько стоит тур</span>
+                            <em>Перейти к отелям →</em>
+                        </a>
+                        <a class="th-hh__preview-card" href="/frontend/window/promotions.php">
+                            <strong>Горящие направления</strong>
+                            <span>Египет · ОАЭ · Таиланд · Турция</span>
+                            <em>Смотреть акции →</em>
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 

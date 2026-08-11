@@ -1,0 +1,211 @@
+/* Home hotels promo — standalone so deploy can't miss styles inside huge home.css */
+.th-hh {
+  --hh-ink: #0f172a;
+  --hh-teal: #5da9a4;
+  --hh-coral: #ff5c5c;
+  padding: 0.25rem 0 1.75rem;
+}
+
+.th-hh__stage {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  min-height: 18.5rem;
+  color: #fff;
+  box-shadow: 0 28px 56px rgba(15, 23, 42, 0.18);
+  background: #0f2f3a;
+}
+
+.th-hh__media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    linear-gradient(105deg, rgba(8, 24, 32, 0.92) 0%, rgba(8, 24, 32, 0.72) 42%, rgba(8, 24, 32, 0.35) 100%),
+    url("https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=1600&q=72") center / cover no-repeat;
+  transform: scale(1.02);
+  transition: transform 0.7s ease;
+}
+
+.th-hh__stage:hover .th-hh__media {
+  transform: scale(1.06);
+}
+
+.th-hh__glow {
+  position: absolute;
+  inset: auto -10% -35% auto;
+  width: 55%;
+  height: 70%;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(circle at center, rgba(93, 169, 164, 0.35), transparent 68%);
+}
+
+.th-hh__body {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.35rem 1.25rem 1.35rem;
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .th-hh__stage { min-height: 20rem; border-radius: 1.75rem; }
+  .th-hh__body {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    align-items: end;
+    gap: 1.5rem;
+    padding: 1.85rem 1.85rem 1.85rem 2rem;
+  }
+}
+
+.th-hh__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.7rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #dff7f4;
+  background: rgba(93, 169, 164, 0.22);
+  border: 1px solid rgba(223, 247, 244, 0.28);
+}
+
+.th-hh__title {
+  margin: 0;
+  color: #fff !important;
+  font-size: clamp(1.55rem, 4.2vw, 2.35rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+  max-width: 16ch;
+}
+
+.th-hh__lead {
+  margin: 0.7rem 0 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 0.98rem;
+  line-height: 1.5;
+  max-width: 34rem;
+}
+
+.th-hh__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem 1rem;
+  margin-top: 1.15rem;
+}
+
+.th-hh__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 3rem;
+  padding: 0.8rem 1.35rem;
+  border-radius: 0.95rem;
+  background: linear-gradient(135deg, #ff6b6b, #ef4444);
+  color: #fff !important;
+  font-weight: 800;
+  font-size: 0.95rem;
+  text-decoration: none !important;
+  box-shadow: 0 14px 30px rgba(239, 68, 68, 0.35);
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+
+.th-hh__cta:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  color: #fff !important;
+}
+
+.th-hh__ghost {
+  color: rgba(255, 255, 255, 0.92) !important;
+  font-weight: 700;
+  font-size: 0.92rem;
+  text-decoration: none !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+  padding-bottom: 1px;
+}
+
+.th-hh__ghost:hover { color: #fff !important; border-bottom-color: #fff; }
+
+.th-hh__preview {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.th-hh__preview-card {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.95rem 1rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  text-decoration: none !important;
+  color: #fff !important;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.th-hh__preview-card:hover {
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(-2px);
+}
+
+.th-hh__preview-card strong {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.th-hh__preview-card span {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.th-hh__preview-card em {
+  font-style: normal;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #b8ebe6;
+}
+
+.th-hh__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
+
+.th-hh__chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.1rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff !important;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none !important;
+}
+
+.th-hh__chip:hover { background: rgba(255, 255, 255, 0.2); }
+
+@media (max-width: 639px) {
+  .th-hh__stage { border-radius: 1.25rem; min-height: 0; }
+  .th-hh__body { padding: 1.15rem; }
+  .th-hh__cta { width: 100%; }
+  .th-hh__title { max-width: none; }
+}

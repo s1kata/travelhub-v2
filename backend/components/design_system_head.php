@@ -20,7 +20,7 @@ if (!defined('TRAVELHUB_DS_HEAD')) {
 <link rel="stylesheet" href="/frontend/css/v2-theme.css?v=1">
 <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=2">
 <link rel="stylesheet" href="/frontend/css/th-hard-funnel.css?v=8">
-<link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=11">
+<link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=12">
 <link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=9">
 <link rel="stylesheet" href="/frontend/css/yandex-mobile.css?v=9">
 <link rel="stylesheet" href="/frontend/css/th-sheet.css?v=2">
@@ -37,7 +37,7 @@ if (!defined('TRAVELHUB_DS_HEAD')) {
         define('TH_SITE_LEAD_CSS', true);
     }
 ?>
-<script src="/frontend/js/th-mobile.js?v=14" defer></script>
+<script src="/frontend/js/th-mobile.js?v=15" defer></script>
 <script src="/frontend/js/th-modal.js?v=2" defer></script>
 <script src="/frontend/js/th-gallery.js?v=1" defer></script>
 <script src="/frontend/js/support-chat-widget.js?v=3" defer></script>

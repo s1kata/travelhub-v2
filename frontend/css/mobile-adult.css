@@ -12,7 +12,8 @@
     /* visualViewport height — ставит th-mobile.js; fallback 100dvh / 100vh */
     --th-vvh: 100dvh;
     --th-sticky-bottom-h: 0px;
-    --th-header-h: 56px;
+    /* Actual fixed header is ~70–76px with padding; 56 caused sticky underlap */
+    --th-header-h: 72px;
     --th-tap: 48px;
     --th-tap-lg: 52px;
     --th-mobile-pad: 16px;

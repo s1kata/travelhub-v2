@@ -6,7 +6,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $current_page = $current_page ?? '';
 $more_menu_active = in_array($current_page, [
     'about', 'offices', 'services', 'tour-calendar', 'video-tutorials', 'contacts',
-    'privacy', 'terms', 'vip-hotels', 'banks_rekvesit',
+    'privacy', 'terms', 'vip-hotels', 'popular-hotels', 'banks_rekvesit',
 ], true);
 $isLoggedIn = !empty($_SESSION['logged_in']) && !empty($_SESSION['user_id']);
 $normalizedRole = strtolower(trim((string)($_SESSION['user_role'] ?? '')));
@@ -571,6 +571,7 @@ $th_csrf_token = security_csrf_token();
                 <a href="/frontend/window/tour-calendar.php">Календарь выгодных дат</a>
                 <!-- <a href="/frontend/window/video-tutorials.php">Видео об отелях</a> -->
                 <a href="/frontend/window/contacts.php">Контакты</a>
+                <a href="/frontend/window/popular-hotels.php">Популярные отели</a>
                 <a href="/frontend/window/turkey-vip-hotels.php">VIP отели Турции</a>
                 <a href="/frontend/window/banks_rekvesit.php">Реквизиты</a>
             </div>
@@ -629,6 +630,7 @@ $th_csrf_token = security_csrf_token();
             <!-- <a href="/frontend/window/video-tutorials.php" class="<?php echo $current_page === 'video-tutorials' ? 'is-active' : ''; ?>">Видео об отелях</a> -->
             <a href="/frontend/window/contacts.php" class="<?php echo $current_page === 'contacts' ? 'is-active' : ''; ?>">Контакты</a>
             <span class="site-header-mobile-muted">Дополнительно</span>
+            <a href="/frontend/window/popular-hotels.php" class="<?php echo $current_page === 'popular-hotels' ? 'is-active' : ''; ?>">Популярные отели</a>
             <a href="/frontend/window/turkey-vip-hotels.php" class="<?php echo $current_page === 'vip-hotels' ? 'is-active' : ''; ?>">VIP отели Турции</a>
             <a href="/frontend/window/banks_rekvesit.php" class="<?php echo $current_page === 'banks_rekvesit' ? 'is-active' : ''; ?>">Реквизиты</a>
             <a href="/frontend/window/consent.php" class="<?php echo ($current_page ?? '') === 'consent' ? 'is-active' : ''; ?>">Согласие на обработку ПД</a>

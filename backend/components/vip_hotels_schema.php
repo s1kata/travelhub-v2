@@ -36,6 +36,16 @@ function vip_hotels_ensure_table(PDO $pdo): void
         INDEX idx_slug (slug)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
+        // Tourvisor hotel id для точного поиска туров (hotelIds)
+        try {
+            $cols = $pdo->query("SHOW COLUMNS FROM vip_hotels LIKE 'tourvisor_hotel_id'")->fetchAll();
+            if (!$cols) {
+                $pdo->exec('ALTER TABLE vip_hotels ADD COLUMN tourvisor_hotel_id INT NULL DEFAULT NULL AFTER slug');
+            }
+        } catch (Throwable $e) {
+            // ignore
+        }
+
         return;
     }
 
@@ -63,6 +73,11 @@ function vip_hotels_ensure_table(PDO $pdo): void
         updated_at TEXT,
         updated_by INTEGER
     )');
+    try {
+        $pdo->exec('ALTER TABLE vip_hotels ADD COLUMN tourvisor_hotel_id INTEGER NULL');
+    } catch (Throwable $e) {
+        // column may already exist
+    }
 }
 
 /**

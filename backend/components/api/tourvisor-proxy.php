@@ -489,7 +489,7 @@ function tvCachedShort(string $type, array $params, int $ttlSeconds, callable $f
 /** Порядок полей как в TravelHubNew (worker/cacheKey + tourSearchCache) для совместимости ключа с Firestore searchCache */
 define('TV_SEARCH_PARAM_KEYS', [
     'adults', 'arrivalId', 'childs', 'countryId', 'currency', 'dateFrom', 'dateTo',
-    'departureId', 'hotelCategory', 'hotelRating', 'hotelServices', 'meal', 'nightsFrom', 'nightsTo',
+    'departureId', 'hotelCategory', 'hotelIds', 'hotelRating', 'hotelServices', 'meal', 'nightsFrom', 'nightsTo',
     'onlyCharter', 'regionIds', 'subregionIds',
 ]);
 
@@ -515,6 +515,10 @@ function tvSearchParamsKey(array $params, int $limit = 25): string {
         $v = $params[$k];
         if ($v === null || $v === '') continue;
         if ($k === 'regionIds' && is_string($v)) {
+            $v = array_values(array_map('intval', array_filter(explode(',', $v))));
+            sort($v);
+        }
+        if ($k === 'hotelIds' && is_string($v)) {
             $v = array_values(array_map('intval', array_filter(explode(',', $v))));
             sort($v);
         }
@@ -1686,6 +1690,158 @@ function tourvisor_proxy_dispatch(): array
             });
         }
         break;
+    case 'hotels':
+        // Каталог отелей Tourvisor: GET /hotels (без цен). Для витрины «Популярные отели».
+        require_once dirname(__DIR__) . '/promo_virtual_destinations.php';
+        $hotelsCountryRaw = isset($_GET['countryId']) ? (int) $_GET['countryId'] : 0;
+        if ($hotelsCountryRaw <= 0) {
+            $r = ['success' => false, 'error' => 'countryId required', 'data' => null];
+            break;
+        }
+        $hotelsCountryId = th_promo_resolve_tv_country_id($hotelsCountryRaw);
+        $hotelsRegionId = isset($_GET['regionId']) && $_GET['regionId'] !== '' ? (int) $_GET['regionId'] : 0;
+        if ($hotelsRegionId <= 0) {
+            $virtRegions = th_promo_virtual_region_ids($hotelsCountryRaw);
+            if (!empty($virtRegions[0])) {
+                $hotelsRegionId = (int) $virtRegions[0];
+            }
+        }
+        $hotelsCategory = isset($_GET['category']) && $_GET['category'] !== '' ? (int) $_GET['category'] : 0;
+        $hotelsRating = isset($_GET['rating']) && $_GET['rating'] !== '' ? (float) $_GET['rating'] : 0.0;
+        $hotelsPage = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
+        $hotelsLimit = isset($_GET['limit']) ? (int) $_GET['limit'] : 24;
+        if ($hotelsLimit < 1 || $hotelsLimit > 100) {
+            $hotelsLimit = 24;
+        }
+        $hotelsEnrich = !empty($_GET['enrich']) && (string) $_GET['enrich'] !== '0';
+        $hotelsParams = [
+            'countryId' => $hotelsCountryId,
+            'page' => $hotelsPage,
+            'limit' => $hotelsLimit,
+        ];
+        if ($hotelsRegionId > 0) {
+            $hotelsParams['regionId'] = $hotelsRegionId;
+        }
+        if ($hotelsCategory > 0) {
+            $hotelsParams['category'] = $hotelsCategory;
+        }
+        if ($hotelsRating > 0) {
+            $hotelsParams['rating'] = $hotelsRating;
+        }
+        $r = tvCached('hotels_catalog', $hotelsParams, function () use ($hotelsParams) {
+            return tvRequest('/hotels', $hotelsParams);
+        });
+        if (!empty($r['success']) && is_array($r['data'] ?? null)) {
+            $list = $r['data'];
+            if (isset($list['data']) && is_array($list['data'])) {
+                $list = $list['data'];
+            }
+            if (!is_array($list)) {
+                $list = [];
+            }
+            $isList = $list === [] || array_keys($list) === range(0, count($list) - 1);
+            if (!$isList) {
+                $list = [];
+            }
+            $compact = [];
+            foreach ($list as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $hid = (int) ($row['id'] ?? 0);
+                if ($hid <= 0) {
+                    continue;
+                }
+                $country = is_array($row['country'] ?? null) ? $row['country'] : [];
+                $region = is_array($row['region'] ?? null) ? $row['region'] : [];
+                $compact[] = [
+                    'id' => $hid,
+                    'name' => (string) ($row['name'] ?? ''),
+                    'category' => (int) ($row['category'] ?? 0),
+                    'rating' => (float) ($row['rating'] ?? 0),
+                    'countryId' => (int) ($country['id'] ?? $hotelsCountryId),
+                    'countryName' => (string) ($country['name'] ?? ''),
+                    'regionId' => (int) ($region['id'] ?? 0),
+                    'regionName' => (string) ($region['name'] ?? ''),
+                    'picturelink' => (string) ($row['picturelink'] ?? ''),
+                    'promoCountryId' => $hotelsCountryRaw,
+                ];
+            }
+            if ($hotelsEnrich && $compact !== []) {
+                $enrichN = min(12, count($compact));
+                for ($ei = 0; $ei < $enrichN; $ei++) {
+                    $eid = (int) $compact[$ei]['id'];
+                    $det = tvCached('hotel', ['hotelId' => $eid], function () use ($eid) {
+                        $res = tvRequest('/hotels/' . $eid, []);
+                        if (!$res['success']) {
+                            return $res;
+                        }
+                        $data = $res['data'];
+                        if (is_array($data) && isset($data[0])) {
+                            $data = $data[0];
+                        }
+                        return ['success' => true, 'data' => $data];
+                    });
+                    if (empty($det['success']) || !is_array($det['data'] ?? null)) {
+                        continue;
+                    }
+                    $dh = $det['data'];
+                    $imgs = is_array($dh['images'] ?? null) ? $dh['images'] : [];
+                    $pic = '';
+                    if (!empty($dh['picturelink']) && is_string($dh['picturelink'])) {
+                        $pic = trim($dh['picturelink']);
+                    } elseif (!empty($imgs[0]) && is_string($imgs[0])) {
+                        $pic = trim($imgs[0]);
+                    }
+                    if ($pic !== '') {
+                        if (strpos($pic, '//') === 0) {
+                            $pic = 'https:' . $pic;
+                        }
+                        $compact[$ei]['picturelink'] = $pic;
+                    }
+                    if (isset($dh['rating']) && (float) $dh['rating'] > 0) {
+                        $compact[$ei]['rating'] = (float) $dh['rating'];
+                    }
+                    $desc = trim(strip_tags((string) ($dh['common']['description'] ?? '')));
+                    if ($desc !== '') {
+                        $compact[$ei]['descriptionSnippet'] = mb_substr($desc, 0, 160);
+                    }
+                    usleep(40000);
+                }
+            }
+            // Сортировка на нашей стороне (API не всегда сортирует): rating|stars|name
+            $sort = strtolower(trim((string) ($_GET['sort'] ?? 'rating')));
+            if ($sort === 'stars' || $sort === 'category') {
+                usort($compact, static function ($a, $b) {
+                    $c = ((int) ($b['category'] ?? 0)) <=> ((int) ($a['category'] ?? 0));
+                    return $c !== 0 ? $c : (((float) ($b['rating'] ?? 0)) <=> ((float) ($a['rating'] ?? 0)));
+                });
+            } elseif ($sort === 'name') {
+                usort($compact, static function ($a, $b) {
+                    return strcasecmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? ''));
+                });
+            } else {
+                // rating default
+                usort($compact, static function ($a, $b) {
+                    $c = ((float) ($b['rating'] ?? 0)) <=> ((float) ($a['rating'] ?? 0));
+                    return $c !== 0 ? $c : (((int) ($b['category'] ?? 0)) <=> ((int) ($a['category'] ?? 0)));
+                });
+            }
+            $r = [
+                'success' => true,
+                'data' => [
+                    'hotels' => $compact,
+                    'page' => $hotelsPage,
+                    'limit' => $hotelsLimit,
+                    'countryId' => $hotelsCountryId,
+                    'promoCountryId' => $hotelsCountryRaw,
+                    'regionId' => $hotelsRegionId > 0 ? $hotelsRegionId : null,
+                    'enriched' => $hotelsEnrich,
+                    'sort' => $sort,
+                ],
+            ];
+        }
+        break;
     case 'hotel':
         $hotelId = isset($_GET['hotelId']) ? (int)$_GET['hotelId'] : 0;
         if ($hotelId <= 0) {
@@ -1737,11 +1893,15 @@ function tourvisor_proxy_dispatch(): array
         if ($regionIds !== '') {
             $searchParams['regionIds'] = array_map('intval', array_filter(explode(',', $regionIds)));
         }
+        $hotelIds = $_GET['hotelIds'] ?? '';
+        if ($hotelIds !== '') {
+            $searchParams['hotelIds'] = array_values(array_filter(array_map('intval', explode(',', (string) $hotelIds))));
+        }
         $hotelServices = $_GET['hotelServices'] ?? '';
         if ($hotelServices !== '') {
             $searchParams['hotelServices'] = array_map('intval', array_filter(explode(',', $hotelServices)));
         }
-        tvLog('search_start', ['params' => $searchParams, 'GET' => array_intersect_key($_GET, array_flip(['departureId', 'countryId', 'dateFrom', 'dateTo', 'nightsFrom', 'nightsTo', 'adults', 'childs', 'meal', 'regionIds', 'hotelCategory', 'hotelServices']))]);
+        tvLog('search_start', ['params' => $searchParams, 'GET' => array_intersect_key($_GET, array_flip(['departureId', 'countryId', 'dateFrom', 'dateTo', 'nightsFrom', 'nightsTo', 'adults', 'childs', 'meal', 'regionIds', 'hotelIds', 'hotelCategory', 'hotelServices']))]);
         $r = tvRequest('/tours/search', $searchParams);
         if ($r['success'] && is_array($r['data']) && isset($r['data']['error'])) {
             $err = $r['data']['error'];
@@ -1826,6 +1986,8 @@ function tourvisor_proxy_dispatch(): array
         if (!empty($_GET['arrivalId'])) $sp['arrivalId'] = (int)$_GET['arrivalId'];
         $regionIds = $_GET['regionIds'] ?? '';
         if ($regionIds !== '') $sp['regionIds'] = $regionIds;
+        $hotelIdsRaw = trim((string) ($_GET['hotelIds'] ?? ''));
+        if ($hotelIdsRaw !== '') $sp['hotelIds'] = $hotelIdsRaw;
         if (!empty($_GET['hotelServices'])) $sp['hotelServices'] = $_GET['hotelServices'];
         header('X-Tourvisor-Dates: ' . $sp['dateFrom'] . ',' . $sp['dateTo']);
         $ck = tvSearchParamsKey($sp);
@@ -2024,6 +2186,11 @@ function tourvisor_proxy_dispatch(): array
         if (!empty($sp['hotelCategory'])) $searchParamsApi['hotelCategory'] = $sp['hotelCategory'];
         if (!empty($sp['regionIds'])) {
             $searchParamsApi['regionIds'] = is_array($sp['regionIds']) ? $sp['regionIds'] : array_map('intval', array_filter(explode(',', (string)$sp['regionIds'])));
+        }
+        if (!empty($sp['hotelIds'])) {
+            $searchParamsApi['hotelIds'] = is_array($sp['hotelIds'])
+                ? array_values(array_filter(array_map('intval', $sp['hotelIds'])))
+                : array_values(array_filter(array_map('intval', explode(',', (string) $sp['hotelIds']))));
         }
         if (!empty($_GET['hotelServices'])) {
             $hs = $_GET['hotelServices'];

@@ -229,6 +229,9 @@ function truncateText($text, $limit = 280) {
                 <?php
                 $vipHotelName = $hotel['name'] ?? '';
                 $vipHotelCity = $hotel['city'] ?? '';
+                $vipHotelTvIds = !empty($hotel['tourvisor_hotel_id'])
+                    ? (string) (int) $hotel['tourvisor_hotel_id']
+                    : '';
                 include __DIR__ . '/../../../backend/components/vip_hotels_tour_search.php';
                 ?>
             <?php endif; ?>

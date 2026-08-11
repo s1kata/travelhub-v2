@@ -1834,6 +1834,10 @@ select.flatpickr-monthDropdown-months {
 #tv-nights-popup {
     z-index: 1080 !important;
 }
+/* ===== Home hotels promo moved to home-hotels-promo.css ===== */
+.th-home-hotels,
+.th-home-features { display: none !important; }
+
 /* Баннер мобильного приложения */
 .th-app-banner {
     text-decoration: none;
