@@ -270,7 +270,7 @@ $th_promo_page_config = [
                     <p class="text-slate-600">Не удалось загрузить города вылета. Попробуйте ещё раз.</p>
                     <button type="button" id="promo-departures-retry" class="mt-4 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 font-semibold text-white bg-sky-600 hover:bg-sky-700">Обновить</button>
                     <form id="promo-departures-fallback-lead" class="mt-6 text-left space-y-3" data-th-lead-source="promo_departures_fallback">
-                        <input type="text" name="name" required placeholder="Имя" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900" autocomplete="name">
+                        <input type="text" name="name" required maxlength="100" placeholder="ФИО" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900" autocomplete="name">
                         <input type="tel" name="phone" required placeholder="Телефон" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900" autocomplete="tel">
                         <label class="flex items-start gap-2 text-sm text-slate-600">
                             <input type="checkbox" name="agree" required class="mt-1 rounded border-slate-300">

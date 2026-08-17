@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/components/security_helper.php';
+require_once dirname(__DIR__) . '/components/lead_validation.php';
 require_once dirname(__DIR__) . '/components/tour_link_sanitize.php';
 require_once dirname(__DIR__) . '/components/tour_bookings_schema.php';
 
@@ -70,6 +71,12 @@ if ($is_guest_manager) {
     if (security_rate_limit_exceeded('uon_booking_guest_ip', 15, 3600)) {
         http_response_code(429);
         echo json_encode(['success' => false, 'error' => 'Слишком много заявок с вашего адреса. Попробуйте позже.']);
+        exit;
+    }
+    $agreeErr = th_lead_require_agree($input);
+    if ($agreeErr !== null) {
+        http_response_code(422);
+        echo json_encode(['success' => false, 'error' => $agreeErr]);
         exit;
     }
 } elseif (security_rate_limit_exceeded('uon_booking_' . (string) $user_id, 20, 3600)) {
@@ -179,25 +186,19 @@ if (!$is_guest_manager) {
     }
 }
 
-/** Нормализация телефона для U-ON (как в TravelHubNew): только цифры и + */
-$normalizePhone = function (string $s): string {
-    $s = preg_replace('/\s+/', '', trim($s));
-    if ($s === '') return '';
-    if (preg_match('/^\+?[1-9]\d{1,14}$/', $s)) return strpos($s, '+') === 0 ? $s : '+' . $s;
-    if (preg_match('/^8\d{10}$/', $s)) return '+7' . substr($s, 1);
-    return $s;
-};
-
 if ($is_guest_manager) {
-    if ($form_name === '') {
-        echo json_encode(['success' => false, 'error' => 'Укажите имя']);
+    $nameErr = th_lead_validate_person_name($form_name);
+    if ($nameErr !== null) {
+        http_response_code(422);
+        echo json_encode(['success' => false, 'error' => $nameErr]);
         exit;
     }
     $email = $form_email;
     $phone_raw = $form_phone;
-    /* Форма на сайте — только имя + телефон; e-mail в CRM опционален */
-    if ($phone_raw === '') {
-        echo json_encode(['success' => false, 'error' => 'Укажите телефон']);
+    $phoneCheck = th_lead_validate_ru_phone($phone_raw);
+    if (!$phoneCheck['ok']) {
+        http_response_code(422);
+        echo json_encode(['success' => false, 'error' => $phoneCheck['error']]);
         exit;
     }
     $gnParts = preg_split('/\s+/u', $form_name, 2);
@@ -224,7 +225,21 @@ if ($is_guest_manager) {
         $u_surname = $parts[1] ?? '';
     }
 }
-$phone = $normalizePhone($phone_raw);
+if ($is_guest_manager) {
+    $phone = $phoneCheck['phone'];
+} else {
+    if ($phone_raw !== '') {
+        $loggedPhone = th_lead_validate_ru_phone($phone_raw);
+        $phone = $loggedPhone['ok'] ? $loggedPhone['phone'] : th_lead_normalize_ru_phone($phone_raw);
+        if ($phone === '' && $email === '') {
+            http_response_code(422);
+            echo json_encode(['success' => false, 'error' => 'Укажите корректный телефон или e-mail']);
+            exit;
+        }
+    } else {
+        $phone = '';
+    }
+}
 
 $source = trim((string)(getenv('UON_SOURCE') ?: ($_ENV['UON_SOURCE'] ?? 'Сайт')));
 if ($source === '') $source = 'Сайт';

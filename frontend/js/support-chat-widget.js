@@ -46,10 +46,6 @@
       '    <button type="button" id="th-support-chat-manager">Связаться с менеджером</button>' +
       '    <a href="tel:+78462541656">Позвонить: +7 (846) 254-16-56</a>' +
       '  </div>' +
-      '  <form id="th-support-chat-form" class="th-support-chat__form">' +
-      '    <input id="th-support-chat-input" class="th-support-chat__input" type="text" maxlength="500" placeholder="Напишите ваш вопрос..." autocomplete="off">' +
-      '    <button class="th-support-chat__send" type="submit" aria-label="Отправить">→</button>' +
-      '  </form>' +
       '</div>' +
       '<button type="button" id="th-support-chat-toggle" class="th-support-chat__toggle" aria-label="Открыть чат поддержки"><i class="fas fa-comments" aria-hidden="true"></i></button>';
     document.body.appendChild(root);
@@ -82,13 +78,19 @@
     var closeBtn = document.getElementById('th-support-chat-close');
     var body = document.getElementById('th-support-chat-body');
     var quick = document.getElementById('th-support-chat-quick');
-    var form = document.getElementById('th-support-chat-form');
-    var input = document.getElementById('th-support-chat-input');
     var managerBtn = document.getElementById('th-support-chat-manager');
     var sessionKey = 'th_support_chat_session';
     var sessionId = '';
     var booted = false;
-    var defaultQuick = ['Горящие туры', 'Оплата', 'Бронирование', 'Документы'];
+    var busy = false;
+    var defaultQuick = [
+      'Подобрать тур',
+      'Горящие туры',
+      'Бронирование',
+      'Оплата',
+      'Документы и виза',
+      'Связаться с менеджером'
+    ];
 
     function track(goal) {
       try {
@@ -110,22 +112,6 @@
       body.scrollTop = body.scrollHeight;
     }
 
-    function setQuick(arr) {
-      var list = Array.isArray(arr) && arr.length ? arr : defaultQuick;
-      quick.innerHTML = '';
-      list.slice(0, 5).forEach(function (q) {
-        var b = document.createElement('button');
-        b.type = 'button';
-        b.textContent = String(q);
-        b.addEventListener('click', function () {
-          track('support_chat_quick_reply');
-          input.value = String(q);
-          form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-        });
-        quick.appendChild(b);
-      });
-    }
-
     function send(message) {
       return fetch('/backend/api/support-chat.php', {
         method: 'POST',
@@ -141,6 +127,51 @@
       });
     }
 
+    function sendFromButton(msg) {
+      var text = String(msg || '').trim();
+      if (!text || busy) return;
+      busy = true;
+      track('support_chat_quick_reply');
+      addMsg(text, 'user');
+      send(text).then(function (res) {
+        busy = false;
+        if (!res || !res.success) {
+          addMsg(localReply(text), 'bot');
+          setQuick(defaultQuick);
+          return;
+        }
+        sessionId = res.sessionId || sessionId;
+        try { localStorage.setItem(sessionKey, sessionId); } catch (e) {}
+        addMsg(res.reply || localReply(text), 'bot');
+        setQuick(res.quickReplies || defaultQuick);
+        if (res.intent) track('support_chat_intent_' + String(res.intent));
+        if (res.handoff || res.managerCta) {
+          track('support_chat_handoff_offer');
+          managerBtn.classList.add('is-suggested');
+          setTimeout(function () { managerBtn.classList.remove('is-suggested'); }, 2200);
+        }
+      }).catch(function () {
+        busy = false;
+        addMsg(localReply(text), 'bot');
+        setQuick(defaultQuick);
+        track('support_chat_error');
+      });
+    }
+
+    function setQuick(arr) {
+      var list = Array.isArray(arr) && arr.length ? arr : defaultQuick;
+      quick.innerHTML = '';
+      list.slice(0, 14).forEach(function (q) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = String(q);
+        b.addEventListener('click', function () {
+          sendFromButton(q);
+        });
+        quick.appendChild(b);
+      });
+    }
+
     function open() {
       clearBlockingOverlays();
       panel.classList.remove('th-support-chat__hidden');
@@ -148,16 +179,18 @@
       track('support_chat_open');
       if (!booted) {
         booted = true;
-        addMsg('Здравствуйте! Подскажу по турам, оплате и бронированию.', 'bot');
+        addMsg('Здравствуйте! Выберите тему кнопкой — подскажу по турам, оплате и бронированию.', 'bot');
         setQuick(defaultQuick);
         send('').then(function (res) {
           if (!res || !res.success) return;
           sessionId = res.sessionId || sessionId;
           try { localStorage.setItem(sessionKey, sessionId); } catch (e) {}
           if (Array.isArray(res.quickReplies) && res.quickReplies.length) setQuick(res.quickReplies);
+          if (res.reply) {
+            // приветствие с сервера вместо локального дубля — обновим последним
+          }
         }).catch(function () {});
       }
-      setTimeout(function () { try { input.focus(); } catch (e) {} }, 40);
     }
 
     function close() {
@@ -186,36 +219,6 @@
       } else {
         global.location.href = 'tel:+78462541656';
       }
-    });
-
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var msg = String(input.value || '').trim();
-      if (!msg) return;
-      track('support_chat_send');
-      addMsg(msg, 'user');
-      input.value = '';
-      send(msg).then(function (res) {
-        if (!res || !res.success) {
-          addMsg(localReply(msg), 'bot');
-          setQuick(defaultQuick);
-          return;
-        }
-        sessionId = res.sessionId || sessionId;
-        try { localStorage.setItem(sessionKey, sessionId); } catch (e) {}
-        addMsg(res.reply || localReply(msg), 'bot');
-        setQuick(res.quickReplies || defaultQuick);
-        if (res.intent) track('support_chat_intent_' + String(res.intent));
-        if (res.handoff || res.managerCta) {
-          track('support_chat_handoff_offer');
-          managerBtn.classList.add('is-suggested');
-          setTimeout(function () { managerBtn.classList.remove('is-suggested'); }, 2200);
-        }
-      }).catch(function () {
-        addMsg(localReply(msg), 'bot');
-        setQuick(defaultQuick);
-        track('support_chat_error');
-      });
     });
   }
 

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/components/security_helper.php';
+require_once dirname(__DIR__) . '/components/lead_validation.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
@@ -43,6 +44,7 @@ if (!security_honeypot_check($input, 'website')) {
     exit;
 }
 
+$fullName = mb_substr(trim((string)($input['name'] ?? '')), 0, 100);
 $first = mb_substr(trim((string)($input['first_name'] ?? '')), 0, 80);
 $last = mb_substr(trim((string)($input['last_name'] ?? '')), 0, 80);
 $phone_raw = mb_substr(trim((string)($input['phone'] ?? '')), 0, 30);
@@ -50,41 +52,55 @@ $email = mb_substr(trim((string)($input['email'] ?? '')), 0, 120);
 $comment = mb_substr(trim((string)($input['comment'] ?? '')), 0, 1500);
 $office_city = mb_substr(trim((string)($input['office_city'] ?? '')), 0, 40);
 $office_name = mb_substr(trim((string)($input['office_name'] ?? '')), 0, 120);
-$agree = !empty($input['agree']);
 
-if ($first === '') {
-    echo json_encode(['success' => false, 'error' => 'Укажите имя']);
+if ($fullName !== '') {
+    $nameErr = th_lead_validate_person_name($fullName);
+    if ($nameErr !== null) {
+        http_response_code(422);
+        echo json_encode(['success' => false, 'error' => $nameErr]);
+        exit;
+    }
+    $parts = preg_split('/\s+/u', $fullName, 2);
+    $first = $parts[0] ?? '';
+    $last = $parts[1] ?? '';
+} else {
+    $firstErr = th_lead_validate_person_name($first, 2, 80);
+    if ($firstErr !== null) {
+        http_response_code(422);
+        echo json_encode(['success' => false, 'error' => 'Укажите корректные ФИО']);
+        exit;
+    }
+    if ($last === '') {
+        http_response_code(422);
+        echo json_encode(['success' => false, 'error' => 'Укажите фамилию (или полное ФИО в одном поле)']);
+        exit;
+    }
+    $lastErr = th_lead_validate_person_name($last, 2, 80);
+    if ($lastErr !== null) {
+        http_response_code(422);
+        echo json_encode(['success' => false, 'error' => 'Укажите корректную фамилию']);
+        exit;
+    }
+}
+if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    http_response_code(422);
+    echo json_encode(['success' => false, 'error' => 'Укажите корректный email или оставьте поле пустым']);
     exit;
 }
-if ($last === '') {
-    echo json_encode(['success' => false, 'error' => 'Укажите фамилию']);
-    exit;
-}
-if ($phone_raw === '') {
-    echo json_encode(['success' => false, 'error' => 'Укажите телефон']);
-    exit;
-}
-if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    echo json_encode(['success' => false, 'error' => 'Укажите корректный email']);
-    exit;
-}
-if (!$agree) {
-    echo json_encode(['success' => false, 'error' => 'Нужно согласие на обработку персональных данных']);
+$agreeErr = th_lead_require_agree($input);
+if ($agreeErr !== null) {
+    http_response_code(422);
+    echo json_encode(['success' => false, 'error' => $agreeErr]);
     exit;
 }
 
-$normalizePhone = static function (string $s): string {
-    $s = preg_replace('/\s+/', '', trim($s));
-    if ($s === '') return '';
-    if (preg_match('/^\+?[1-9]\d{1,14}$/', $s)) return strpos($s, '+') === 0 ? $s : '+' . $s;
-    if (preg_match('/^8\d{10}$/', $s)) return '+7' . substr($s, 1);
-    return $s;
-};
-$phone = $normalizePhone($phone_raw);
-if ($phone === '') {
-    echo json_encode(['success' => false, 'error' => 'Некорректный номер телефона']);
+$phoneCheck = th_lead_validate_ru_phone($phone_raw);
+if (!$phoneCheck['ok']) {
+    http_response_code(422);
+    echo json_encode(['success' => false, 'error' => $phoneCheck['error']]);
     exit;
 }
+$phone = $phoneCheck['phone'];
 
 $source = trim((string)(getenv('UON_SOURCE') ?: ($_ENV['UON_SOURCE'] ?? 'Сайт')));
 if ($source === '') $source = 'Сайт';

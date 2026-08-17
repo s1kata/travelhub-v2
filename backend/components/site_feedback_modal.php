@@ -12,8 +12,8 @@
         <p class="th-sf-sub">Оставьте телефон — перезвоним за 15 минут. Без спама.</p>
         <form id="th-site-feedback-form" class="th-sf-form">
             <div class="th-sf-field">
-                <label for="th-sf-name">Имя <span class="text-red-500">*</span></label>
-                <input type="text" id="th-sf-name" name="name" required maxlength="100" autocomplete="name" class="th-sf-input">
+                <label for="th-sf-name">ФИО <span class="text-red-500">*</span></label>
+                <input type="text" id="th-sf-name" name="name" required maxlength="100" autocomplete="name" class="th-sf-input" placeholder="Иванов Иван Иванович">
             </div>
             <div class="th-sf-field">
                 <label for="th-sf-phone">Телефон <span class="text-red-500">*</span></label>
@@ -90,7 +90,8 @@
     function open(opts) {
         opts = opts || {};
         modalState.source = opts.source || 'site_feedback';
-        modalState.phoneOnly = !!opts.phoneOnly || !!opts.focusPhone;
+        /* focusPhone только ставит фокус — не скрывает поле ФИО */
+        modalState.phoneOnly = !!opts.phoneOnly;
         applyModalCopy(opts);
         var nameField = document.getElementById('th-sf-name');
         var nameWrap = nameField && nameField.closest('.th-sf-field');
@@ -139,15 +140,27 @@
             e.preventDefault();
             var msg = document.getElementById('th-sf-msg');
             var btn = document.getElementById('th-sf-submit');
-            var name = ((document.getElementById('th-sf-name') || {}).value || '').trim();
-            var phone = ((document.getElementById('th-sf-phone') || {}).value || '').trim();
+            var nameEl = document.getElementById('th-sf-name');
+            var phoneEl2 = document.getElementById('th-sf-phone');
+            var emailEl = document.getElementById('th-sf-email');
+            var name = ((nameEl || {}).value || '').trim();
+            var phone = ((phoneEl2 || {}).value || '').trim();
             if (!name && modalState.phoneOnly) name = 'Клиент сайта';
-            var email = ((document.getElementById('th-sf-email') || {}).value || '').trim();
+            var email = ((emailEl || {}).value || '').trim();
             var message = ((document.getElementById('th-sf-comment') || {}).value || '').trim();
             var agree = !!(document.getElementById('th-sf-agree') || {}).checked;
             var website = ((document.getElementById('th-sf-website') || {}).value || '');
             btn.disabled = true;
             if (msg) msg.classList.add('hidden');
+
+            function markField(el, bad) {
+                if (!el) return;
+                el.style.borderColor = bad ? '#f87171' : '';
+                el.setAttribute('aria-invalid', bad ? 'true' : 'false');
+            }
+            markField(nameEl, false);
+            markField(phoneEl2, false);
+            markField(emailEl, false);
 
             function finish(data) {
                 if (data && data.success) {
@@ -168,6 +181,32 @@
                 btn.disabled = false;
             }
 
+            if (window.THLeadCapture && typeof THLeadCapture.validateLeadFields === 'function') {
+                var check = THLeadCapture.validateLeadFields({
+                    name: name,
+                    phone: phone,
+                    email: email,
+                    agree: agree,
+                    phoneOnly: modalState.phoneOnly
+                });
+                if (!check.ok) {
+                    var err = check.error || 'Проверьте данные формы';
+                    if (/ФИО/i.test(err)) markField(nameEl, true);
+                    if (/телефон/i.test(err)) markField(phoneEl2, true);
+                    if (/email/i.test(err)) markField(emailEl, true);
+                    finish({ success: false, error: err });
+                    return;
+                }
+                name = check.name;
+                phone = check.phone;
+                email = check.email;
+            } else if (window.THLeadCapture && typeof THLeadCapture.submit === 'function') {
+                /* validate внутри submit */
+            } else {
+                finish({ success: false, error: 'Форма временно недоступна. Позвоните нам.' });
+                return;
+            }
+
             if (window.THLeadCapture && typeof THLeadCapture.submit === 'function') {
                 THLeadCapture.submit({
                     name: name,
@@ -182,6 +221,12 @@
                     if (data && data.success && String(modalState.source || '').indexOf('promo_') === 0) {
                         promoYm('promo_lead_submit');
                         promoYm('promo_lead_success');
+                    }
+                    if (!(data && data.success)) {
+                        var err2 = (data && data.error) || '';
+                        if (/ФИО/i.test(err2)) markField(nameEl, true);
+                        if (/телефон/i.test(err2)) markField(phoneEl2, true);
+                        if (/email/i.test(err2)) markField(emailEl, true);
                     }
                     finish(data);
                 });

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/components/security_helper.php';
+require_once dirname(__DIR__) . '/components/lead_validation.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
@@ -49,33 +50,31 @@ $name = mb_substr(trim((string) ($input['name'] ?? '')), 0, 100);
 $phone_raw = mb_substr(trim((string) ($input['phone'] ?? '')), 0, 20);
 $message = mb_substr(trim((string) ($input['message'] ?? '')), 0, 1000);
 $email_raw = mb_substr(trim((string) ($input['email'] ?? '')), 0, 120);
-$agree = !empty($input['agree']);
+$nameErr = th_lead_validate_person_name($name);
+if ($nameErr !== null) {
+    http_response_code(422);
+    echo json_encode(['success' => false, 'error' => $nameErr]);
+    exit;
+}
+$agreeErr = th_lead_require_agree($input);
+if ($agreeErr !== null) {
+    http_response_code(422);
+    echo json_encode(['success' => false, 'error' => $agreeErr]);
+    exit;
+}
+if ($email_raw !== '' && !filter_var($email_raw, FILTER_VALIDATE_EMAIL)) {
+    http_response_code(422);
+    echo json_encode(['success' => false, 'error' => 'Укажите корректный email или оставьте поле пустым']);
+    exit;
+}
 
-if ($name === '') {
-    echo json_encode(['success' => false, 'error' => 'Укажите имя']);
+$phoneCheck = th_lead_validate_ru_phone($phone_raw);
+if (!$phoneCheck['ok']) {
+    http_response_code(422);
+    echo json_encode(['success' => false, 'error' => $phoneCheck['error']]);
     exit;
 }
-if ($phone_raw === '') {
-    echo json_encode(['success' => false, 'error' => 'Укажите телефон']);
-    exit;
-}
-if (!$agree) {
-    echo json_encode(['success' => false, 'error' => 'Необходимо согласие на обработку персональных данных']);
-    exit;
-}
-
-$normalizePhone = function (string $s): string {
-    $s = preg_replace('/\s+/', '', trim($s));
-    if ($s === '') return '';
-    if (preg_match('/^\+?[1-9]\d{1,14}$/', $s)) return strpos($s, '+') === 0 ? $s : '+' . $s;
-    if (preg_match('/^8\d{10}$/', $s)) return '+7' . substr($s, 1);
-    return $s;
-};
-$phone = $normalizePhone($phone_raw);
-if ($phone === '') {
-    echo json_encode(['success' => false, 'error' => 'Некорректный номер телефона']);
-    exit;
-}
+$phone = $phoneCheck['phone'];
 
 $parts = preg_split('/\s+/u', $name, 2);
 $u_name = $parts[0] ?? '';

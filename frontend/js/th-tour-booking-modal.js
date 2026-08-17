@@ -63,21 +63,59 @@
     var submitBtn = document.getElementById('th-tb-submit');
     var nameVal = (nameInp && nameInp.value || '').trim();
     var phoneVal = (phoneInp && phoneInp.value || '').trim();
-    if (!nameVal || !phoneVal) {
-      if (msgEl) {
-        msgEl.textContent = 'Укажите имя и телефон';
-        msgEl.className = 'th-tour-booking-modal__msg th-tour-booking-modal__msg--err';
-        msgEl.classList.remove('hidden');
+    if (window.THLeadCapture && typeof THLeadCapture.validateLeadFields === 'function') {
+      var check = THLeadCapture.validateLeadFields({
+        name: nameVal,
+        phone: phoneVal,
+        agree: !!(agreeInp && agreeInp.checked)
+      });
+      if (!check.ok) {
+        if (msgEl) {
+          msgEl.textContent = check.error || 'Проверьте данные формы';
+          msgEl.className = 'th-tour-booking-modal__msg th-tour-booking-modal__msg--err';
+          msgEl.classList.remove('hidden');
+        }
+        return;
       }
-      return;
-    }
-    if (!agreeInp || !agreeInp.checked) {
-      if (msgEl) {
-        msgEl.textContent = 'Нужно согласие на обработку данных';
-        msgEl.className = 'th-tour-booking-modal__msg th-tour-booking-modal__msg--err';
-        msgEl.classList.remove('hidden');
+      nameVal = check.name;
+      phoneVal = check.phone;
+    } else {
+      if (!nameVal || nameVal.length < 2 || !/^[\p{L}\s\-'.]+$/u.test(nameVal)) {
+        if (msgEl) {
+          msgEl.textContent = 'Укажите корректные ФИО';
+          msgEl.className = 'th-tour-booking-modal__msg th-tour-booking-modal__msg--err';
+          msgEl.classList.remove('hidden');
+        }
+        return;
       }
-      return;
+      var cyr = nameVal.match(/\p{Script=Cyrillic}/gu);
+      if (!cyr || cyr.length < 2) {
+        if (msgEl) {
+          msgEl.textContent = 'Укажите ФИО русскими буквами';
+          msgEl.className = 'th-tour-booking-modal__msg th-tour-booking-modal__msg--err';
+          msgEl.classList.remove('hidden');
+        }
+        return;
+      }
+      var phoneDigits = phoneVal.replace(/\D/g, '');
+      if (phoneDigits.length === 11 && phoneDigits[0] === '8') phoneDigits = '7' + phoneDigits.slice(1);
+      var rest = phoneDigits.slice(1);
+      if (phoneDigits.length !== 11 || phoneDigits[0] !== '7' || !rest || rest[0] !== '9' || /^(\d)\1{9}$/.test(rest)) {
+        if (msgEl) {
+          msgEl.textContent = 'Укажите корректный мобильный телефон РФ (+7 9XX…)';
+          msgEl.className = 'th-tour-booking-modal__msg th-tour-booking-modal__msg--err';
+          msgEl.classList.remove('hidden');
+        }
+        return;
+      }
+      if (!agreeInp || !agreeInp.checked) {
+        if (msgEl) {
+          msgEl.textContent = 'Нужно согласие на обработку данных';
+          msgEl.className = 'th-tour-booking-modal__msg th-tour-booking-modal__msg--err';
+          msgEl.classList.remove('hidden');
+        }
+        return;
+      }
     }
     var p = currentPayload;
     var body = {
@@ -95,6 +133,7 @@
       date_to: p.date_to || undefined,
       name: nameVal,
       phone: phoneVal,
+      agree: true,
       departure_city: p.departure_city || 'Самара',
       search_adults: p.adults ? parseInt(String(p.adults), 10) : 2
     };

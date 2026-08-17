@@ -68,7 +68,7 @@ $city = $formData['city'] ?? '';
                     <!-- Name -->
                     <div class="mb-6">
                         <label class="block text-sm font-medium text-slate-700 mb-2">
-                            <i class="fas fa-user text-sky-500 mr-2"></i>Имя <span class="text-red-500">*</span>
+                            <i class="fas fa-user text-sky-500 mr-2"></i>ФИО <span class="text-red-500">*</span>
                         </label>
                         <input type="text"
                                id="name"
@@ -76,9 +76,10 @@ $city = $formData['city'] ?? '';
                                required
                                minlength="2"
                                maxlength="60"
+                               pattern="[\p{L}\s\-]+"
                                value="<?php echo htmlspecialchars($name); ?>"
                                class="w-full px-4 py-3 rounded-xl border <?php echo isset($errors['name']) ? 'border-red-300' : 'border-slate-200'; ?> bg-slate-50 text-slate-700 focus:border-sky-400 focus:ring-2 focus:ring-sky-200 transition"
-                               placeholder="Ваше имя">
+                               placeholder="Иванов Иван Иванович">
                         <?php if (isset($errors['name'])): ?>
                             <p class="mt-1 text-sm text-red-600"><?php echo htmlspecialchars($errors['name']); ?></p>
                         <?php endif; ?>
@@ -140,6 +141,9 @@ $city = $formData['city'] ?? '';
                                value="<?php echo htmlspecialchars($phone); ?>"
                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:border-sky-400 focus:ring-2 focus:ring-sky-200 transition"
                                placeholder="+7 (999) 123-45-67">
+                        <?php if (isset($errors['phone'])): ?>
+                            <p class="mt-1 text-sm text-red-600"><?php echo htmlspecialchars($errors['phone']); ?></p>
+                        <?php endif; ?>
                     </div>
 
                     <!-- City (optional) -->
@@ -153,6 +157,24 @@ $city = $formData['city'] ?? '';
                                value="<?php echo htmlspecialchars($city); ?>"
                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:border-sky-400 focus:ring-2 focus:ring-sky-200 transition"
                                placeholder="Ваш город">
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="flex items-start gap-2 text-sm text-slate-600 cursor-pointer">
+                            <input type="checkbox"
+                                   id="agree"
+                                   name="agree"
+                                   value="1"
+                                   required
+                                   class="mt-1 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
+                            <span><?php
+                                require_once __DIR__ . '/../../backend/components/legal_consent_label.php';
+                                echo th_legal_consent_checkbox_html();
+                            ?></span>
+                        </label>
+                        <?php if (isset($errors['agree'])): ?>
+                            <p class="mt-1 text-sm text-red-600"><?php echo htmlspecialchars($errors['agree']); ?></p>
+                        <?php endif; ?>
                     </div>
 
                     <!-- Submit Button -->
@@ -191,46 +213,112 @@ $city = $formData['city'] ?? '';
             }
         }
 
-        // Form validation
+        // Form validation — ошибки по полям, без «временной ошибки сервера»
         document.getElementById('registrationForm').addEventListener('submit', function(e) {
-            const name = document.getElementById('name').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
+            const nameInput = document.getElementById('name');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const phoneInput = document.getElementById('phone');
+            const agreeInput = document.getElementById('agree');
 
-            let isValid = true;
-            let errorMessage = '';
+            const name = (nameInput.value || '').trim();
+            const email = (emailInput.value || '').trim();
+            const password = passwordInput.value || '';
+            const phone = (phoneInput.value || '').trim();
 
-            // Validate name
-            if (name.length < 2) {
-                isValid = false;
-                errorMessage = 'Имя должно содержать минимум 2 символа.';
-            } else if (name.length > 60) {
-                isValid = false;
-                errorMessage = 'Имя не должно превышать 60 символов.';
+            const fieldErrors = {};
+
+            function clearFieldError(id) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.classList.remove('border-red-300');
+                el.classList.add('border-slate-200');
+                const wrap = el.closest('.mb-6') || el.parentElement;
+                if (!wrap) return;
+                wrap.querySelectorAll('[data-th-reg-err]').forEach(function (n) { n.remove(); });
+            }
+            function setFieldError(id, text) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.classList.add('border-red-300');
+                el.classList.remove('border-slate-200');
+                const wrap = el.closest('.mb-6') || el.parentElement;
+                if (!wrap) return;
+                wrap.querySelectorAll('[data-th-reg-err]').forEach(function (n) { n.remove(); });
+                const p = document.createElement('p');
+                p.className = 'mt-1 text-sm text-red-600';
+                p.setAttribute('data-th-reg-err', '1');
+                p.textContent = text;
+                wrap.appendChild(p);
             }
 
-            // Validate email
+            ['name', 'email', 'password', 'phone', 'agree'].forEach(clearFieldError);
+            const pwWrap = document.querySelector('.login-password-wrap');
+            if (pwWrap) pwWrap.classList.remove('is-error');
+
+            if (name.length < 2) {
+                fieldErrors.name = 'ФИО должно содержать минимум 2 символа.';
+            } else if (name.length > 60) {
+                fieldErrors.name = 'ФИО не должно превышать 60 символов.';
+            } else if (!/^[\p{L}\s\-]+$/u.test(name)) {
+                fieldErrors.name = 'ФИО может содержать только буквы, пробелы и дефисы.';
+            } else if (!/\p{Script=Cyrillic}/u.test(name) || ((name.match(/\p{Script=Cyrillic}/gu) || []).length < 2)) {
+                fieldErrors.name = 'Укажите ФИО русскими буквами.';
+            } else {
+                const compact = name.replace(/[\s\-]+/g, '');
+                if (compact.length < 2 || /^(.)\1+$/u.test(compact)) {
+                    fieldErrors.name = 'Укажите корректные ФИО.';
+                }
+            }
+
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
-                isValid = false;
-                errorMessage = 'Пожалуйста, введите корректный email.';
+                fieldErrors.email = 'Пожалуйста, введите корректный email.';
             }
 
-            // Validate password
             if (password.length < 6) {
-                isValid = false;
-                errorMessage = 'Пароль должен содержать не менее 6 символов.';
+                fieldErrors.password = 'Пароль должен содержать не менее 6 символов.';
             }
 
-            if (!isValid) {
+            if (phone) {
+                let d = phone.replace(/\D/g, '');
+                if (d.length === 11 && d[0] === '8') d = '7' + d.slice(1);
+                const rest = d.slice(1);
+                if (d.length !== 11 || d[0] !== '7' || !rest || rest[0] !== '9' || /^(\d)\1{9}$/.test(rest)) {
+                    fieldErrors.phone = 'Укажите корректный мобильный телефон РФ (+7 9XX…).';
+                }
+            }
+
+            if (!agreeInput || !agreeInput.checked) {
+                fieldErrors.agree = 'Нужно согласие на обработку персональных данных.';
+            }
+
+            if (Object.keys(fieldErrors).length) {
                 e.preventDefault();
-                alert(errorMessage);
+                Object.keys(fieldErrors).forEach(function (k) {
+                    if (k === 'password' && pwWrap) pwWrap.classList.add('is-error');
+                    if (k === 'agree') {
+                        const agreeWrap = agreeInput && agreeInput.closest('.mb-6');
+                        if (agreeWrap) {
+                            agreeWrap.querySelectorAll('[data-th-reg-err]').forEach(function (n) { n.remove(); });
+                            const p = document.createElement('p');
+                            p.className = 'mt-1 text-sm text-red-600';
+                            p.setAttribute('data-th-reg-err', '1');
+                            p.textContent = fieldErrors.agree;
+                            agreeWrap.appendChild(p);
+                        }
+                        return;
+                    }
+                    setFieldError(k, fieldErrors[k]);
+                });
+                const firstKey = Object.keys(fieldErrors)[0];
+                const firstEl = firstKey === 'agree' ? agreeInput : document.getElementById(firstKey);
+                if (firstEl && firstEl.focus) firstEl.focus();
                 return false;
             }
 
             // Show loading state
             const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Регистрация...';
             submitBtn.disabled = true;
         });

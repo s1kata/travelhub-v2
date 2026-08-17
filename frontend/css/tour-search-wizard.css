@@ -313,6 +313,7 @@ button.th-wizard__chip:focus-visible {
     display: grid;
     gap: 0.65rem;
     margin-bottom: 0.75rem;
+    align-items: stretch;
 }
 
 @media (min-width: 640px) {
@@ -321,15 +322,30 @@ button.th-wizard__chip:focus-visible {
     }
 }
 
+.th-wizard__filter-field {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
 .th-wizard__filter-field .tv-sc-field-label {
     position: static;
     display: block;
     margin-bottom: 0.35rem;
+    min-height: 1.1em;
     font-size: 0.72rem;
     font-weight: 600;
     color: rgba(26, 26, 64, 0.55);
     text-transform: uppercase;
     letter-spacing: 0.04em;
+    line-height: 1.1;
+}
+
+.th-wizard__filter-trigger {
+    min-height: 2.75rem;
+    height: 2.75rem;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .th-wizard__filter-field .tv-sc-select {

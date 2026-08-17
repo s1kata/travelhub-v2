@@ -22,7 +22,7 @@ if (!function_exists('th_legal_operator')) {
             'postal_address' => '443022, г. Самара, ул. Ново-Садовая, д. 305А, офис 105',
             'email' => 'hello@travelhub63.ru',
             'phone' => '+7 (846) 254-16-56',
-            'doc_date' => '24.07.2026',
+            'doc_date' => '16.08.2026',
         ];
     }
 

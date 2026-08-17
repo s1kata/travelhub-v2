@@ -97,10 +97,8 @@ if (!function_exists('th_country_page_image_src')) {
         <div class="th-container mx-auto px-6 relative z-10 w-full">
             <div class="max-w-4xl mx-auto text-center space-y-5">
                 <div class="inline-flex items-center gap-3 mb-1 th-country-hero__badge-row">
-                    <div class="hidden md:block text-6xl drop-shadow-lg" aria-hidden="true">
-                        <?php echo htmlspecialchars($countryData['flag'] ?? ''); ?>
-                    </div>
-                    <div class="md:hidden th-country-hero__iso" aria-hidden="true">
+                    <?php /* Один код страны (ISO): эмодзи-флаг на Windows/Edge рисуется как второй «ID» */ ?>
+                    <div class="th-country-hero__iso" aria-label="<?php echo $codeMobile; ?>">
                         <span class="th-country-hero__iso-code"><?php echo $codeMobile; ?></span>
                     </div>
                 </div>

@@ -48,9 +48,9 @@ $agree_id = $th_lead_id . '-agree';
           <?php if ($th_lead_phone_only): ?>data-th-lead-phone-only="1"<?php endif; ?>>
         <?php if (!$th_lead_phone_only): ?>
         <div class="th-lead-capture__row">
-            <label class="th-lead-capture__lbl" for="<?php echo htmlspecialchars($name_id, ENT_QUOTES, 'UTF-8'); ?>">Имя</label>
+            <label class="th-lead-capture__lbl" for="<?php echo htmlspecialchars($name_id, ENT_QUOTES, 'UTF-8'); ?>">ФИО</label>
             <input type="text" id="<?php echo htmlspecialchars($name_id, ENT_QUOTES, 'UTF-8'); ?>" name="name" required maxlength="100"
-                   autocomplete="name" placeholder="Как к вам обращаться" class="th-lead-capture__input">
+                   autocomplete="name" placeholder="Иванов Иван Иванович" class="th-lead-capture__input">
         </div>
         <?php else: ?>
         <input type="hidden" name="name" value="Клиент сайта">

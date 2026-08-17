@@ -295,19 +295,19 @@
 
 .th-off-card__call {
     background: var(--th-teal);
-    color: #fff;
+    color: #fff !important;
 }
 
 .th-off-card__wa,
 .th-off-card__max {
     background: #0F1C3F;
-    color: #fff;
+    color: #fff !important;
 }
 
 .th-off-card__lead {
     grid-column: 1 / -1;
     background: var(--th-coral);
-    color: #fff;
+    color: #fff !important;
 }
 
 .th-off-card__more {

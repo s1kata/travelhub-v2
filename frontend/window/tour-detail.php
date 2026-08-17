@@ -309,11 +309,28 @@ if ($is_logged_in && ($tour_link !== '' || $page_url !== '')) {
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet"></head>
 <body class="th-page-tour-detail">
 <?php
-$back_href = 'javascript:history.back()';
+$back_href = '/frontend/index.php';
 if ($return_url !== '' && $return_url[0] === '/') {
     $back_href = $return_url;
     if (stripos($back_href, 'tv_restore=') === false) {
         $back_href .= (strpos($back_href, '?') !== false ? '&' : '?') . 'tv_restore=1';
+    }
+} elseif (!empty($_SERVER['HTTP_REFERER'])) {
+    $ref = (string) $_SERVER['HTTP_REFERER'];
+    $refPath = parse_url($ref, PHP_URL_PATH);
+    $refHost = parse_url($ref, PHP_URL_HOST);
+    $curHost = $_SERVER['HTTP_HOST'] ?? '';
+    if (is_string($refPath) && $refPath !== '' && $refPath[0] === '/'
+        && is_string($refHost) && $curHost !== '' && strcasecmp($refHost, $curHost) === 0
+        && stripos($refPath, 'tour-detail.php') === false) {
+        $back_href = $refPath;
+        $refQuery = parse_url($ref, PHP_URL_QUERY);
+        if (is_string($refQuery) && $refQuery !== '') {
+            $back_href .= '?' . $refQuery;
+        }
+        if (stripos($back_href, 'tv_restore=') === false) {
+            $back_href .= (strpos($back_href, '?') !== false ? '&' : '?') . 'tv_restore=1';
+        }
     }
 }
 ?>
@@ -449,8 +466,7 @@ if ($return_url !== '' && $return_url[0] === '/') {
                         <div id="tour-hotel-info-content"></div>
                     </div>
 
-                    <!-- 8. Дубль CTA убран из потока: один primary в сайдбаре / mobile sticky -->
-                    <section id="th-detail-lead-bottom" class="th-detail__section th-detail__lead-bottom" hidden aria-hidden="true"></section>
+                    <?php /* Дубль CTA убран: один primary у цены в сайдбаре / mobile sticky */ ?>
 
                 </div><!-- end .th-detail__main -->
 
@@ -494,7 +510,7 @@ if ($return_url !== '' && $return_url[0] === '/') {
                             <button type="button" id="btn-booking-without" class="th-detail__cta-btn">
                                 <i class="fas fa-plane mr-2"></i> Забронировать
                             </button>
-                            <p class="text-xs text-slate-500 mt-1 mb-1 text-center">Имя и телефон — перезвоним за 15 минут. Ни к чему не обязывает.</p>
+                            <p class="text-xs text-slate-500 mt-1 mb-1 text-center">ФИО и телефон — перезвоним за 15 минут. Ни к чему не обязывает.</p>
                             <?php if ($online_payment_enabled): ?>
                             <button type="button" id="btn-booking-with" class="th-detail__cta-btn th-detail__cta-btn--pay-primary"
                                     title="Забронировать тур и оплатить картой онлайн (Т-Банк)">
@@ -548,7 +564,7 @@ if ($return_url !== '' && $return_url[0] === '/') {
         </div>
 
                     <!-- Модальное окно формы заявки -->
-                    <div id="booking-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm" aria-modal="true" role="dialog" style="display: none;">
+                    <div id="booking-modal" class="fixed inset-0 z-[100100] flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm" aria-modal="true" role="dialog" style="display: none;">
                         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[min(90vh,100dvh)] overflow-y-auto min-w-0">
                             <div class="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center rounded-t-2xl z-10">
                                 <h2 class="heading-font font-bold text-slate-800 text-lg" id="booking-modal-title"><?php echo $from_promo ? 'Заявка на акционный тур' : 'Забронировать тур'; ?></h2>
@@ -559,8 +575,8 @@ if ($return_url !== '' && $return_url[0] === '/') {
                                 <input type="hidden" name="booking_type" id="booking-type" value="without_payment">
                                 <p class="text-xs text-slate-500 -mt-1 mb-1" id="booking-modal-subtitle">Перезвоним за 15 минут. Без спама.</p>
                                 <div>
-                                    <label for="b-manager-name" class="block text-sm font-semibold text-slate-700 mb-1">Ваше имя <span class="text-red-500">*</span></label>
-                                    <input type="text" id="b-manager-name" autocomplete="name" class="w-full px-4 py-3 rounded-xl border border-slate-300 text-base focus:ring-2 focus:ring-sky-300 focus:border-sky-400" placeholder="Например: Мария">
+                                    <label for="b-manager-name" class="block text-sm font-semibold text-slate-700 mb-1">ФИО <span class="text-red-500">*</span></label>
+                                    <input type="text" id="b-manager-name" autocomplete="name" maxlength="100" class="w-full px-4 py-3 rounded-xl border border-slate-300 text-base focus:ring-2 focus:ring-sky-300 focus:border-sky-400" placeholder="Иванов Иван Иванович">
                                 </div>
                                 <div>
                                     <label for="b-phone" class="block text-sm font-semibold text-slate-700 mb-1">Номер телефона <span class="text-red-500">*</span></label>
@@ -568,7 +584,7 @@ if ($return_url !== '' && $return_url[0] === '/') {
                                     <p class="text-xs text-slate-500 mt-1">Позвоним только по этой заявке — никакой рекламы.</p>
                                 </div>
                                 <label class="flex items-start gap-2 text-sm text-slate-600 cursor-pointer">
-                                    <input type="checkbox" id="b-agree-contact" class="mt-1 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
+                                    <input type="checkbox" id="b-agree-contact" name="agree" required class="mt-1 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
                                     <span><?php require_once __DIR__ . '/../../backend/components/legal_consent_label.php'; echo th_legal_consent_checkbox_html(); ?> и обратный звонок</span>
                                 </label>
                                 <div id="booking-modal-msg" class="hidden p-2 rounded-lg text-sm"></div>
@@ -867,6 +883,9 @@ if ($return_url !== '' && $return_url[0] === '/') {
             setBookingFormLayout(effectiveType === 'with_payment' ? 'with_payment' : layoutMode);
             modal.style.display = 'flex';
             modal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('th-modal-open');
+            var stickyBar = document.getElementById('th-detail-mobile-sticky');
+            if (stickyBar) stickyBar.setAttribute('hidden', '');
             if (window.THMobile && window.THMobile.lockScroll) window.THMobile.lockScroll(true);
             if (formStep) formStep.style.display = '';
             if (bookingType) {
@@ -994,6 +1013,9 @@ if ($return_url !== '' && $return_url[0] === '/') {
                 modal.style.display = 'none';
                 modal.setAttribute('aria-hidden', 'true');
             }
+            document.body.classList.remove('th-modal-open');
+            var stickyBarClose = document.getElementById('th-detail-mobile-sticky');
+            if (stickyBarClose) stickyBarClose.removeAttribute('hidden');
             if (window.THMobile && window.THMobile.lockScroll) window.THMobile.lockScroll(false);
         }
 
@@ -1036,8 +1058,36 @@ if ($return_url !== '' && $return_url[0] === '/') {
             var phoneEl = document.getElementById('b-phone');
             var nameVal = mgrNameEl ? mgrNameEl.value.trim() : '';
             var phoneVal = phoneEl ? phoneEl.value.trim() : '';
-            if (!nameVal) { showModalMsg('Укажите имя.', true); return; }
-            if (!phoneVal) { showModalMsg('Укажите телефон.', true); return; }
+            var agreeEl = document.getElementById('b-agree-contact');
+            if (window.THLeadCapture && typeof THLeadCapture.validateLeadFields === 'function') {
+                var leadCheck = THLeadCapture.validateLeadFields({
+                    name: nameVal,
+                    phone: phoneVal,
+                    agree: !!(agreeEl && agreeEl.checked)
+                });
+                if (!leadCheck.ok) {
+                    showModalMsg(leadCheck.error || 'Проверьте данные формы.', true);
+                    return;
+                }
+                nameVal = leadCheck.name;
+                phoneVal = leadCheck.phone;
+            } else {
+                if (!nameVal || nameVal.length < 2) { showModalMsg('Укажите ФИО.', true); return; }
+                if (!/^[\p{L}\s\-'.]+$/u.test(nameVal)) { showModalMsg('Укажите корректные ФИО.', true); return; }
+                var cyrN = nameVal.match(/\p{Script=Cyrillic}/gu);
+                if (!cyrN || cyrN.length < 2) { showModalMsg('Укажите ФИО русскими буквами.', true); return; }
+                var phoneDigits = phoneVal.replace(/\D/g, '');
+                if (phoneDigits.length === 11 && phoneDigits[0] === '8') phoneDigits = '7' + phoneDigits.slice(1);
+                var phoneRest = phoneDigits.slice(1);
+                if (phoneDigits.length !== 11 || phoneDigits[0] !== '7' || !phoneRest || phoneRest[0] !== '9' || /^(\d)\1{9}$/.test(phoneRest)) {
+                    showModalMsg('Укажите корректный мобильный телефон РФ (+7 9XX…).', true);
+                    return;
+                }
+                if (!agreeEl || !agreeEl.checked) {
+                    showModalMsg('Нужно согласие на обработку данных.', true);
+                    return;
+                }
+            }
             var emailVal = '';
             function thDateToYmd(s) {
                 s = (s || '').trim();
@@ -1088,6 +1138,7 @@ if ($return_url !== '' && $return_url[0] === '/') {
                 name: nameVal,
                 email: emailVal || undefined,
                 phone: phoneVal,
+                agree: true,
                 departure_city: (typeof defaultDeparture !== 'undefined' ? defaultDeparture : '') || undefined,
                 search_adults: searchAdults != null ? searchAdults : undefined,
                 search_childs: searchChilds || undefined,

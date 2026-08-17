@@ -35,7 +35,10 @@ require_once dirname(__DIR__) . '/lib/crm-booking-body.php';
 require_once dirname(__DIR__) . '/lib/uon-client.php';
 
 $claims = auth_jwt_require_bearer($CONFIG);
-$userId = (string) $claims['sub'];
+$userId = (string) ($claims['sub'] ?? '');
+if ($userId === '') {
+    auth_jwt_json_error('Invalid token subject', 401);
+}
 
 $raw = file_get_contents('php://input') ?: '';
 $body = json_decode($raw, true);
@@ -49,10 +52,12 @@ if ($idempotencyKey === '' || !is_array($payload)) {
     auth_jwt_json_error('Required: idempotencyKey, payload', 400);
 }
 
-$payloadUserId = (string) ($payload['userId'] ?? '');
-if ($payloadUserId === '' || $payloadUserId !== $userId) {
-    auth_jwt_json_error('Forbidden: userId mismatch', 403);
+// userId из JWT — источник истины (клиентский payload.userId мог разъехаться)
+$payloadUserId = trim((string) ($payload['userId'] ?? ''));
+if ($payloadUserId !== '' && $payloadUserId !== $userId) {
+    error_log('[crm/submit-booking] userId mismatch payload=' . $payloadUserId . ' jwt=' . $userId . ' — using JWT');
 }
+$payload['userId'] = $userId;
 
 try {
     $requestBody = crm_build_lead_create_body(array_merge($payload, ['idempotencyKey' => $idempotencyKey]));
@@ -75,7 +80,19 @@ if (!$response['success'] || !is_array($response['data'] ?? null)) {
 }
 
 $data = $response['data'];
-$id = $data['id'] ?? $data['id_system'] ?? null;
+$id = $data['id'] ?? $data['id_system'] ?? $data['r_id'] ?? null;
+if ($id === null && isset($data['message']) && is_array($data['message'])) {
+    $id = $data['message']['id'] ?? $data['message']['id_system'] ?? null;
+}
+// U-ON иногда отдаёт result=0 при ошибке на HTTP 200
+if (isset($data['result']) && (int) $data['result'] === 0 && $id === null) {
+    http_response_code(502);
+    echo json_encode([
+        'success' => false,
+        'error' => (string) ($data['message'] ?? $data['error'] ?? 'U-ON lead/create rejected'),
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 echo json_encode([
     'success' => true,

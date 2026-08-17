@@ -79,7 +79,8 @@
         sub: opts.sub || 'Оставьте телефон — перезвоним за 15 минут с лучшими акциями.',
         message: message,
         source: source,
-        focusPhone: opts.focusPhone !== false
+        focusPhone: opts.focusPhone !== false,
+        phoneOnly: !!opts.phoneOnly
       });
       return true;
     }

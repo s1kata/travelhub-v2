@@ -149,18 +149,18 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     <link rel="stylesheet" href="/frontend/css/responsive.css?v=17" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="/frontend/css/responsive.css?v=17"></noscript>
     <link rel="stylesheet" href="/frontend/css/design-system.css?v=14">
-    <link rel="stylesheet" href="/frontend/css/redesign.css?v=35">
+    <link rel="stylesheet" href="/frontend/css/redesign.css?v=37">
     <link rel="stylesheet" href="/frontend/css/v2-theme.css?v=4">
     <?php if ($th_search_ui === 'legacy'): ?>
     <link rel="stylesheet" href="/frontend/search-legacy/css/tour-search-wizard.css?v=legacy1">
     <link rel="stylesheet" href="/frontend/search-legacy/css/th-coral-search.css?v=legacy3">
     <?php else: ?>
-    <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=11">
-    <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=17">
+    <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=12">
+    <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=19">
     <link rel="stylesheet" href="/frontend/css/th-search-v2.css?v=1">
     <?php endif; ?>
     <link rel="stylesheet" href="/frontend/css/th-hard-funnel.css?v=8">
-    <link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=11">
+    <link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=13">
     <link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=9">
     <link rel="stylesheet" href="/frontend/css/yandex-mobile.css?v=9">
     <link rel="stylesheet" href="/frontend/css/pages/home.css?v=15">
@@ -186,7 +186,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     <script src="/frontend/js/th-mobile.js?v=14" defer></script>
     <script src="/frontend/js/th-modal.js?v=2" defer></script>
     <script src="/frontend/js/th-gallery.js?v=1" defer></script>
-    <script src="/frontend/js/support-chat-widget.js?v=3" defer></script>
+    <script src="/frontend/js/support-chat-widget.js?v=4" defer></script>
     
 </head>
 <body class="text-[#111827] antialiased th-search-ui-<?php echo htmlspecialchars($th_search_ui, ENT_QUOTES, 'UTF-8'); ?>">
@@ -214,7 +214,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 <p>Поиск занимает дольше обычного — можно подождать<br>или оставить телефон, менеджер подберёт тур.</p>
                 <form id="tv-loader-lead-form" class="tv-search-loader-slow__form">
                     <input type="tel" name="phone" required class="tv-search-loader-slow__input" placeholder="+7 (___) ___-__-__" autocomplete="tel">
-                    <label class="tv-search-loader-slow__agree"><input type="checkbox" name="agree" checked required> <?php echo th_legal_consent_checkbox_html(); ?></label>
+                    <label class="tv-search-loader-slow__agree"><input type="checkbox" name="agree" required> <?php echo th_legal_consent_checkbox_html(); ?></label>
                     <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;height:0;width:0">
                     <p id="tv-loader-lead-msg" class="tv-search-loader-slow__msg hidden"></p>
                     <button type="submit" class="tv-search-loader-slow__submit"><i class="fas fa-headset" aria-hidden="true"></i>Подобрать за меня</button>
@@ -252,11 +252,11 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
         <div class="th-container home-hero-inner mx-auto px-4 sm:px-6 md:px-8 relative z-10 w-full flex flex-col flex-1 min-h-0 justify-start md:justify-center items-center">
             <div class="w-full max-w-4xl mx-auto text-center hero-content mb-6 sm:mb-8 md:mb-10">
                 <p class="heading-font text-white/90 text-sm sm:text-base font-semibold tracking-[0.18em] uppercase mb-3 drop-shadow-[0_1px_10px_rgba(0,0,0,0.35)]">Travel Hub</p>
-                <h1 class="heading-font text-[2rem] sm:text-4xl md:text-5xl lg:text-[2.5rem] font-bold text-white mb-4 leading-[1.2] tracking-tight drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)]">
-                    Найдите тур за минуту
+                <h1 class="heading-font text-[2rem] sm:text-4xl md:text-5xl lg:text-[2.5rem] font-bold text-white mb-4 leading-[1.2] tracking-tight drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)] th-home-hero__title">
+                    <span class="th-home-hero__title-line">Найдите тур за минуту</span>
                 </h1>
-                <p class="text-[15px] sm:text-lg text-white/90 max-w-xl mx-auto leading-relaxed drop-shadow-[0_1px_12px_rgba(0,0,0,0.35)]">
-                    Откуда · куда · даты · ночи · туристы
+                <p class="th-home-hero__steps text-[15px] sm:text-lg text-white/90 max-w-xl mx-auto leading-relaxed drop-shadow-[0_1px_12px_rgba(0,0,0,0.35)]">
+                    <span>Откуда</span><span class="th-home-hero__dot" aria-hidden="true">·</span><span>Куда</span><span class="th-home-hero__dot" aria-hidden="true">·</span><span>Даты</span><span class="th-home-hero__dot" aria-hidden="true">·</span><span>Ночи</span><span class="th-home-hero__dot" aria-hidden="true">·</span><span>Туристы</span>
                 </p>
             </div>
 
@@ -545,7 +545,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     <p class="hidden">removed</p>
                     <form id="main-quick-lead-form" class="space-y-3 relative">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            <input type="text" name="name" required placeholder="Имя" autocomplete="name" class="rounded-xl px-3 py-2.5 text-slate-900 text-sm border-0 shadow-inner">
+                            <input type="text" name="name" required placeholder="ФИО" autocomplete="name" class="rounded-xl px-3 py-2.5 text-slate-900 text-sm border-0 shadow-inner">
                             <input type="tel" name="phone" required placeholder="Телефон" autocomplete="tel" class="rounded-xl px-3 py-2.5 text-slate-900 text-sm border-0 shadow-inner">
                         </div>
                         <label class="flex items-start gap-2 text-xs text-white/90 cursor-pointer">
@@ -3745,9 +3745,13 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     if (departureIdMain) params.departure_id = departureIdMain;
                     if (h.id) params.hotel_id = String(h.id);
                     try {
-                        var retU = new URL(window.location.href);
-                        retU.searchParams.set('tv_restore', '1');
-                        params.return_url = retU.pathname + (retU.search || '');
+                        if (window.TourSessionManager && typeof window.TourSessionManager.buildReturnUrl === 'function') {
+                            params.return_url = window.TourSessionManager.buildReturnUrl();
+                        } else {
+                            var retU = new URL(window.location.href);
+                            retU.searchParams.set('tv_restore', '1');
+                            params.return_url = retU.pathname + (retU.search || '');
+                        }
                     } catch (eRet) {}
                     const cardHref = country ? (tourDetailBase + '/window/tour-detail.php?' + new URLSearchParams(params).toString()) : (link || '#');
                     return window.THTourCard.render(h, {
@@ -3823,9 +3827,13 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 if (startYmd) params.date_from = startYmd;
                 if (retYmd) params.date_to = retYmd;
                 try {
-                    var retU = new URL(window.location.href);
-                    retU.searchParams.set('tv_restore', '1');
-                    params.return_url = retU.pathname + (retU.search || '');
+                    if (window.TourSessionManager && typeof window.TourSessionManager.buildReturnUrl === 'function') {
+                        params.return_url = window.TourSessionManager.buildReturnUrl();
+                    } else {
+                        var retU = new URL(window.location.href);
+                        retU.searchParams.set('tv_restore', '1');
+                        params.return_url = retU.pathname + (retU.search || '');
+                    }
                 } catch (e) {
                     try {
                         params.return_url = window.location.pathname + window.location.search + (window.location.search.indexOf('?') >= 0 ? '&' : '?') + 'tv_restore=1';
@@ -4233,7 +4241,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
         <p class="th-qbm-modal__sub">Перезвоним за 15 минут. Без спама.</p>
         <p class="th-qbm-modal__proof"><i class="fas fa-clock"></i> Ответ за 15 минут · <i class="fas fa-shield-alt"></i> Без спама</p>
         <form id="qbm-form" class="th-qbm-modal__form">
-            <div class="th-qbm-modal__field"><input type="text" name="name" placeholder="Ваше имя" required class="th-qbm-modal__input"></div>
+            <div class="th-qbm-modal__field"><input type="text" name="name" placeholder="ФИО" required maxlength="100" class="th-qbm-modal__input" autocomplete="name"></div>
             <input type="tel" name="phone" placeholder="+7 (___) ___-__-__" required class="th-qbm-modal__input">
                 <label class="th-qbm-modal__agree">
                     <input type="checkbox" name="agree" required>

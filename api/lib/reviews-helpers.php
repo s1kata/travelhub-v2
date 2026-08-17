@@ -126,7 +126,12 @@ function reviews_list(PDO $pdo, ?string $tourId, ?string $hotelId, ?int $viewerU
             FROM reviews r
             WHERE r.deleted_at IS NULL';
     $params = [];
-    if ($tourId !== null && $tourId !== '') {
+    if ($tourId !== null && $tourId !== '' && $hotelId !== null && $hotelId !== '') {
+        // Тот же отель / смена tourId у горящих — показываем оба набора
+        $sql .= ' AND (r.tour_id = ? OR r.hotel_id = ?)';
+        $params[] = $tourId;
+        $params[] = $hotelId;
+    } elseif ($tourId !== null && $tourId !== '') {
         $sql .= ' AND r.tour_id = ?';
         $params[] = $tourId;
     } elseif ($hotelId !== null && $hotelId !== '') {

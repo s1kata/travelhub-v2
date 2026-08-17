@@ -14,6 +14,20 @@ body.th-has-bottom-cta:not(.has-th-lead-bar) .th-support-chat {
 body.has-th-lead-bar:not(.th-promo-page) .th-support-chat {
   bottom: calc(var(--th-lead-bar-h, 48px) + 16px + env(safe-area-inset-bottom, 0px));
 }
+/* Back-to-top сидит выше кнопки чата, без наложения */
+body:has(.th-support-chat) .v2-back-to-top,
+body:has(.th-support-chat) .v2-back-to-top.visible {
+  bottom: calc(
+    max(var(--th-sticky-bottom-h, 0px), var(--th-lead-bar-h, 48px), 72px)
+    + 76px
+    + env(safe-area-inset-bottom, 0px)
+  ) !important;
+  right: 16px !important;
+}
+body.th-modal-open .th-support-chat {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
 .th-support-chat__toggle,
 .th-support-chat__panel {
   pointer-events: auto;

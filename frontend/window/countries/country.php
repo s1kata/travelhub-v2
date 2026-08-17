@@ -102,13 +102,8 @@ if (!$countryData) {
         <div class="container mx-auto px-6 relative z-10">
             <div class="max-w-6xl mx-auto text-center space-y-6">
                 <div class="inline-flex items-center gap-3 mb-4">
-                    <!-- Desktop: эмодзи флаг -->
-                    <div class="hidden md:block text-6xl">
-                        <?php echo htmlspecialchars($countryData['flag']); ?>
-                    </div>
-                    <!-- Mobile: буквы -->
-                    <div class="md:hidden">
-                        <div class="text-4xl font-bold text-slate-900"><?php echo htmlspecialchars(getCountryCode($countrySlug)); ?></div>
+                    <div class="th-country-hero__iso" style="display:inline-flex;min-width:2.75rem;padding:0.35rem 0.65rem;border-radius:999px;background:rgba(15,23,42,0.08);border:1px solid rgba(15,23,42,0.12);" aria-label="<?php echo htmlspecialchars(getCountryCode($countrySlug), ENT_QUOTES, 'UTF-8'); ?>">
+                        <span class="th-country-hero__iso-code" style="font-size:0.95rem;font-weight:800;letter-spacing:0.12em;color:#0f172a;"><?php echo htmlspecialchars(getCountryCode($countrySlug), ENT_QUOTES, 'UTF-8'); ?></span>
                     </div>
                 </div>
                 <h1 class="heading-font text-5xl md:text-6xl lg:text-7xl font-bold text-slate-900 leading-tight">

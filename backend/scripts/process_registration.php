@@ -1,12 +1,20 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../components/security_helper.php';
+require_once __DIR__ . '/../components/lead_validation.php';
 
 session_start();
 
 // Rate limit: 3 регистрации за 60 минут с одного IP (анти-спам)
 if (security_rate_limit_exceeded('registration', 3, 3600)) {
-    header('Location: /frontend/window/registration-desktop.php?errors=' . urlencode(json_encode(['name' => 'Слишком много попыток. Попробуйте позже.'])));
+    $redirectData = [
+        'errors' => ['name' => 'Слишком много попыток. Попробуйте позже.'],
+        'name' => '',
+        'email' => '',
+        'phone' => '',
+        'city' => '',
+    ];
+    header('Location: /frontend/window/registration-desktop.php?data=' . urlencode(json_encode($redirectData, JSON_UNESCAPED_UNICODE)));
     exit;
 }
 
@@ -21,7 +29,14 @@ $age = 0;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
     if (!security_csrf_verify()) {
-        header('Location: /frontend/window/registration-desktop.php?errors=' . urlencode(json_encode(['name' => 'Сессия истекла. Обновите страницу.'])));
+        $redirectData = [
+            'errors' => ['name' => 'Сессия истекла. Обновите страницу и попробуйте снова.'],
+            'name' => trim($_POST['name'] ?? ''),
+            'email' => trim($_POST['email'] ?? ''),
+            'phone' => trim($_POST['phone'] ?? ''),
+            'city' => trim($_POST['city'] ?? ''),
+        ];
+        header('Location: /frontend/window/registration-desktop.php?data=' . urlencode(json_encode($redirectData, JSON_UNESCAPED_UNICODE)));
         exit;
     }
     $name = trim($_POST['name'] ?? '');
@@ -33,12 +48,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
     $gender = trim($_POST['gender'] ?? '');
 
     // Валидация имени
-    if ($name === '') {
-        $errors['name'] = 'Пожалуйста, введите имя.';
-    } elseif (mb_strlen($name) > 60) {
-        $errors['name'] = 'Имя не должно превышать 60 символов.';
-    } elseif (!preg_match('/^[\p{L}\s\-]+$/u', $name)) {
-        $errors['name'] = 'Имя может содержать только буквы и дефисы.';
+    $nameErr = th_lead_validate_person_name($name, 2, 60);
+    if ($nameErr !== null) {
+        $errors['name'] = $nameErr === 'Укажите ФИО' ? 'Пожалуйста, введите ФИО.' : $nameErr;
     }
 
     // Валидация email
@@ -55,6 +67,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         $errors['password'] = 'Пароль должен содержать не менее 6 символов.';
     }
 
+    // Валидация телефона (если указан)
+    if ($phone !== '') {
+        $phoneCheck = th_lead_validate_ru_phone($phone);
+        if (!$phoneCheck['ok']) {
+            $errors['phone'] = $phoneCheck['error'] ?? 'Укажите корректный мобильный телефон РФ (+7 9XX…).';
+        } else {
+            $phone = $phoneCheck['phone'];
+        }
+    }
+
     // Валидация возраста
     if ($age < 0 || $age > 120) {
         $age = 0;
@@ -66,11 +88,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         $gender = 'prefer_not_to_say';
     }
 
+    $agreeErr = th_lead_require_agree($_POST);
+    if ($agreeErr !== null) {
+        $errors['agree'] = $agreeErr;
+    }
+
     // Если нет ошибок валидации
     if (empty($errors)) {
         try {
             if (!$pdo) {
-                $errors['database'] = 'База данных недоступна.';
+                $errors['email'] = 'Регистрация временно недоступна. Попробуйте позже или позвоните в офис.';
             } else {
                 // Проверяем существование таблицы users
                 try {
@@ -173,9 +200,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
                 }
             }
         } catch (PDOException $e) {
-            $errors['database'] = 'Временная ошибка сервера. Попробуйте позже.';
+            error_log('[registration] PDO: ' . $e->getMessage());
+            // Не маскируем ошибки валидации/дубликатов как «временную ошибку сервера»
+            if (empty($errors)) {
+                $errors['name'] = 'Не удалось завершить регистрацию. Проверьте ФИО, email и пароль.';
+            }
         } catch (Exception $e) {
-            $errors['database'] = 'Временная ошибка сервера. Попробуйте позже.';
+            error_log('[registration] Exception: ' . $e->getMessage());
+            if (empty($errors)) {
+                $errors['name'] = 'Не удалось завершить регистрацию. Проверьте ФИО, email и пароль.';
+            }
         }
     }
     
@@ -191,7 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
             'gender' => $gender,
         ];
         
-        header('Location: /frontend/window/registration-desktop.php?data=' . urlencode(json_encode($redirectData)));
+        header('Location: /frontend/window/registration-desktop.php?data=' . urlencode(json_encode($redirectData, JSON_UNESCAPED_UNICODE)));
         exit;
     }
 } else {

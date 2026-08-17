@@ -69,6 +69,85 @@
     });
   }
 
+  function digitsOnly(s) {
+    return String(s || '').replace(/\D/g, '');
+  }
+
+  function isValidRuPhone(phone) {
+    var d = digitsOnly(phone);
+    if (d.length === 11 && d[0] === '8') d = '7' + d.slice(1);
+    if (d.length !== 11 || d[0] !== '7') return false;
+    var rest = d.slice(1);
+    // Мобильный РФ: +7 9XX… (как lead_validation.php)
+    if (!rest || rest[0] !== '9') return false;
+    if (/^(\d)\1{9}$/.test(rest)) return false;
+    if (/^9(\d)\1{8}$/.test(rest)) return false;
+    if (rest === '9012345678' || rest === '9876543210' || rest === '9123456789') return false;
+    return true;
+  }
+
+  function isValidPersonName(name) {
+    var n = String(name || '').trim();
+    if (n.length < 2 || n.length > 100) return false;
+    if (!/^[\p{L}\s\-'.]+$/u.test(n)) return false;
+    var compact = n.replace(/[\s\-'.]/g, '');
+    if (compact.length < 2) return false;
+    if (/^(\p{L})\1+$/u.test(compact)) return false;
+    // Минимум 2 кириллические буквы — латиница/немецкий-only отклоняется
+    var cyr = n.match(/\p{Script=Cyrillic}/gu);
+    if (!cyr || cyr.length < 2) return false;
+    return true;
+  }
+
+  function personNameError(name) {
+    var n = String(name || '').trim();
+    if (!n) return 'Укажите ФИО';
+    if (isValidPersonName(n)) return '';
+    if (n.length >= 2 && /^[\p{L}\s\-'.]+$/u.test(n) && !/\p{Script=Cyrillic}/u.test(n)) {
+      return 'Укажите ФИО русскими буквами';
+    }
+    return 'Укажите корректные ФИО (минимум 2 буквы)';
+  }
+
+  function ruPhoneError(phone) {
+    if (!String(phone || '').trim()) return 'Укажите телефон';
+    if (!isValidRuPhone(phone)) {
+      return 'Укажите корректный мобильный телефон РФ (+7 9XX…)';
+    }
+    return '';
+  }
+
+  function isValidEmailOptional(email) {
+    var e = String(email || '').trim();
+    if (!e) return true;
+    if (e.length > 120) return false;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+  }
+
+  function validateLeadFields(opts) {
+    opts = opts || {};
+    var phoneOnly = !!opts.phoneOnly;
+    var name = String(opts.name || '').trim();
+    if (!name && phoneOnly) name = 'Клиент сайта';
+    var phone = String(opts.phone || '').trim();
+    var email = String(opts.email || '').trim();
+    var agree = !!opts.agree;
+    if (!phoneOnly) {
+      var nameErr = personNameError(name);
+      if (nameErr) return { ok: false, error: nameErr };
+    } else if (name !== 'Клиент сайта' && name) {
+      var nameErr2 = personNameError(name);
+      if (nameErr2) return { ok: false, error: nameErr2 };
+    }
+    var phoneErr = ruPhoneError(phone);
+    if (phoneErr) return { ok: false, error: phoneErr };
+    if (!isValidEmailOptional(email)) {
+      return { ok: false, error: 'Укажите корректный email или оставьте поле пустым' };
+    }
+    if (!agree) return { ok: false, error: 'Нужно согласие на обработку данных' };
+    return { ok: true, name: name, phone: phone, email: email };
+  }
+
   /**
    * @param {object} opts
    * @param {string} opts.name
@@ -94,14 +173,13 @@
 
   function submitLead(opts) {
     opts = opts || {};
-    var phoneOnly = !!opts.phoneOnly;
-    var name = String(opts.name || '').trim();
-    if (!name && phoneOnly) name = 'Клиент сайта';
-    var phone = String(opts.phone || '').trim();
-    var agree = !!opts.agree;
-    if (!name) return Promise.resolve({ success: false, error: 'Укажите имя' });
-    if (!phone) return Promise.resolve({ success: false, error: 'Укажите телефон' });
-    if (!agree) return Promise.resolve({ success: false, error: 'Нужно согласие на обработку данных' });
+    var check = validateLeadFields(opts);
+    if (!check.ok) {
+      return Promise.resolve({ success: false, error: check.error });
+    }
+    var name = check.name;
+    var phone = check.phone;
+    var email = check.email;
 
     var payload = {
       name: name,
@@ -109,7 +187,7 @@
       agree: true,
       website: String(opts.website || ''),
       message: buildMessage(opts),
-      email: String(opts.email || ''),
+      email: email,
       funnel_source: String(opts.source || 'site')
     };
 
@@ -245,6 +323,11 @@
     bindForm: bindForm,
     reachGoal: reachGoal,
     formatPhoneInput: formatPhoneInput,
+    isValidRuPhone: isValidRuPhone,
+    isValidPersonName: isValidPersonName,
+    personNameError: personNameError,
+    ruPhoneError: ruPhoneError,
+    validateLeadFields: validateLeadFields,
     SUCCESS_MSG: 'Заявка принята. Перезвоним в течение 15 минут.'
   };
 

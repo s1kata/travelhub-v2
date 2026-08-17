@@ -528,7 +528,7 @@
     }
 
     .th-detail__mobile-sticky {
-        display: block !important;
+        display: none !important;
     }
 
     #promo-sticky-cta .th-promo-pick-tour-btn,

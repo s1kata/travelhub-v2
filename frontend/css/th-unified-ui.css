@@ -175,22 +175,21 @@ body.has-th-lead-bar:not(.th-promo-page) {
     display: flex !important;
 }
 
-/* Tour detail sticky CTA — на всех экранах */
+/* Tour detail: CTA только у ценника — без дубля sticky внизу экрана */
 .th-detail__mobile-sticky {
-    display: block !important;
-    z-index: var(--th-z-sticky-cta);
+    display: none !important;
 }
 
 body.th-page-tour-detail .th-detail__page {
     padding-bottom: calc(
-        72px + var(--th-lead-bar-h, 0px) + env(safe-area-inset-bottom, 0px)
+        24px + var(--th-lead-bar-h, 0px) + env(safe-area-inset-bottom, 0px)
     ) !important;
 }
 
 body.th-page-tour-detail:has(.th-detail__mobile-sticky:not([hidden])) .th-detail__page,
 body.th-page-tour-detail:has(#th-detail-mobile-sticky:not(.hidden)) .th-detail__page {
     padding-bottom: calc(
-        80px + env(safe-area-inset-bottom, 0px)
+        24px + env(safe-area-inset-bottom, 0px)
     ) !important;
 }
 
@@ -233,13 +232,21 @@ body.th-promo-open .th-umnico-widget {
     pointer-events: none !important;
 }
 
+body.th-modal-open .th-detail__mobile-sticky,
+body.th-modal-open #promo-sticky-cta,
+body.th-modal-open #promo-results-sticky-lead,
+body.th-modal-open #mobile-sticky-cta,
+.th-detail__mobile-sticky[hidden] {
+    display: none !important;
+}
+
 /* ——— Back to top ——— */
 .v2-back-to-top {
     bottom: calc(
-        max(var(--th-sticky-bottom-h, 0px), var(--th-lead-bar-h, 64px)) + 58px
+        max(var(--th-sticky-bottom-h, 0px), var(--th-lead-bar-h, 64px)) + 120px
         + env(safe-area-inset-bottom, 0px)
     ) !important;
-    right: 14px !important;
+    right: 16px !important;
     z-index: var(--th-z-back-top) !important;
 }
 
@@ -252,6 +259,7 @@ body.th-modal-open .v2-back-to-top {
     padding-top: calc(5.25rem + var(--th-safe-top, 0px));
 }
 
+/* Country hero: один ISO-бейдж на всех экранах (эмодзи-флаг на Edge = второй «ID») */
 .th-country-hero__iso {
     display: inline-flex;
     align-items: center;
@@ -263,6 +271,9 @@ body.th-modal-open .v2-back-to-top {
     border: 1px solid rgba(255, 255, 255, 0.35);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
+}
+.th-country-hero__badge-row .th-country-hero__flag-desktop {
+    display: none !important;
 }
 
 .th-country-hero__iso-code {

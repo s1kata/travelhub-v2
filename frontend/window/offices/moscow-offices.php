@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/../../../backend/config/config.php';
 require_once __DIR__ . '/../../../backend/config/contacts.php';
 require_once __DIR__ . '/../../../backend/config/offices_catalog.php';
@@ -19,7 +19,7 @@ $heroCover = $offices[0]['cover'] ?? '/frontend/window/img/hero/e978c0767c0fe7bc
     <meta name="description" content="Офисы Travel Hub в Москве: Coral Elite и Anex Tour на Первомайской. Фото, телефоны, заявка за минуту.">
     <link rel="icon" type="image/svg+xml" href="/frontend/favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/frontend/css/th-offices.css?v=2">
+    <link rel="stylesheet" href="/frontend/css/th-offices.css?v=4">
     <?php include __DIR__ . '/../../../backend/components/design_system_head.php'; ?>
     <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
 </head>
@@ -86,7 +86,7 @@ $heroCover = $offices[0]['cover'] ?? '/frontend/window/img/hero/e978c0767c0fe7bc
     ?>
 
     <?php include __DIR__ . '/../../../backend/components/footer.php'; ?>
-    <script src="/frontend/js/office-lead-modal.js?v=2" defer></script>
+    <script src="/frontend/js/office-lead-modal.js?v=5" defer></script>
     <script>
     (function () {
       if (typeof ymaps === 'undefined') return;

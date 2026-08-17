@@ -82,7 +82,7 @@ $yandex_map_open_url = th_map_widget_url_for_geo((string) ($office['geo'] ?? $of
     <meta name="description" content="<?php echo htmlspecialchars($office['description'], ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="icon" type="image/svg+xml" href="/frontend/favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/frontend/css/th-offices.css?v=3">
+    <link rel="stylesheet" href="/frontend/css/th-offices.css?v=4">
     <?php include __DIR__ . '/../../../backend/components/design_system_head.php'; ?>
 </head>
 <body class="th-off-page text-slate-900">
@@ -233,6 +233,6 @@ $yandex_map_open_url = th_map_widget_url_for_geo((string) ($office['geo'] ?? $of
     include __DIR__ . '/../../../backend/components/page_cta_band.php';
     include __DIR__ . '/../../../backend/components/footer.php';
     ?>
-    <script src="/frontend/js/office-lead-modal.js?v=2" defer></script>
+    <script src="/frontend/js/office-lead-modal.js?v=5" defer></script>
 </body>
 </html>

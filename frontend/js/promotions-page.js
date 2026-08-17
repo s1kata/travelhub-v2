@@ -3748,6 +3748,40 @@
                 website: String(fd.get('website') || ''),
                 source: leadSource
             };
+            function showLeadErr(text) {
+                if (msgBox) {
+                    msgBox.textContent = text;
+                    msgBox.className = 'text-sm rounded-lg p-2 bg-red-100 text-red-900 block';
+                    msgBox.classList.remove('hidden');
+                } else {
+                    alert(text);
+                }
+            }
+            if (window.THLeadCapture && window.THLeadCapture.submit) {
+                /* client+server через THLeadCapture */
+            } else {
+                /* Fallback без THLeadCapture — минимальная клиентская проверка до fetch */
+                if (!payload.name || payload.name.length < 2) {
+                    showLeadErr('Укажите корректные ФИО');
+                    return Promise.resolve();
+                }
+                var cyrFb = payload.name.match(/\p{Script=Cyrillic}/gu);
+                if (!cyrFb || cyrFb.length < 2) {
+                    showLeadErr('Укажите ФИО русскими буквами');
+                    return Promise.resolve();
+                }
+                var pd = payload.phone.replace(/\D/g, '');
+                if (pd.length === 11 && pd[0] === '8') pd = '7' + pd.slice(1);
+                var restFb = pd.slice(1);
+                if (pd.length !== 11 || pd[0] !== '7' || !restFb || restFb[0] !== '9' || /^(\d)\1{9}$/.test(restFb)) {
+                    showLeadErr('Укажите корректный мобильный телефон РФ (+7 9XX…)');
+                    return Promise.resolve();
+                }
+                if (!payload.agree) {
+                    showLeadErr('Нужно согласие на обработку данных');
+                    return Promise.resolve();
+                }
+            }
             var send = (window.THLeadCapture && window.THLeadCapture.submit)
                 ? window.THLeadCapture.submit(payload)
                 : fetch('/backend/api/uon-lead.php', {

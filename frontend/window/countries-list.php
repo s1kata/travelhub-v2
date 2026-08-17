@@ -224,7 +224,7 @@ usort($allCountries, function($a, $b) {
     ?>
     <script type="application/ld+json"><?php echo json_encode($countryListSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <link rel="stylesheet" href="/frontend/css/pages/countries-list.css?v=1">
+        <link rel="stylesheet" href="/frontend/css/pages/countries-list.css?v=5">
     <?php include __DIR__ . '/../../backend/components/design_system_head.php'; ?>
     <script src="/backend/api/country-images-debug.js.php" defer></script>
 </head>
@@ -292,7 +292,7 @@ usort($allCountries, function($a, $b) {
                                 <div class="country-card-shine" aria-hidden="true"></div>
                                 <div class="country-card-overlay"></div>
                                 <?php if ($iso !== ''): ?>
-                                <span class="country-card-iso" title="<?php echo htmlspecialchars($country['name']); ?>"><?php echo htmlspecialchars($iso); ?></span>
+                                <span class="country-card-iso" title="<?php echo htmlspecialchars($country['name']); ?>"><?php echo htmlspecialchars(mb_substr($iso, 0, 3, 'UTF-8')); ?></span>
                                 <?php endif; ?>
                                 <div class="country-card-copy">
                                     <div class="country-card-title-row">
@@ -329,7 +329,7 @@ usort($allCountries, function($a, $b) {
                                 <div class="country-card-shine" aria-hidden="true"></div>
                                 <div class="country-card-overlay"></div>
                                 <?php if ($iso !== ''): ?>
-                                <span class="country-card-iso" title="<?php echo htmlspecialchars($country['name']); ?>"><?php echo htmlspecialchars($iso); ?></span>
+                                <span class="country-card-iso" title="<?php echo htmlspecialchars($country['name']); ?>"><?php echo htmlspecialchars(mb_substr($iso, 0, 3, 'UTF-8')); ?></span>
                                 <?php endif; ?>
                                 <div class="country-card-copy">
                                     <div class="country-card-title-row">

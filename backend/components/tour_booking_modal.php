@@ -15,8 +15,8 @@ $th_booking_csrf = security_csrf_token();
         <p id="th-tour-booking-summary" class="th-tour-booking-modal__summary"></p>
         <form id="th-tour-booking-form" class="th-tour-booking-modal__form">
             <input type="hidden" name="booking_type" value="without_payment">
-            <label class="th-tour-booking-modal__lbl">Имя <span class="th-tour-booking-modal__req">*</span>
-                <input type="text" name="name" id="th-tb-name" autocomplete="name" required class="th-tour-booking-modal__input" placeholder="Как к вам обращаться">
+            <label class="th-tour-booking-modal__lbl">ФИО <span class="th-tour-booking-modal__req">*</span>
+                <input type="text" name="name" id="th-tb-name" autocomplete="name" required maxlength="100" class="th-tour-booking-modal__input" placeholder="Иванов Иван Иванович">
             </label>
             <label class="th-tour-booking-modal__lbl">Телефон <span class="th-tour-booking-modal__req">*</span>
                 <input type="tel" name="phone" id="th-tb-phone" autocomplete="tel" required class="th-tour-booking-modal__input" placeholder="+7 (999) 123-45-67">

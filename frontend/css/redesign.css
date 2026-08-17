@@ -1129,6 +1129,40 @@ select.flatpickr-monthDropdown-months {
     z-index: 2;
 }
 
+/* «Откуда · Куда · …» — одна базовая линия */
+.th-home-hero__title {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    text-align: center;
+}
+.th-home-hero__title-line {
+    display: inline-block;
+    line-height: 1.2;
+    white-space: normal;
+    text-wrap: balance;
+}
+.th-home-hero__steps {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.35rem 0.45rem;
+}
+.th-home-hero__steps > span {
+    display: inline-block;
+    line-height: 1.35;
+    font-size: inherit;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    vertical-align: baseline;
+}
+.th-home-hero__dot {
+    opacity: 0.7;
+    font-weight: 400;
+    line-height: 1.35;
+}
+
 /* Убираем старое ::before */
 .tv-sc-shell::before { display: none !important; }
 
@@ -4160,11 +4194,11 @@ body.th-promo-status-visible #promo-sticky-cta {
     padding: 8px 16px;
     margin-bottom: 20px;
     font-size: 14px;
-    font-weight: 600;
-    color: #334155;
+    font-weight: 700;
+    color: #0f172a;
     text-decoration: none;
     background: #fff;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #cbd5e1;
     border-radius: 24px;
     box-shadow: 0 1px 6px rgba(0,0,0,0.06);
     transition: color 0.2s, border-color 0.2s, box-shadow 0.2s;
@@ -4174,7 +4208,7 @@ body.th-promo-status-visible #promo-sticky-cta {
     border-color: #FF6B6B;
     box-shadow: 0 2px 12px rgba(255,107,107,0.15);
 }
-.th-detail__back i { font-size: 12px; }
+.th-detail__back i { font-size: 12px; color: inherit; }
 
 /* Two-column layout */
 .th-detail__layout {
@@ -4190,28 +4224,34 @@ body.th-promo-status-visible #promo-sticky-cta {
     }
 }
 
-/* Мобилка / планшет ≤768px: колонка, сайдбар под контентом, без «разъезда» */
-@media (max-width: 768px) {
+/* Мобилка: цена+CTA сверху (у ценника), без дубля sticky внизу экрана */
+@media (max-width: 959px) {
     .th-detail__layout {
         display: flex;
         flex-direction: column;
         gap: 20px;
         align-items: stretch;
     }
-    .th-detail__main,
     .th-detail__sidebar {
+        order: 1;
         width: 100%;
         min-width: 0;
         max-width: 100%;
     }
-    .th-detail__sidebar {
-        order: 2;
-    }
     .th-detail__main {
-        order: 1;
+        order: 2;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
     }
     .th-detail__price-card {
         position: static;
+    }
+    .th-detail__mobile-sticky {
+        display: none !important;
+    }
+    body.th-page-tour-detail .th-detail__page {
+        padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
     }
 }
 
@@ -4929,10 +4969,14 @@ body.th-promo-status-visible #promo-sticky-cta {
     box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
 }
 @media (max-width: 959px) {
-    .th-detail__mobile-sticky { display: block; }
+    .th-detail__mobile-sticky { display: none !important; }
     body.th-page-tour-detail .th-detail__page {
-        padding-bottom: calc(var(--th-detail-sticky-h, 118px) + env(safe-area-inset-bottom, 0px));
+        padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
     }
+}
+body.th-modal-open .th-detail__mobile-sticky,
+.th-detail__mobile-sticky[hidden] {
+    display: none !important;
 }
 .th-detail__mobile-sticky-btn {
     display: flex;

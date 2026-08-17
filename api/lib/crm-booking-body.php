@@ -7,17 +7,26 @@ declare(strict_types=1);
 
 function crm_normalize_phone(string $phone): string
 {
-    $s = preg_replace('/\s+/', '', trim($phone)) ?? '';
-    if ($s === '') {
+    $raw = trim($phone);
+    if ($raw === '') {
         return '';
     }
-    if (preg_match('/^\+?[1-9]\d{1,14}$/', $s)) {
-        return str_starts_with($s, '+') ? $s : '+' . $s;
+    $digits = preg_replace('/\D+/', '', $raw) ?? '';
+    if ($digits === '') {
+        return '';
     }
-    if (preg_match('/^8\d{10}$/', $s)) {
-        return '+7' . substr($s, 1);
+    // РФ: 8XXXXXXXXXX / 7XXXXXXXXXX / 10 цифр без кода
+    if (strlen($digits) === 11 && ($digits[0] === '8' || $digits[0] === '7')) {
+        return '+7' . substr($digits, 1);
     }
-    return $s;
+    if (strlen($digits) === 10) {
+        return '+7' . $digits;
+    }
+    // Международный E.164 (без +)
+    if (strlen($digits) >= 11 && strlen($digits) <= 15) {
+        return '+' . $digits;
+    }
+    return '';
 }
 
 function crm_to_datetime(?string $s): string
@@ -122,6 +131,7 @@ function crm_build_lead_create_body(array $payload): array
     $body = [
         'r_id_internal' => (string) ($payload['idempotencyKey'] ?? ''),
         'r_dat' => $now,
+        'r_dat_lead' => $now,
         'date_from' => substr($rDatBegin, 0, 10),
         'date_to' => substr($rDatEnd, 0, 10),
         'tourist_count' => (string) $adults,

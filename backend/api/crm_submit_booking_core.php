@@ -145,18 +145,25 @@ function crm_build_request_create_body(array $payload): array
 
 function crm_normalize_phone(string $phone): string
 {
-    $s = preg_replace('/\s+/', '', trim($phone));
-    if ($s === '') {
+    $raw = trim($phone);
+    if ($raw === '') {
         return '';
     }
-    if (preg_match('/^\+?[1-9]\d{1,14}$/', $s)) {
-        return str_starts_with($s, '+') ? $s : '+' . $s;
+    $digits = preg_replace('/\D+/', '', $raw) ?? '';
+    if ($digits === '') {
+        return '';
     }
-    if (preg_match('/^8\d{10}$/', $s)) {
-        return '+7' . substr($s, 1);
+    if (strlen($digits) === 11 && ($digits[0] === '8' || $digits[0] === '7')) {
+        return '+7' . substr($digits, 1);
+    }
+    if (strlen($digits) === 10) {
+        return '+7' . $digits;
+    }
+    if (strlen($digits) >= 11 && strlen($digits) <= 15) {
+        return '+' . $digits;
     }
 
-    return $s;
+    return '';
 }
 
 /**

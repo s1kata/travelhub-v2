@@ -1579,7 +1579,7 @@ html.th-kb-open .th-results-sticky-lead {
     }
 
     .th-country-hero__iso {
-        display: inline-flex;
+        display: inline-flex !important;
         align-items: center;
         justify-content: center;
         min-width: 2.75rem;
@@ -1603,6 +1603,10 @@ html.th-kb-open .th-results-sticky-lead {
         margin-top: 0.25rem;
     }
 
+    .th-country-hero__badge-row .th-country-hero__flag-desktop {
+        display: none !important;
+    }
+
     .th-country-hero .th-country-hero__overlay {
         background: linear-gradient(to top, rgba(2, 6, 23, 0.96) 0%, rgba(15, 23, 42, 0.82) 42%, rgba(15, 23, 42, 0.58) 100%) !important;
     }
@@ -1612,10 +1616,10 @@ html.th-kb-open .th-results-sticky-lead {
         text-shadow: 0 2px 14px rgba(0, 0, 0, 0.65) !important;
     }
 
-    /* Back to top — выше lead-bar и umnico */
+    /* Back to top — выше lead-bar, umnico и кнопки чата */
     .v2-back-to-top {
-        bottom: calc(max(var(--th-sticky-bottom-h, 0px), var(--th-lead-bar-h, 64px)) + 58px + var(--th-safe-bottom, 0px)) !important;
-        right: 14px !important;
+        bottom: calc(max(var(--th-sticky-bottom-h, 0px), var(--th-lead-bar-h, 64px)) + 120px + var(--th-safe-bottom, 0px)) !important;
+        right: 16px !important;
         z-index: 9880 !important;
     }
 
