@@ -309,28 +309,10 @@
     }, wait);
   }
 
-  function bindAbandonTriggers() {
-    if (!document.body || document.body.classList.contains('th-promo-page')) return;
-    if (isAbandonDone()) return;
-    if (abandonTimersBound) return;
-    abandonTimersBound = true;
-
-    // Миграция со старых ключей мульти-слотов / скипов.
-    try {
-      sessionStorage.removeItem('th_abandon_sheet_count');
-      sessionStorage.removeItem('th_abandon_slots_shown');
-      sessionStorage.removeItem('th_abandon_sheet_skips');
-    } catch (eClean) {}
-
-    getSessionStart();
-    armAbandonSchedule();
-
-    document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'visible' && !isAbandonDone()) {
-        armAbandonSchedule();
-      }
-    });
-  }
+    function bindAbandonTriggers() {
+        /* Таймерная модалка через 60с отключена — промокод выдаём по кнопке на главной. */
+        return;
+    }
 
   /** Intent copy for quick lead modal */
   var INTENT = {

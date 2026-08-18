@@ -264,7 +264,7 @@ include __DIR__ . '/../../backend/components/header.php';
             var id = parseInt(h.id, 10) || 0;
             if (!id) return;
             var price = hotelMinPrice(h);
-            if (price <= 0) return;
+            if (!(price > 0)) return;
             if (!map[id]) {
                 map[id] = {
                     id: id,
@@ -272,11 +272,11 @@ include __DIR__ . '/../../backend/components/header.php';
                     category: parseInt(h.category, 10) || 0,
                     rating: parseFloat(h.rating) || 0,
                     countryId: (h.country && h.country.id) ? parseInt(h.country.id, 10) : state.countryId,
-                    regionName: (h.region && h.region.name) || (h.country && h.country.name) || '',
+                    regionName: (h.region && h.region.name) || (h.country && h.country.name) || h.regionName || '',
                     picturelink: hotelPhoto(h),
                     minPrice: price
                 };
-            } else if (price < map[id].minPrice) {
+            } else if (price > 0 && (map[id].minPrice === 0 || price < map[id].minPrice)) {
                 map[id].minPrice = price;
                 if (!map[id].picturelink) map[id].picturelink = hotelPhoto(h);
             }
@@ -319,7 +319,7 @@ include __DIR__ . '/../../backend/components/header.php';
             (h.regionName ? '<div class="ph-card__place">' + esc(h.regionName) + '</div>' : '') +
             '<h3 class="ph-card__name">' + esc(h.name) + '</h3>' +
             '<div class="ph-card__foot">' +
-            '<div class="ph-card__price"><span>туры от</span><strong>' + esc(price) + '</strong></div>' +
+            '<div class="ph-card__price"><span>' + (price ? 'туры от' : 'цена') + '</span><strong>' + esc(price || 'по запросу') + '</strong></div>' +
             '<span class="ph-card__go">Туры <i class="fas fa-arrow-right"></i></span>' +
             '</div></div></a>'
         );
@@ -388,10 +388,24 @@ include __DIR__ . '/../../backend/components/header.php';
         try {
             var j = await fetchHotels(params);
             if (reqId !== state.reqId) return;
-            if (!j || !j.success) {
-                throw new Error((j && j.error) ? j.error : 'Не удалось загрузить');
+            var raw = (j && j.success && Array.isArray(j.data)) ? j.data : [];
+            var grouped = groupHotels(raw);
+            if (!grouped.length) {
+                var cat = await fetch(tvUrl('hotels', {
+                    countryId: meta.tvCountryId || state.countryId,
+                    limit: 48,
+                    sort: 'rating',
+                    category: state.category > 0 ? state.category : ''
+                }), { cache: 'no-store' }).then(function (r) { return r.json(); }).catch(function () { return null; });
+                var rows = [];
+                if (cat && cat.success) {
+                    if (Array.isArray(cat.data)) rows = cat.data;
+                    else if (cat.data && Array.isArray(cat.data.hotels)) rows = cat.data.hotels;
+                }
+                grouped = groupHotels(rows);
             }
-            state.hotels = groupHotels(Array.isArray(j.data) ? j.data : []);
+            if (reqId !== state.reqId) return;
+            state.hotels = grouped;
             setLoading(false);
             render(true);
         } catch (e) {

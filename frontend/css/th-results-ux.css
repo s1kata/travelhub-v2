@@ -209,3 +209,97 @@
     font-size: 1.05rem !important;
   }
 }
+
+/* Календарь дат: оверлей на весь экран, карточка по центру (desktop) / снизу (mobile) */
+#tv-sc-date-popup.th-coral-popup.tv-sc-date-popup,
+#tv-sc-date-popup.th-coral-popup {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  height: auto !important;
+  max-height: none !important;
+  transform: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  border-radius: 0 !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+}
+#tv-sc-date-popup.th-coral-popup.hidden {
+  display: none !important;
+}
+#tv-sc-date-popup.th-coral-popup.is-open,
+#tv-sc-date-popup.th-coral-popup:not(.hidden) {
+  display: flex !important;
+}
+#tv-sc-date-popup.th-coral-popup .th-coral-popup__backdrop {
+  background: rgba(18, 18, 46, 0.55) !important;
+}
+@media (min-width: 768px) {
+  #tv-sc-date-popup.th-coral-popup.is-open,
+  #tv-sc-date-popup.th-coral-popup:not(.hidden) {
+    align-items: center !important;
+    padding: 24px !important;
+  }
+  #tv-sc-date-popup.th-coral-popup .th-coral-popup__panel {
+    width: min(720px, calc(100vw - 48px)) !important;
+    max-width: 720px !important;
+    margin: 0 auto !important;
+    border-radius: 20px !important;
+    max-height: min(88vh, 720px) !important;
+  }
+}
+
+.tv-sort-rail {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100% !important;
+  max-width: none !important;
+  overflow: visible !important;
+}
+.tv-results-calendar-quick {
+  display: inline-flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.tv-sort-select {
+  flex: 1 1 160px;
+  min-width: 0;
+  max-width: 100%;
+}
+.tv-compare-open-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.tv-price-calendar__row {
+  display: flex !important;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  grid-template-columns: none !important;
+  padding-bottom: 4px;
+}
+.tv-price-point {
+  flex: 1 0 108px;
+  min-width: 108px;
+}
+@media (max-width: 767.98px) {
+  .tv-results-toolbar {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+  .tv-sort-rail {
+    flex-direction: row;
+  }
+}

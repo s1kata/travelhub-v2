@@ -1378,18 +1378,137 @@ select.flatpickr-monthDropdown-months {
     font-weight: 600;
     white-space: nowrap;
 }
+#tv-sc-date-popup.th-coral-popup.hidden {
+    display: none !important;
+}
+#tv-sc-date-popup .tv-sc-cal-container .tv-cal-nav-btn {
+    pointer-events: auto !important;
+    z-index: 8 !important;
+}
 .tv-compare-open-btn {
     border: 1px solid rgba(26, 26, 64, 0.18);
     background: #fff;
     color: #1a1a40;
     border-radius: 999px;
-    padding: 8px 12px;
+    padding: 8px 14px;
     font-size: 0.78rem;
     font-weight: 700;
+    cursor: pointer;
+    pointer-events: auto;
+    min-height: 40px;
+}
+.tv-compare-open-btn.is-empty {
+    opacity: 0.78;
 }
 .tv-compare-open-btn:disabled {
     opacity: 0.55;
     cursor: not-allowed;
+}
+.tv-sort-rail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    max-width: none !important;
+    width: auto !important;
+    overflow: visible;
+}
+.th-search-mode {
+    display: flex;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto 14px;
+    padding: 4px;
+    border-radius: 999px;
+    background: rgba(18, 18, 46, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    gap: 4px;
+}
+.th-search-mode__btn {
+    flex: 1 1 0;
+    border: 0;
+    background: transparent;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 9px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+}
+.th-search-mode__btn.is-active {
+    background: #5DA9A4;
+    color: #12122E;
+}
+.th-hotel-find-btn {
+    display: none !important;
+}
+body.th-search-mode-hotels .th-hotel-find-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+body.th-search-mode-hotels [data-panel="3"] [data-thw-next] {
+    display: none !important;
+}
+body.th-search-mode-hotels .th-coral-wizard__rail-item[data-thw-goto="4"],
+body.th-search-mode-hotels .th-coral-wizard__rail-item[data-thw-goto="5"],
+body.th-search-mode-hotels .th-wizard__dot[data-thw-goto="4"],
+body.th-search-mode-hotels .th-wizard__dot[data-thw-goto="5"] {
+    display: none !important;
+}
+.tv-compare-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100060;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 12px;
+}
+.tv-compare-modal.hidden {
+    display: none !important;
+}
+.tv-compare-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(18, 18, 46, 0.55);
+}
+.tv-compare-modal__sheet {
+    position: relative;
+    z-index: 1;
+    width: min(960px, 100%);
+    max-height: min(86vh, 820px);
+    overflow: auto;
+    background: #fff;
+    border-radius: 18px 18px 12px 12px;
+    padding: 16px;
+    color: #0f172a;
+}
+.tv-compare-modal__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.tv-compare-modal__close {
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #0f172a;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+}
+@media (min-width: 768px) {
+    .tv-compare-modal {
+        align-items: center;
+    }
+    .tv-compare-modal__sheet {
+        border-radius: 18px;
+        padding: 20px 22px;
+    }
 }
 .tv-price-calendar {
     margin: 10px 0 14px;
@@ -1435,6 +1554,13 @@ select.flatpickr-monthDropdown-months {
     background: #ffffff;
     border: 1px solid rgba(15, 23, 42, 0.12);
     border-radius: 16px;
+    padding: 12px;
+}
+.tv-compare-panel.tv-compare-modal {
+    margin: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
     padding: 12px;
 }
 .tv-compare-panel__head {

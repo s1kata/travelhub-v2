@@ -50,13 +50,27 @@
         this.go(this.step, true);
     }
 
+    TourSearchWizard.prototype.isHotelMode = function () {
+        return document.body.classList.contains('th-search-mode-hotels')
+            || (this.root && this.root.getAttribute('data-search-mode') === 'hotels');
+    };
+
+    TourSearchWizard.prototype.maxStep = function () {
+        return this.isHotelMode() ? 3 : STEP_COUNT;
+    };
+
+    TourSearchWizard.prototype.triggerSearch = function () {
+        var btn = document.getElementById('tv-search-btn');
+        if (btn) btn.click();
+    };
+
     TourSearchWizard.prototype.bind = function () {
         var self = this;
 
         qsa('[data-thw-goto]', this.root).forEach(function (btn) {
             btn.addEventListener('click', function () {
                 var n = parseInt(btn.getAttribute('data-thw-goto'), 10);
-                if (!n || n < 1 || n > STEP_COUNT) return;
+                if (!n || n < 1 || n > self.maxStep()) return;
                 self.go(n);
             });
         });
@@ -64,7 +78,8 @@
         qsa('[data-thw-next]', this.root).forEach(function (btn) {
             btn.addEventListener('click', function () {
                 if (!self.validateCurrent()) return;
-                if (self.step < STEP_COUNT) self.go(self.step + 1);
+                if (self.step < self.maxStep()) self.go(self.step + 1);
+                else if (self.isHotelMode()) self.triggerSearch();
             });
         });
 
@@ -108,7 +123,10 @@
             if (e.target && (e.target.id === 'tv-sc-dates-apply' || (e.target.closest && e.target.closest('#tv-sc-dates-apply')))) {
                 setTimeout(function () {
                     self.refreshSummary();
-                    if (self.step === 3 && self.validateCurrent()) self.go(4);
+                    if (self.step === 3 && self.validateCurrent()) {
+                        if (self.isHotelMode()) return;
+                        self.go(4);
+                    }
                 }, 50);
             }
             if (e.target && (e.target.id === 'tv-nights-apply' || (e.target.closest && e.target.closest('#tv-nights-apply')))) {
@@ -177,7 +195,8 @@
     };
 
     TourSearchWizard.prototype.validateSearchReady = function () {
-        for (var s = 1; s <= 4; s++) {
+        var last = this.isHotelMode() ? 3 : 4;
+        for (var s = 1; s <= last; s++) {
             var prev = this.step;
             this.step = s;
             if (!this.validateCurrent()) {
@@ -198,7 +217,7 @@
     };
 
     TourSearchWizard.prototype.go = function (step, silent) {
-        step = Math.max(1, Math.min(STEP_COUNT, step));
+        step = Math.max(1, Math.min(this.maxStep(), step));
         this.step = step;
         this.root.setAttribute('data-step', String(step));
 
@@ -236,8 +255,9 @@
         var labelEl = document.getElementById('th-wizard-step-label');
         var fillEl = document.querySelector('[data-thw-progress]');
         var name = STEP_LABELS[step - 1] || '';
-        if (labelEl) labelEl.textContent = step + ' из ' + STEP_COUNT + ' · ' + name;
-        if (fillEl) fillEl.style.width = String(Math.round((step / STEP_COUNT) * 100)) + '%';
+        var total = this.maxStep();
+        if (labelEl) labelEl.textContent = step + ' из ' + total + ' · ' + name;
+        if (fillEl) fillEl.style.width = String(Math.round((step / total) * 100)) + '%';
     };
 
     TourSearchWizard.prototype.refreshSummary = function () {

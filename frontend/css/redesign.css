@@ -1767,9 +1767,11 @@ select.flatpickr-monthDropdown-months {
     display: none !important;
 }
 .tv-sc-date-popup--cal-only {
-    width: min(680px, 96vw);
-    max-height: min(92vh, 720px);
-    padding: 18px 18px calc(14px + env(safe-area-inset-bottom, 0px));
+    /* ширина только у панели, не у всего оверлея — иначе календарь уезжает влево */
+    width: auto;
+    max-width: none;
+    max-height: none;
+    padding: 0;
 }
 .tv-sc-date-popup--cal-only .tv-sc-dates-preview {
     min-height: 1.25rem;
@@ -2356,8 +2358,8 @@ select.flatpickr-monthDropdown-months {
         padding-bottom: 16px !important;
     }
     /* Bottom sheet на телефоне — не центрируем поверх mobile-adult */
-    .tv-sc-date-popup,
-    .tv-sc-date-popup.tv-sc-date-popup--v2 {
+    .tv-sc-date-popup:not(.th-coral-popup),
+    .tv-sc-date-popup.tv-sc-date-popup--v2:not(.th-coral-popup) {
         top: auto !important;
         left: 0 !important;
         right: 0 !important;

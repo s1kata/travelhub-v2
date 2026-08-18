@@ -835,34 +835,12 @@
         if (staleBar) staleBar.remove();
         document.body.classList.remove('th-promo-status-visible');
 
-        if (!promoUiShouldShow()) {
-            teardownPromoUi();
-        } else {
-            ensurePromoSheetOnLoad();
-        }
-
+        teardownPromoUi();
         lastSig = readPhase().phase + '|' + readPhase().code + '|' + readPhase().pct;
         lastPopupPhase = readPhase().phase;
         clearPromoCardPatches(document.body);
         startPromoTicker();
-        window.addEventListener('resize', function () {
-            syncPromoTabPlacement();
-            adjustStatusBarPosition();
-        });
-        if (isFirstVisit && lsGet(LS_POPUP_SHOWN) !== '1') {
-            setTimeout(function () {
-                if (shouldDeferPromoExpand() && getWizardStep() > 1) return;
-                showPopup();
-            }, 5000);
-        } else if (promoUiShouldShow()) {
-            setTimeout(function () {
-                if (!document.getElementById('th-promo-popup')) {
-                    showPromoModal({ markShown: false, expand: !shouldDeferPromoExpand() && lsGet(LS_COLLAPSED) !== '1' });
-                } else {
-                    syncPromoTabPlacement();
-                }
-            }, 800);
-        }
+        /* Автопопап и таб по сессии отключены — промокод выдаём по кнопке на главной. */
 
         document.addEventListener('th:wizard-step', function (e) {
             if (!e || !e.detail) return;

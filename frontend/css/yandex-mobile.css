@@ -200,10 +200,10 @@ html.th-yandex-mobile .tv-sc-row {
 }
 
 /* Дата / туристы — bottom sheet с учётом --th-vvh */
-html.th-yandex-mobile #tv-sc-date-popup.tv-sc-date-popup,
-html.th-yandex-mobile .tv-sc-date-popup,
-html.th-yandex-mobile .tv-sc-tourists-popup:not(.hidden),
-html.th-yandex-mobile #tv-tourists-block.tv-sc-tourists-popup:not(.hidden) {
+html.th-yandex-mobile #tv-sc-date-popup.tv-sc-date-popup:not(.th-coral-popup),
+html.th-yandex-mobile .tv-sc-date-popup:not(.th-coral-popup),
+html.th-yandex-mobile .tv-sc-tourists-popup:not(.hidden):not(.th-coral-popup),
+html.th-yandex-mobile #tv-tourists-block.tv-sc-tourists-popup:not(.hidden):not(.th-coral-popup) {
     position: fixed !important;
     left: 0 !important;
     right: 0 !important;
