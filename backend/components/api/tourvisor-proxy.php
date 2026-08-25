@@ -1281,6 +1281,7 @@ function tourvisor_proxy_dispatch(): array
         $regionId = isset($_GET['regionId']) ? (int) $_GET['regionId'] : null;
         $arrivalId = isset($_GET['arrivalId']) ? (int) $_GET['arrivalId'] : null;
         $onlyCharter = isset($_GET['onlyCharter']) && $_GET['onlyCharter'] === '1';
+        $onlyDirect = isset($_GET['onlyDirect']) && $_GET['onlyDirect'] === '1';
 
         $r = ['success' => false, 'error' => 'Unknown type'];
         $GLOBALS['tv_cache_hit'] = null;
@@ -1644,6 +1645,10 @@ function tourvisor_proxy_dispatch(): array
             $r = ['success' => false, 'error' => 'departureId and countryId required'];
         } else {
             $params = ['departureId' => $departureId, 'countryId' => $countryId, 'onlyCharter' => (bool)$onlyCharter];
+            // onlyDirect в публичной доке у /tours/dates нет, но шлюз принимает — для подсветки прямых дат.
+            if ($onlyDirect) {
+                $params['onlyDirect'] = true;
+            }
             if ($arrivalId) $params['arrivalId'] = $arrivalId;
             $r = tvCached('dates', $params, function() use ($params) {
                 $res = tvRequest('/tours/dates', $params);

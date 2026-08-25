@@ -1020,6 +1020,29 @@ select.flatpickr-monthDropdown-months {
 .flatpickr-day.tv-cal-reduced .tv-cal-day-price {
     color: #0f766e;
 }
+/* Подсветка дат с вылетами / прямыми */
+.flatpickr-day.tv-cal-fly {
+    font-weight: 700;
+    box-shadow: inset 0 -2px 0 #38bdf8;
+}
+.flatpickr-day.tv-cal-fly-direct {
+    box-shadow: inset 0 -2px 0 #0284c7;
+    background: rgba(14, 165, 233, 0.12) !important;
+}
+.flatpickr-day.tv-cal-fly-off {
+    opacity: 0.38;
+}
+#tv-nights-grid .tv-nights-cell.is-fly-available:not(.is-from):not(.is-to):not(.is-in-range) {
+    outline: 2px solid rgba(14, 165, 233, 0.45);
+    outline-offset: -2px;
+}
+#tv-nights-grid .tv-nights-cell.is-fly-direct:not(.is-from):not(.is-to):not(.is-in-range) {
+    outline-color: #0284c7;
+    background: rgba(14, 165, 233, 0.12);
+}
+#tv-nights-grid .tv-nights-cell.is-fly-off {
+    opacity: 0.35;
+}
 @media (max-width: 767px) {
     body.has-th-lead-bar .th-support-chat__toggle {
         display: none !important;

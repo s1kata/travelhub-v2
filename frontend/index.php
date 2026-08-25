@@ -163,7 +163,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     <link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=14">
     <link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=9">
     <link rel="stylesheet" href="/frontend/css/yandex-mobile.css?v=10">
-    <link rel="stylesheet" href="/frontend/css/pages/home.css?v=17">
+    <link rel="stylesheet" href="/frontend/css/pages/home.css?v=18">
     <link rel="stylesheet" href="/frontend/css/pages/home-hotels-promo.css?v=2">
     <link rel="stylesheet" href="/frontend/css/th-sheet.css?v=7">
     <?php include __DIR__ . '/../backend/components/mobile_site_head.php'; ?>
@@ -1859,11 +1859,31 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     maxPick.setFullYear(maxPick.getFullYear() + 1);
                     window.__tvCalPriceMap = window.__tvCalPriceMap || {};
                     window.__tvCalPriceMapKey = '';
+                    window.__tvFlyDates = window.__tvFlyDates || { key: '', all: {}, charter: {}, direct: {} };
+                    window.__tvFlyNights = window.__tvFlyNights || { key: '', all: {}, charter: {}, direct: {} };
                     function tvFmtCalPrice(n) {
                         var v = parseInt(String(n || ''), 10) || 0;
                         if (!v) return '';
                         if (v >= 1000) return Math.round(v / 1000) + 'к';
                         return String(v);
+                    }
+                    function tvFlightFlags() {
+                        return {
+                            charter: !!(document.getElementById('tv-only-charter') && document.getElementById('tv-only-charter').checked),
+                            direct: !!(document.getElementById('tv-only-direct') && document.getElementById('tv-only-direct').checked)
+                        };
+                    }
+                    function tvDatesToMap(list) {
+                        var map = {};
+                        (list || []).forEach(function (d) {
+                            var s = String(d || '').trim();
+                            if (/^\d{4}-\d{2}-\d{2}/.test(s)) map[s.slice(0, 10)] = true;
+                            else if (/^\d{2}\.\d{2}\.\d{4}/.test(s)) {
+                                var p = s.split('.');
+                                map[p[2] + '-' + p[1] + '-' + p[0]] = true;
+                            }
+                        });
+                        return map;
                     }
                     function tvCalDayCreate(dObj, dStr, fp, dayEl) {
                         if (!dayEl || !dObj) return;
@@ -1872,17 +1892,139 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                             var m = String(dObj.getMonth() + 1).padStart(2, '0');
                             var d = String(dObj.getDate()).padStart(2, '0');
                             var key = y + '-' + m + '-' + d;
+                            dayEl.classList.remove('tv-cal-fly', 'tv-cal-fly-direct', 'tv-cal-fly-off');
+                            var fly = window.__tvFlyDates || {};
+                            var flags = tvFlightFlags();
+                            var inAll = !!(fly.all && fly.all[key]);
+                            var inCharter = !!(fly.charter && fly.charter[key]);
+                            var inDirect = !!(fly.direct && fly.direct[key]);
+                            if (inAll || inCharter || inDirect) dayEl.classList.add('tv-cal-fly');
+                            if (inDirect) dayEl.classList.add('tv-cal-fly-direct');
+                            if (flags.direct && !inDirect && (inAll || inCharter || Object.keys(fly.direct || {}).length > 0)) {
+                                dayEl.classList.add('tv-cal-fly-off');
+                            } else if (flags.charter && !flags.direct && !inCharter && Object.keys(fly.charter || {}).length > 0) {
+                                dayEl.classList.add('tv-cal-fly-off');
+                            }
                             var info = window.__tvCalPriceMap && window.__tvCalPriceMap[key];
                             if (!info || !info.minPrice) return;
                             dayEl.classList.add('tv-cal-has-price');
                             if (info.deal) dayEl.classList.add('tv-cal-deal');
                             else if (info.reduced) dayEl.classList.add('tv-cal-reduced');
-                            var badge = document.createElement('span');
-                            badge.className = 'tv-cal-day-price' + (info.deal ? ' is-deal' : (info.reduced ? ' is-reduced' : ''));
-                            badge.textContent = info.deal ? 'выгодно' : (info.reduced ? 'пониж.' : ('от ' + tvFmtCalPrice(info.minPrice)));
-                            dayEl.appendChild(badge);
+                            if (!dayEl.querySelector('.tv-cal-day-price')) {
+                                var badge = document.createElement('span');
+                                badge.className = 'tv-cal-day-price' + (info.deal ? ' is-deal' : (info.reduced ? ' is-reduced' : ''));
+                                badge.textContent = info.deal ? 'выгодно' : (info.reduced ? 'пониж.' : ('от ' + tvFmtCalPrice(info.minPrice)));
+                                dayEl.appendChild(badge);
+                            }
                         } catch (eDay) {}
                     }
+                    window.tvLoadFlyAvailability = async function () {
+                        var depId = parseInt(String((depSel && depSel.value) || '7'), 10) || 7;
+                        var cid = parseInt(String((countrySel && countrySel.value) || ''), 10) || 0;
+                        if (!cid || typeof tvFetch !== 'function') {
+                            window.__tvFlyDates = { key: '', all: {}, charter: {}, direct: {} };
+                            return;
+                        }
+                        var flyKey = depId + ':' + cid;
+                        if (window.__tvFlyDates && window.__tvFlyDates.key === flyKey && Object.keys(window.__tvFlyDates.all || {}).length) {
+                            if (tvDatePicker && typeof tvDatePicker.redraw === 'function') tvDatePicker.redraw();
+                            return;
+                        }
+                        try {
+                            var res = await Promise.all([
+                                tvFetch('dates', { departureId: String(depId), countryId: String(cid) }),
+                                tvFetch('dates', { departureId: String(depId), countryId: String(cid), onlyCharter: '1' }),
+                                tvFetch('dates', { departureId: String(depId), countryId: String(cid), onlyDirect: '1' })
+                            ]);
+                            var allMap = tvDatesToMap(res[0] && res[0].success ? res[0].data : []);
+                            var charterMap = tvDatesToMap(res[1] && res[1].success ? res[1].data : []);
+                            var directMap = tvDatesToMap(res[2] && res[2].success ? res[2].data : []);
+                            // Если onlyDirect не поддержан API — direct совпадёт с all; тогда не приглушаем всё подряд.
+                            var directUseful = Object.keys(directMap).length > 0
+                                && Object.keys(directMap).length < Object.keys(allMap).length;
+                            window.__tvFlyDates = {
+                                key: flyKey,
+                                all: allMap,
+                                charter: charterMap,
+                                direct: directUseful ? directMap : {}
+                            };
+                            if (tvDatePicker && typeof tvDatePicker.redraw === 'function') tvDatePicker.redraw();
+                            if (window.tvDatePickerInline && typeof window.tvDatePickerInline.redraw === 'function') {
+                                window.tvDatePickerInline.redraw();
+                            }
+                        } catch (eFly) {}
+                    };
+                    window.tvLoadFlyNights = async function () {
+                        var depId = parseInt(String((depSel && depSel.value) || '7'), 10) || 7;
+                        var cid = parseInt(String((countrySel && countrySel.value) || ''), 10) || 0;
+                        var datesVal = (document.getElementById('tv-dates') && document.getElementById('tv-dates').value) || '';
+                        var dateFrom = '';
+                        var dateTo = '';
+                        var parseD = function (s) {
+                            var t = (s || '').trim();
+                            if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+                            var m = t.replace(/\./g, '-').match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+                            return m ? (m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0')) : '';
+                        };
+                        if (datesVal) {
+                            var parts = datesVal.split(/\s+(?:по|to)\s+|\s+[-–]\s+/i);
+                            if (parts.length >= 2) {
+                                dateFrom = parseD(parts[0]);
+                                dateTo = parseD(parts[1]);
+                            }
+                        }
+                        if ((!dateFrom || !dateTo) && tvDatePicker && tvDatePicker.selectedDates && tvDatePicker.selectedDates.length >= 1) {
+                            dateFrom = flatpickr.formatDate(tvDatePicker.selectedDates[0], 'Y-m-d');
+                            dateTo = tvDatePicker.selectedDates.length >= 2
+                                ? flatpickr.formatDate(tvDatePicker.selectedDates[1], 'Y-m-d')
+                                : dateFrom;
+                        }
+                        if (!cid || !dateFrom || !dateTo || typeof tvFetch !== 'function') return;
+                        var flags = tvFlightFlags();
+                        var nKey = [depId, cid, dateFrom, dateTo, flags.charter ? 1 : 0, flags.direct ? 1 : 0].join(':');
+                        if (window.__tvFlyNights && window.__tvFlyNights.key === nKey) {
+                            if (typeof renderTvNightsGrid === 'function') renderTvNightsGrid(true);
+                            return;
+                        }
+                        function nightsFromHotels(list) {
+                            var map = {};
+                            (list || []).forEach(function (h) {
+                                var tours = (h && h.tours) ? h.tours : [];
+                                tours.forEach(function (t) {
+                                    var n = parseInt(String(t && t.nights || ''), 10);
+                                    if (n >= 1 && n <= 28) map[n] = true;
+                                });
+                            });
+                            return map;
+                        }
+                        var baseParams = {
+                            departureId: String(depId),
+                            countryId: String(cid),
+                            dateFrom: dateFrom,
+                            dateTo: dateTo,
+                            nightsFrom: '1',
+                            nightsTo: '11',
+                            adults: '2',
+                            currency: 'RUB'
+                        };
+                        try {
+                            var reqs = [
+                                tvFetch('search-cached', baseParams, { cacheOnly: true, slim: true })
+                            ];
+                            var charterParams = Object.assign({}, baseParams, { onlyCharter: '1' });
+                            var directParams = Object.assign({}, baseParams, { onlyDirect: '1' });
+                            reqs.push(tvFetch('search-cached', charterParams, { cacheOnly: true, slim: true }));
+                            reqs.push(tvFetch('search-cached', directParams, { cacheOnly: true, slim: true }));
+                            var nr = await Promise.all(reqs);
+                            window.__tvFlyNights = {
+                                key: nKey,
+                                all: nightsFromHotels(nr[0] && nr[0].success ? nr[0].data : []),
+                                charter: nightsFromHotels(nr[1] && nr[1].success ? nr[1].data : []),
+                                direct: nightsFromHotels(nr[2] && nr[2].success ? nr[2].data : [])
+                            };
+                            if (typeof renderTvNightsGrid === 'function') renderTvNightsGrid(true);
+                        } catch (eNights) {}
+                    };
                     window.tvLoadCalendarPriceMap = async function () {
                         var depId = parseInt(String((depSel && depSel.value) || '7'), 10) || 7;
                         var cid = parseInt(String((countrySel && countrySel.value) || ''), 10) || 0;
@@ -1909,6 +2051,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                                 }
                             }
                         } catch (eMap) {}
+                        if (typeof window.tvLoadFlyAvailability === 'function') window.tvLoadFlyAvailability();
                     };
                     tvDatePicker = flatpickr(datesInp, {
                         mode: 'range',
@@ -2320,6 +2463,9 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             if (depSel) {
                 depSel.addEventListener('change', function () {
                     reloadTvCountriesForDeparture(depSel.value);
+                    window.__tvFlyDates = { key: '', all: {}, charter: {}, direct: {} };
+                    window.__tvFlyNights = { key: '', all: {}, charter: {}, direct: {} };
+                    if (typeof window.tvLoadFlyAvailability === 'function') window.tvLoadFlyAvailability();
                     if (countrySel && countrySel.value) {
                         loadTvRegions();
                         tvSchedulePrefetchHomeSearch();
@@ -2508,15 +2654,31 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 if (!tvNightsGrid) return;
                 var fromN = useDraft ? draftNightsFrom : tvNightsFrom;
                 var toN = useDraft ? draftNightsTo : tvNightsTo;
+                var flags = (typeof tvFlightFlags === 'function')
+                    ? tvFlightFlags()
+                    : {
+                        charter: !!(document.getElementById('tv-only-charter') && document.getElementById('tv-only-charter').checked),
+                        direct: !!(document.getElementById('tv-only-direct') && document.getElementById('tv-only-direct').checked)
+                    };
+                var flyN = window.__tvFlyNights || {};
+                var availMap = flags.direct
+                    ? (flyN.direct || {})
+                    : (flags.charter ? (flyN.charter || {}) : (flyN.all || {}));
+                var hasAvail = Object.keys(availMap).length > 0;
                 tvNightsGrid.querySelectorAll('.tv-nights-cell').forEach(function(btn) {
                     var n = parseInt(btn.getAttribute('data-n'), 10);
-                    btn.classList.remove('is-from', 'is-to', 'is-in-range', 'text-white');
+                    btn.classList.remove('is-from', 'is-to', 'is-in-range', 'text-white', 'is-fly-available', 'is-fly-direct', 'is-fly-off');
                     if (n === fromN) {
                         btn.classList.add('is-from', 'text-white');
                     } else if (n === toN && toN !== fromN) {
                         btn.classList.add('is-to', 'text-white');
                     } else if (n > fromN && n < toN) {
                         btn.classList.add('is-in-range');
+                    }
+                    if (flyN.direct && flyN.direct[n]) btn.classList.add('is-fly-direct');
+                    else if (flyN.all && flyN.all[n]) btn.classList.add('is-fly-available');
+                    if ((flags.direct || flags.charter) && hasAvail && !availMap[n]) {
+                        btn.classList.add('is-fly-off');
                     }
                 });
             }
@@ -2526,6 +2688,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 tvNightsSelectFrom = true;
                 updateTvNightsDraftHint();
                 renderTvNightsGrid(true);
+                if (typeof window.tvLoadFlyNights === 'function') window.tvLoadFlyNights();
                 if (tvNightsPopup) {
                     tvNightsPopup.style.zIndex = '10260';
                     tvNightsPopup.classList.remove('hidden');
@@ -2714,6 +2877,16 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 var el = document.getElementById(fid);
                 if (!el) return;
                 el.addEventListener('change', function () {
+                    if (typeof window.tvLoadFlyAvailability === 'function') {
+                        window.__tvFlyDates.key = '';
+                        window.tvLoadFlyAvailability();
+                    }
+                    if (typeof window.tvLoadFlyNights === 'function') {
+                        window.__tvFlyNights.key = '';
+                        window.tvLoadFlyNights();
+                    }
+                    if (tvDatePicker && typeof tvDatePicker.redraw === 'function') tvDatePicker.redraw();
+                    if (typeof renderTvNightsGrid === 'function') renderTvNightsGrid(true);
                     var w = document.getElementById('tv-results-wrapper');
                     if (w && !w.classList.contains('hidden') && typeof performTvSearch === 'function') {
                         performTvSearch(true);
