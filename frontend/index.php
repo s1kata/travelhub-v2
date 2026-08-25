@@ -3333,21 +3333,45 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             }
             return 0;
         }
+        /** Цена одной позиции тура (totalPrice приоритетнее сырого price). */
+        function tvTourUnitPrice(tour) {
+            if (!tour) return 0;
+            return Math.round(thPickFirstPositivePriceNum(
+                tour.totalPrice,
+                tour.price,
+                tour.priceRub,
+                tour.cost
+            ));
+        }
+        /**
+         * Мин. цена по отелю: минимум по всем турам в выдаче, иначе hotel.price.
+         * На карточке всегда «от», не цена случайного tours[0].
+         */
         function tvHotelListPrice(h) {
             if (!h) return 0;
-            const tour = (h.tours || [])[0] || {};
-            if (h.tours && h.tours[0]) {
-                let n = thPickFirstPositivePriceNum(
-                    tour.totalPrice,
-                    tour.price,
-                    tour.priceRub,
-                    tour.cost
-                );
-                if (n > 0) return Math.round(n);
-                n = thPickFirstPositivePriceNum(h.price);
-                return n > 0 ? Math.round(n) : 0;
+            let min = 0;
+            const tours = Array.isArray(h.tours) ? h.tours : [];
+            for (let i = 0; i < tours.length; i++) {
+                const n = tvTourUnitPrice(tours[i]);
+                if (n > 0 && (min === 0 || n < min)) min = n;
             }
+            if (min > 0) return min;
             return Math.round(thPickFirstPositivePriceNum(h.price, h.minPrice, h.minprice));
+        }
+        /** Тур с минимальной ценой — для дат/питания/ссылки на карточке. */
+        function tvHotelCheapestTour(h) {
+            const tours = (h && Array.isArray(h.tours)) ? h.tours : [];
+            if (!tours.length) return {};
+            let best = tours[0];
+            let bestPrice = tvTourUnitPrice(best) || Number.POSITIVE_INFINITY;
+            for (let i = 1; i < tours.length; i++) {
+                const n = tvTourUnitPrice(tours[i]);
+                if (n > 0 && n < bestPrice) {
+                    best = tours[i];
+                    bestPrice = n;
+                }
+            }
+            return best || {};
         }
         function showTvResultsChrome() {
             var wrapper = document.getElementById('tv-results-wrapper');
@@ -3826,7 +3850,9 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
 
         window.__mainFlightsByTourId = window.__mainFlightsByTourId || {};
         function getMainTourId(h) {
-            const tour = (h.tours && h.tours[0]) ? h.tours[0] : {};
+            const tour = (typeof tvHotelCheapestTour === 'function')
+                ? tvHotelCheapestTour(h)
+                : ((h.tours && h.tours[0]) ? h.tours[0] : {});
             const tourId = tour.id ?? tour.tourId ?? tour.tourid ?? '';
             return (tourId != null && tourId !== '') ? String(tourId) : '';
         }
@@ -3941,8 +3967,9 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             const tourDetailBase = (typeof TOUR_DETAIL_BASE !== 'undefined' ? TOUR_DETAIL_BASE : '') || '/frontend';
             if (window.THTourCard && typeof window.THTourCard.render === 'function') {
                 const priceAdults = Math.max(1, Math.min(9, parseInt(tvAdultsCount, 10) || 2));
+                const hotelMode = thIsHotelSearchMode();
                 container.innerHTML = hotels.map(h => {
-                    const tour = (h.tours || [])[0] || {};
+                    const tour = tvHotelCheapestTour(h);
                     const region = h.region?.name || '';
                     const country = h.country?.name || '';
                     const meal = tour.meal?.russianName || tour.meal?.name || '';
@@ -3954,7 +3981,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     if (typeof TourLinkUtils !== 'undefined' && TourLinkUtils.sanitizeTourLink) {
                         link = TourLinkUtils.sanitizeTourLink(link) || '';
                     }
-                    const tourId = getMainTourId(h);
+                    const tourId = getMainTourId({ tours: [tour] });
                     const cardImg = tvCardPrimaryImage(h);
                     const params = {
                         tour_link: link, country, hotel_name: (h.name || ''),
@@ -3985,14 +4012,16 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                             + '&countryId=' + encodeURIComponent((h.country && h.country.id) || document.getElementById('tv-country')?.value || ''))
                         : '';
                     const tourHref = country ? (tourDetailBase + '/window/tour-detail.php?' + new URLSearchParams(params).toString()) : (link || '#');
-                    const cardHref = (thIsHotelSearchMode() && hotelHref) ? hotelHref : tourHref;
+                    const cardHref = (hotelMode && hotelHref) ? hotelHref : tourHref;
                     return window.THTourCard.render(h, {
                         tour, getImageUrl: getTourvisorImageUrl, imageProxy: TV_IMAGE_PROXY,
                         image: cardImg, detailUrl: cardHref,
                         adults: priceAdults, childAges: tvChildAgesForSearch(), dateFrom: startYmd, dateTo: retYmd,
                         price, departureCity, departureId: departureIdMain, carousel: true,
                         compareEnabled: true,
-                        flightMeta: (window.__mainFlightsByTourId && tourId) ? window.__mainFlightsByTourId[tourId] : null
+                        priceLabel: hotelMode ? 'туры от' : null,
+                        hideFlight: hotelMode,
+                        flightMeta: (!hotelMode && window.__mainFlightsByTourId && tourId) ? window.__mainFlightsByTourId[tourId] : null
                     });
                 }).join('');
                 document.getElementById('tv-result-count').textContent = tvLastResults.length;
@@ -4022,13 +4051,14 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 const img = slidesForCard[0];
                 const region = h.region?.name || '';
                 const country = h.country?.name || '';
-                const tour = (h.tours || [])[0] || {};
+                const tour = tvHotelCheapestTour(h);
                 const meal = tour.meal?.russianName || tour.meal?.name || '';
                 const nights = tour.nights || '';
                 const nightsNum = parseInt(String(nights), 10) || 0;
                 const startYmd = tvTourStartYmd(tour);
                 const retYmd = (startYmd && nightsNum) ? tvTourReturnYmd(startYmd, nightsNum) : '';
                 const price = tvHotelListPrice(h);
+                const hotelModeLegacy = thIsHotelSearchMode();
                 const rating = h.rating || 0;
                 let link = h.hotelDescriptionLink || h.hoteldescriptionlink || h.link || '';
                 if (typeof TourLinkUtils !== 'undefined' && TourLinkUtils.sanitizeTourLink) {
@@ -4089,7 +4119,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 const starsHtml = catNum > 0 ? '★'.repeat(Math.min(catNum, 5)) : '';
                 // Форматирование дат
                 const fmtDate = (ymd) => { if (!ymd) return ''; const [y,m,d] = ymd.split('-'); return `${d}.${m}.${String(y).slice(2)}`; };
-                const pricePartyLabel = tvPartyPriceLabel(priceAdults);
+                const pricePartyLabel = hotelModeLegacy ? 'туры от' : tvPartyPriceLabel(priceAdults);
                 const partySummary = tvPartySummaryLabel(priceAdults);
                 const datesMeta = (startYmd && retYmd)
                     ? `${fmtDate(startYmd)} – ${fmtDate(retYmd)}, ${nightsNum} ${nightsNum === 1 ? 'ночь' : (nightsNum < 5 ? 'ночи' : 'ночей')}, ${partySummary}`

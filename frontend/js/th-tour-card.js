@@ -977,8 +977,11 @@
     var retYmd = options.dateTo || '';
     var datesMeta = '';
     var partyWord = partySummaryLabel(adultsNum, childAges);
-    var pricePartyLabel = partyPriceLabel(adultsNum, childAges);
-    var partyMismatch = !tourPartyMatches(tour, adultsNum, childAges);
+    var pricePartyLabel = options.priceLabel
+      ? String(options.priceLabel)
+      : partyPriceLabel(adultsNum, childAges);
+    var partyMismatch = !options.priceLabel && !tourPartyMatches(tour, adultsNum, childAges);
+    var showFlight = options.hideFlight !== true;
     if (startYmd && retYmd) {
       datesMeta = fmtDateShort(startYmd) + ' \u2013 ' + fmtDateShort(retYmd) + ', ' + nightsLabel(nightsNum) + ', ' + partyWord;
     } else if (nightsNum) {
@@ -995,9 +998,9 @@
 
     var depCity = options.departureCity || departureName();
     var tourIdStr = tourIdFromTour(tour);
-    var flightHtml = buildFlightBlockHtml(depCity, tourIdStr, {
-      flightMeta: options.flightMeta
-    });
+    var flightHtml = showFlight
+      ? buildFlightBlockHtml(depCity, tourIdStr, { flightMeta: options.flightMeta })
+      : '';
 
     var mediaHtml;
     if (options.carousel !== false) {

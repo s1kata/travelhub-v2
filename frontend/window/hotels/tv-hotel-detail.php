@@ -390,7 +390,7 @@ include __DIR__ . '/../../../backend/components/header.php';
             var tours = Array.isArray(h.tours) ? h.tours : [];
             tours.forEach(function (t) {
                 if (!t) return;
-                var price = parseInt(t.price, 10) || 0;
+                var price = parseInt(t.totalPrice || t.price || t.priceRub || t.cost, 10) || 0;
                 if (price <= 0) return;
                 var key = String(t.id || '') + '|' + tourStartYmd(t) + '|' + String(t.nights || '') + '|' + price;
                 out.push({ hotel: h, tour: t, price: price, key: key });
