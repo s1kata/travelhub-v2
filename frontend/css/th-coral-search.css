@@ -887,8 +887,14 @@ html.th-kb-open .th-search-choice-sheet__search {
     }
     .th-coral-date-popup .tv-sc-cal-container .flatpickr-day {
         max-width: none;
-        height: 42px;
-        line-height: 42px;
+        width: 100% !important;
+        height: 40px;
+        min-height: 40px;
+        line-height: 1.15;
+    }
+    .th-coral-date-popup .tv-sc-cal-container .dayContainer {
+        display: grid !important;
+        grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
     }
     .th-coral-date-popup .flatpickr-innerContainer,
     .th-coral-date-popup .flatpickr-days,
