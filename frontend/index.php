@@ -156,14 +156,14 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     <link rel="stylesheet" href="/frontend/search-legacy/css/th-coral-search.css?v=legacy3">
     <?php else: ?>
     <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=13">
-    <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=19">
+    <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=20">
     <link rel="stylesheet" href="/frontend/css/th-search-v2.css?v=1">
     <?php endif; ?>
     <link rel="stylesheet" href="/frontend/css/th-hard-funnel.css?v=8">
     <link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=14">
     <link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=9">
     <link rel="stylesheet" href="/frontend/css/yandex-mobile.css?v=10">
-    <link rel="stylesheet" href="/frontend/css/pages/home.css?v=18">
+    <link rel="stylesheet" href="/frontend/css/pages/home.css?v=19">
     <link rel="stylesheet" href="/frontend/css/pages/home-hotels-promo.css?v=2">
     <link rel="stylesheet" href="/frontend/css/th-sheet.css?v=7">
     <?php include __DIR__ . '/../backend/components/mobile_site_head.php'; ?>
@@ -548,6 +548,10 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                             <p id="tv-sc-dates-step" class="th-coral-popup__hint" aria-live="polite">Выберите период вылета (от и до)</p>
                             <div id="tv-sc-cal-panel" class="tv-sc-cal-panel">
                                 <div id="tv-sc-cal-container" class="tv-sc-cal-container"></div>
+                                <div class="tv-cal-legend" aria-hidden="true">
+                                    <span class="tv-cal-legend__dot tv-cal-legend__dot--fly"></span><span class="tv-cal-legend__txt">Есть вылеты</span>
+                                    <span class="tv-cal-legend__dot tv-cal-legend__dot--direct"></span><span class="tv-cal-legend__txt">Прямой рейс</span>
+                                </div>
                             </div>
                         </div>
                         <button type="button" id="tv-sc-dates-apply" class="th-coral-popup__apply">
@@ -1918,6 +1922,8 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                             }
                         } catch (eDay) {}
                     }
+                    window.__tvCalDayCreate = tvCalDayCreate;
+                    window.tvFlightFlags = tvFlightFlags;
                     window.tvLoadFlyAvailability = async function () {
                         var depId = parseInt(String((depSel && depSel.value) || '7'), 10) || 7;
                         var cid = parseInt(String((countrySel && countrySel.value) || ''), 10) || 0;
@@ -1960,24 +1966,31 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                         var datesVal = (document.getElementById('tv-dates') && document.getElementById('tv-dates').value) || '';
                         var dateFrom = '';
                         var dateTo = '';
-                        var parseD = function (s) {
-                            var t = (s || '').trim();
-                            if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
-                            var m = t.replace(/\./g, '-').match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
-                            return m ? (m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0')) : '';
-                        };
-                        if (datesVal) {
-                            var parts = datesVal.split(/\s+(?:по|to)\s+|\s+[-–]\s+/i);
-                            if (parts.length >= 2) {
-                                dateFrom = parseD(parts[0]);
-                                dateTo = parseD(parts[1]);
-                            }
+                        if (typeof tvResolveSearchDatesYmd === 'function') {
+                            var rd = tvResolveSearchDatesYmd();
+                            dateFrom = rd.dateFrom || '';
+                            dateTo = rd.dateTo || '';
                         }
-                        if ((!dateFrom || !dateTo) && tvDatePicker && tvDatePicker.selectedDates && tvDatePicker.selectedDates.length >= 1) {
-                            dateFrom = flatpickr.formatDate(tvDatePicker.selectedDates[0], 'Y-m-d');
-                            dateTo = tvDatePicker.selectedDates.length >= 2
-                                ? flatpickr.formatDate(tvDatePicker.selectedDates[1], 'Y-m-d')
-                                : dateFrom;
+                        if (!dateFrom || !dateTo) {
+                            var parseD = function (s) {
+                                var t = (s || '').trim();
+                                if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+                                var m = t.replace(/\./g, '-').match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+                                return m ? (m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0')) : '';
+                            };
+                            if (datesVal) {
+                                var parts = datesVal.split(/\s*(?:—|–|-|по|to)\s*/i);
+                                if (parts.length >= 2) {
+                                    dateFrom = parseD(parts[0]);
+                                    dateTo = parseD(parts[1]);
+                                }
+                            }
+                            if ((!dateFrom || !dateTo) && tvDatePicker && tvDatePicker.selectedDates && tvDatePicker.selectedDates.length >= 1) {
+                                dateFrom = flatpickr.formatDate(tvDatePicker.selectedDates[0], 'Y-m-d');
+                                dateTo = tvDatePicker.selectedDates.length >= 2
+                                    ? flatpickr.formatDate(tvDatePicker.selectedDates[1], 'Y-m-d')
+                                    : dateFrom;
+                            }
                         }
                         if (!cid || !dateFrom || !dateTo || typeof tvFetch !== 'function') return;
                         var flags = tvFlightFlags();
@@ -4700,8 +4713,17 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             </div>
             <div class="th-coral-popup__body">
                 <p id="tv-nights-draft-preview" class="th-coral-popup__preview" aria-live="polite">6–9 ночей</p>
+                <div class="tv-nights-range-bar" aria-hidden="true">
+                    <div class="tv-nights-range-bar__item"><span>От</span><strong id="tv-nights-from-label">6</strong></div>
+                    <div class="tv-nights-range-bar__sep">—</div>
+                    <div class="tv-nights-range-bar__item"><span>До</span><strong id="tv-nights-to-label">9</strong></div>
+                </div>
                 <div id="tv-nights-quick" class="tv-nights-quick" aria-label="Быстрый выбор ночей"></div>
                 <p id="tv-nights-hint" class="th-coral-popup__hint">Свой диапазон: сначала «от», потом «до»</p>
+                <div class="tv-nights-legend" aria-hidden="true">
+                    <span class="tv-nights-legend__item tv-nights-legend__item--avail">Доступно</span>
+                    <span class="tv-nights-legend__item tv-nights-legend__item--off">Нет под фильтром</span>
+                </div>
                 <div id="tv-nights-grid" class="tv-nights-grid th-coral-nights-popup__grid">
                     <?php for ($n = 1; $n <= 28; $n++): ?>
                     <button type="button" class="tv-nights-cell" data-n="<?php echo $n; ?>">
@@ -5048,10 +5070,15 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             var cal = fp.calendarContainer;
             cal.style.width = '100%';
             cal.style.maxWidth = '100%';
-            cal.querySelectorAll('.flatpickr-innerContainer, .flatpickr-rContainer, .flatpickr-days, .dayContainer').forEach(function (el) {
+            cal.querySelectorAll('.flatpickr-innerContainer, .flatpickr-rContainer, .flatpickr-days').forEach(function (el) {
                 el.style.width = '100%';
                 el.style.maxWidth = '100%';
                 el.style.minWidth = '0';
+            });
+            cal.querySelectorAll('.dayContainer').forEach(function (el) {
+                el.style.width = '';
+                el.style.maxWidth = '';
+                el.style.minWidth = '';
             });
         }
 
@@ -5132,7 +5159,13 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
 
             if (showMonths <= 1) {
                 daysWrap.classList.remove('tv-cal-days-grid');
-                if (sharedWd) sharedWd.classList.remove('tv-cal-weekdays--hidden');
+                if (sharedWd) {
+                    sharedWd.classList.remove('tv-cal-weekdays--hidden');
+                    sharedWd.style.display = '';
+                }
+                if (dayContainers.length === 1) {
+                    wrapMonthColumn(dayContainers[0], new Date(fp.currentYear, fp.currentMonth, 1), true);
+                }
                 return;
             }
 
@@ -5324,8 +5357,20 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                         maxDate: maxDate,
                         showMonths: showMonths,
                         monthSelectorType: 'static',
-                        onReady: function () { tvCalendarRefreshUI(window.tvDatePickerInline); },
-                        onMonthChange: function () { tvCalendarRefreshUI(window.tvDatePickerInline); },
+                        onDayCreate: function (dObj, dStr, fpInst, dayEl) {
+                            if (typeof window.__tvCalDayCreate === 'function') window.__tvCalDayCreate(dObj, dStr, fpInst, dayEl);
+                        },
+                        onReady: function () {
+                            tvCalendarRefreshUI(window.tvDatePickerInline);
+                            if (typeof window.tvLoadFlyAvailability === 'function') window.tvLoadFlyAvailability();
+                            if (typeof window.tvLoadCalendarPriceMap === 'function') window.tvLoadCalendarPriceMap();
+                        },
+                        onMonthChange: function () {
+                            tvCalendarRefreshUI(window.tvDatePickerInline);
+                            if (typeof window.__tvCalDayCreate === 'function' && typeof window.tvDatePickerInline.redraw === 'function') {
+                                window.tvDatePickerInline.redraw();
+                            }
+                        },
                         onYearChange: function () { tvCalendarRefreshUI(window.tvDatePickerInline); },
                         onChange: function (selectedDates) {
                             if (selectedDates.length === 1) {
@@ -5363,6 +5408,8 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 showOverlay(closePopup);
                 requestAnimationFrame(function () {
                     mountInlineCalendar();
+                    if (typeof window.tvLoadFlyAvailability === 'function') window.tvLoadFlyAvailability();
+                    if (typeof window.tvLoadCalendarPriceMap === 'function') window.tvLoadCalendarPriceMap();
                     requestAnimationFrame(function () {
                         var fp = window.tvDatePickerInline;
                         if (fp) {
