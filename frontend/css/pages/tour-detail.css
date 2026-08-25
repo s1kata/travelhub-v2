@@ -315,3 +315,105 @@ body.th-page-tour-detail {
 }
 .tour-detail-booked-card { border-radius: 1.25rem; border: 1px solid rgba(16, 185, 129, 0.3); background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); }
 #tour-flights-block .tour-detail-info-card { padding: 1.25rem 1.5rem; }
+
+/* Блок 5: выбор пакета перелёта */
+.th-detail__flight-pkgs-section { margin-top: 4px; }
+.th-detail__flight-pkgs-hint {
+    margin: -6px 0 14px;
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.4;
+}
+.th-flight-pkgs {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.th-flight-pkg {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 12px;
+    align-items: start;
+    padding: 12px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.th-flight-pkg:hover {
+    border-color: rgba(93, 169, 164, 0.55);
+}
+.th-flight-pkg.is-selected {
+    border-color: #5DA9A4;
+    background: #f3fbfa;
+    box-shadow: 0 0 0 1px rgba(93, 169, 164, 0.25);
+}
+.th-flight-pkg input[type="radio"] {
+    margin-top: 3px;
+    accent-color: #5DA9A4;
+    width: 16px;
+    height: 16px;
+}
+.th-flight-pkg__body { min-width: 0; }
+.th-flight-pkg__air {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+.th-flight-pkg__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.th-flight-pkg__badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #0f766e;
+    background: #ccfbf1;
+}
+.th-flight-pkg__legs {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.th-flight-pkg__leg {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    line-height: 1.35;
+}
+.th-flight-pkg__leg-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #94a3b8;
+    min-width: 58px;
+}
+.th-flight-pkg__price {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    white-space: nowrap;
+    text-align: right;
+}
+@media (max-width: 560px) {
+    .th-flight-pkg {
+        grid-template-columns: auto 1fr;
+        grid-template-rows: auto auto;
+    }
+    .th-flight-pkg__price {
+        grid-column: 2;
+        text-align: left;
+        margin-top: 2px;
+    }
+}

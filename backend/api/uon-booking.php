@@ -94,6 +94,12 @@ if ($tour_link !== '' && isset($tour_link[0]) && $tour_link[0] === '/' && strpos
 }
 $country = trim((string) ($input['country'] ?? ''));
 $departure_city = trim((string) ($input['departure_city'] ?? ''));
+$flight_info = trim((string) ($input['flight_info'] ?? ''));
+if (function_exists('mb_substr')) {
+    $flight_info = mb_substr($flight_info, 0, 500, 'UTF-8');
+} elseif (strlen($flight_info) > 500) {
+    $flight_info = substr($flight_info, 0, 500);
+}
 $hotel_name = trim((string) ($input['hotel_name'] ?? ''));
 $price_str = trim((string) ($input['price'] ?? ''));
 $nights_str = trim((string) ($input['nights'] ?? ''));
@@ -338,6 +344,7 @@ if ($is_guest_manager) {
     }
 }
 if ($departure_city !== '') $note_lines[] = 'Город вылета: ' . $departure_city;
+if ($flight_info !== '') $note_lines[] = 'Перелёт (выбранный пакет): ' . $flight_info;
 if ($date_from !== '' || $date_to !== '') $note_lines[] = 'Даты поездки: ' . trim($date_from . ' — ' . $date_to);
 if ($nights > 0) $note_lines[] = 'Ночей: ' . $nights;
 if ($meal !== '') $note_lines[] = 'Питание: ' . $meal;
