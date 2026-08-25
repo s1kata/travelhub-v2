@@ -155,7 +155,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     <link rel="stylesheet" href="/frontend/search-legacy/css/tour-search-wizard.css?v=legacy1">
     <link rel="stylesheet" href="/frontend/search-legacy/css/th-coral-search.css?v=legacy3">
     <?php else: ?>
-    <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=12">
+    <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=13">
     <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=19">
     <link rel="stylesheet" href="/frontend/css/th-search-v2.css?v=1">
     <?php endif; ?>
@@ -437,6 +437,16 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                                     <option value="5">5★</option>
                                 </select>
                             </div>
+                        </div>
+                        <div class="th-wizard__flight-toggles" role="group" aria-label="Тип перелёта">
+                            <label class="th-wizard__flight-toggle">
+                                <input type="checkbox" id="tv-only-charter" class="th-wizard__flight-toggle-input">
+                                <span>Только чартер</span>
+                            </label>
+                            <label class="th-wizard__flight-toggle">
+                                <input type="checkbox" id="tv-only-direct" class="th-wizard__flight-toggle-input">
+                                <span>Прямой рейс</span>
+                            </label>
                         </div>
                         <button type="button" id="tv-filters-modal-open" class="sr-only" aria-hidden="true" tabindex="-1"
                                 aria-haspopup="dialog" aria-controls="tv-filters-modal" aria-expanded="false">Фильтры</button>
@@ -2700,6 +2710,16 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     performTvSearch(true);
                 }
             });
+            ['tv-only-charter', 'tv-only-direct'].forEach(function (fid) {
+                var el = document.getElementById(fid);
+                if (!el) return;
+                el.addEventListener('change', function () {
+                    var w = document.getElementById('tv-results-wrapper');
+                    if (w && !w.classList.contains('hidden') && typeof performTvSearch === 'function') {
+                        performTvSearch(true);
+                    }
+                });
+            });
             try {
                 var saved = localStorage.getItem('tv_tourists');
                 if (saved) {
@@ -3226,6 +3246,11 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             if (typeof tvSelectedServiceIds !== 'undefined' && tvSelectedServiceIds.length > 0) {
                 params.set('hotelServices', tvSelectedServiceIds.join(','));
             }
+            var onlyCharterOn = !!(document.getElementById('tv-only-charter') && document.getElementById('tv-only-charter').checked);
+            var onlyDirectOn = !!(document.getElementById('tv-only-direct') && document.getElementById('tv-only-direct').checked);
+            if (onlyCharterOn) params.set('onlyCharter', '1');
+            if (onlyDirectOn) params.set('onlyDirect', '1');
+            window.__tvSearchFlightFlags = { onlyCharter: onlyCharterOn, onlyDirect: onlyDirectOn };
 
             const wrapper = document.getElementById('tv-results-wrapper');
             const resultsDiv = document.getElementById('tv-search-results');
@@ -3255,6 +3280,8 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             if (typeof tvSelectedServiceIds !== 'undefined' && tvSelectedServiceIds.length > 0) {
                 cacheParams.hotelServices = tvSelectedServiceIds.join(',');
             }
+            if (onlyCharterOn) cacheParams.onlyCharter = '1';
+            if (onlyDirectOn) cacheParams.onlyDirect = '1';
 
             function tvPaintSearchHotels(list, logLabel) {
                 var raw = Array.isArray(list) ? list.slice() : [];
@@ -4091,6 +4118,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                         compareEnabled: true,
                         priceLabel: hotelMode ? 'туры от' : null,
                         hideFlight: hotelMode,
+                        directBadge: !!(!hotelMode && window.__tvSearchFlightFlags && window.__tvSearchFlightFlags.onlyDirect),
                         flightMeta: (!hotelMode && window.__mainFlightsByTourId && tourId) ? window.__mainFlightsByTourId[tourId] : null
                     });
                 }).join('');

@@ -490,7 +490,7 @@ function tvCachedShort(string $type, array $params, int $ttlSeconds, callable $f
 define('TV_SEARCH_PARAM_KEYS', [
     'adults', 'arrivalId', 'childs', 'countryId', 'currency', 'dateFrom', 'dateTo',
     'departureId', 'hotelCategory', 'hotelIds', 'hotelRating', 'hotelServices', 'meal', 'nightsFrom', 'nightsTo',
-    'onlyCharter', 'regionIds', 'subregionIds',
+    'onlyCharter', 'onlyDirect', 'regionIds', 'subregionIds',
 ]);
 
 /** Стабильный хэш как в TravelHubNew stableHash() — один и тот же ключ для одинаковых параметров */
@@ -1882,7 +1882,11 @@ function tourvisor_proxy_dispatch(): array
             'adults' => (int)($_GET['adults'] ?? 2),
             'currency' => $_GET['currency'] ?? 'RUB',
             'onlyCharter' => !empty($_GET['onlyCharter']) && $_GET['onlyCharter'] !== '0',
+            'onlyDirect' => !empty($_GET['onlyDirect']) && $_GET['onlyDirect'] !== '0',
         ];
+        if (empty($searchParams['onlyDirect'])) {
+            unset($searchParams['onlyDirect']);
+        }
         $childs = $_GET['childs'] ?? '';
         if ($childs !== '') {
             $ages = tvParseChildAges($childs);
@@ -1993,6 +1997,10 @@ function tourvisor_proxy_dispatch(): array
         $hotelIdsRaw = trim((string) ($_GET['hotelIds'] ?? ''));
         if ($hotelIdsRaw !== '') $sp['hotelIds'] = $hotelIdsRaw;
         if (!empty($_GET['hotelServices'])) $sp['hotelServices'] = $_GET['hotelServices'];
+        $sp['onlyCharter'] = !empty($_GET['onlyCharter']) && $_GET['onlyCharter'] !== '0';
+        if (!empty($_GET['onlyDirect']) && $_GET['onlyDirect'] !== '0') {
+            $sp['onlyDirect'] = true;
+        }
         header('X-Tourvisor-Dates: ' . $sp['dateFrom'] . ',' . $sp['dateTo']);
         $ck = tvSearchParamsKey($sp);
         $onlyPromo = isset($_GET['onlyPromo']) && $_GET['onlyPromo'] === '1';
@@ -2180,8 +2188,11 @@ function tourvisor_proxy_dispatch(): array
             'nightsTo' => $nightsTo,
             'adults' => $sp['adults'],
             'currency' => 'RUB',
-            'onlyCharter' => false,
+            'onlyCharter' => !empty($sp['onlyCharter']),
         ];
+        if (!empty($sp['onlyDirect'])) {
+            $searchParamsApi['onlyDirect'] = true;
+        }
         $agesForApi = tvParseChildAges($sp['childs'] ?? null);
         if ($agesForApi !== []) {
             $searchParamsApi['childs'] = $agesForApi;
@@ -2426,8 +2437,11 @@ function tourvisor_proxy_dispatch(): array
             'nightsTo' => $nightsTo,
             'adults' => max(1, (int)$sp['adults']),
             'currency' => 'RUB',
-            'onlyCharter' => false,
+            'onlyCharter' => !empty($sp['onlyCharter']),
         ];
+        if (!empty($sp['onlyDirect'])) {
+            $searchParamsApi['onlyDirect'] = true;
+        }
         $agesToursApi = tvParseChildAges($sp['childs'] ?? null);
         if ($agesToursApi !== []) {
             $searchParamsApi['childs'] = $agesToursApi;

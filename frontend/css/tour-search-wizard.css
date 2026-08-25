@@ -322,6 +322,36 @@ button.th-wizard__chip:focus-visible {
     }
 }
 
+.th-wizard__flight-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+    margin: 0 0 0.75rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: 12px;
+    background: rgba(26, 26, 64, 0.04);
+}
+
+.th-wizard__flight-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: rgba(26, 26, 64, 0.88);
+    cursor: pointer;
+    user-select: none;
+}
+
+.th-wizard__flight-toggle-input {
+    width: 1.05rem;
+    height: 1.05rem;
+    margin: 0;
+    accent-color: #0ea5e9;
+    cursor: pointer;
+}
+
 .th-wizard__filter-field {
     display: flex;
     flex-direction: column;
