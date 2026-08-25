@@ -35,6 +35,7 @@ $rating = isset($_GET['rating']) ? trim((string) $_GET['rating']) : '';
 $category = isset($_GET['category']) ? trim((string) $_GET['category']) : '';
 $room_category = isset($_GET['room_category']) ? trim((string) $_GET['room_category']) : 'Стандарт';
 $flight_info = isset($_GET['flight_info']) ? trim((string) $_GET['flight_info']) : '';
+$tour_operator_param = isset($_GET['tour_operator']) ? trim((string) $_GET['tour_operator']) : '';
 $tour_id = isset($_GET['tour_id']) ? trim((string) $_GET['tour_id']) : '';
 $hotel_id = isset($_GET['hotel_id']) ? trim((string) $_GET['hotel_id']) : '';
 if ($hotel_id === '' && isset($_GET['hotelId'])) {
@@ -444,11 +445,11 @@ if ($return_url !== '' && $return_url[0] === '/') {
                             <div>
                                 <b>Перелёт</b>
                                 <span id="flight-airline-chip-label" class="th-detail__chip-airline"></span>
-                                <span id="flight-info-from-api" class="th-detail__flight-lines">Уточните детали перелёта у нашего менеджера</span>
+                                <span id="flight-info-from-api" class="th-detail__flight-lines"><?php echo $flight_info !== '' ? htmlspecialchars($flight_info) : 'Загружаем перелёт…'; ?></span>
                             </div>
                         </div>
                         <?php endif; ?>
-                        <div id="operator-chip" class="th-detail__chip hidden"><span>🏢</span><div><b>Туроператор</b><span id="operator-chip-value"></span></div></div>
+                        <div id="operator-chip" class="th-detail__chip<?php echo $tour_operator_param === '' ? ' hidden' : ''; ?>"><span>🏢</span><div><b>Туроператор</b><span id="operator-chip-value"><?php echo $tour_operator_param !== '' ? htmlspecialchars($tour_operator_param) : ''; ?></span></div></div>
                     </div>
                     <?php endif; ?>
 
@@ -640,6 +641,7 @@ if ($return_url !== '' && $return_url[0] === '/') {
         'fromPromo' => $from_promo,
         'roomCategory' => $room_category,
         'flightInfo' => $flight_info,
+        'tourOperator' => $tour_operator_param,
         'tourId' => $tour_id,
         'hotelId' => $hotel_id,
         'tvApiBase' => $tv_api_base,
@@ -686,6 +688,7 @@ if ($return_url !== '' && $return_url[0] === '/') {
         var defaultMeal = (typeof cfg.defaultMeal === 'string') ? cfg.defaultMeal : '';
         var roomCategory = (typeof cfg.roomCategory === 'string') ? cfg.roomCategory : '';
         var flightInfo = (typeof cfg.flightInfo === 'string') ? cfg.flightInfo : '';
+        var tourOperatorParam = (typeof cfg.tourOperator === 'string') ? cfg.tourOperator : '';
         var fromPromo = !!cfg.fromPromo;
         var tourId = (typeof cfg.tourId === 'string') ? cfg.tourId : '';
         var hotelId = (typeof cfg.hotelId === 'string') ? cfg.hotelId : '';
@@ -695,7 +698,7 @@ if ($return_url !== '' && $return_url[0] === '/') {
         if (!Number.isFinite(searchAdults) || searchAdults < 1) searchAdults = null;
         var searchChilds = (typeof cfg.searchChilds === 'string') ? cfg.searchChilds.trim() : '';
         var searchTouristsLabel = (typeof cfg.searchTouristsLabel === 'string') ? cfg.searchTouristsLabel.trim() : '';
-        var lastTourOperator = '';
+        var lastTourOperator = tourOperatorParam || '';
         var lastTourPlacement = '';
         var appliedPromoCode = '';
         /** Как на карточках акций: totalPrice раньше price (совпадает с логикой promotions-page.js). */
@@ -1368,14 +1371,19 @@ if ($return_url !== '' && $return_url[0] === '/') {
             if (!legs || !legs.length) return '';
             var first = legs[0];
             var last = legs[legs.length - 1];
-            var dep = first.departure
-                ? ((first.departure.port && first.departure.port.shortName) ? first.departure.port.shortName : '') + ' ' + (first.departure.time || '')
-                : '';
-            var arr = last.arrival
-                ? ((last.arrival.port && last.arrival.port.shortName) ? last.arrival.port.shortName : '') + ' ' + (last.arrival.time || '')
-                : '';
-            dep = String(dep || '').trim();
-            arr = String(arr || '').trim();
+            function portLabel(leg, end) {
+                if (!leg || !leg[end]) return '';
+                var port = leg[end].port ? (leg[end].port.shortName || leg[end].port.name || leg[end].port.id || '') : '';
+                var time = String(leg[end].time || '').trim();
+                port = String(port || '').trim();
+                if (port && time) return port + ' ' + time;
+                if (port) return port;
+                if (time) return time;
+                var num = String(leg.number || '').trim();
+                return num;
+            }
+            var dep = portLabel(first, 'departure');
+            var arr = portLabel(last, 'arrival');
             if (dep && arr) return dep + ' \u2192 ' + arr;
             return dep || arr;
         }
@@ -1414,12 +1422,26 @@ if ($return_url !== '' && $return_url[0] === '/') {
             var chipAirline = document.getElementById('flight-airline-chip-label');
             var pkgsSec = document.getElementById('th-flight-packages');
             if (chipAirline) chipAirline.textContent = '';
-            if (apiSpan) apiSpan.textContent = 'Уточните детали перелёта у нашего менеджера';
+            if (apiSpan) {
+                apiSpan.textContent = flightInfo || 'Уточните детали перелёта у нашего менеджера';
+            }
             if (listItemEl) listItemEl.classList.remove('hidden');
             if (pkgsSec) pkgsSec.classList.add('hidden');
             thTdFlightsList = [];
             thTdSelectedFlightIdx = -1;
-            thTdSelectedFlightSummary = '';
+            thTdSelectedFlightSummary = flightInfo || '';
+        }
+        function thTdFetchFlights(url) {
+            var fetchFn = (typeof thTvFetch === 'function') ? thTvFetch : function (u) { return fetch(u, { cache: 'no-store' }); };
+            return fetchFn(url).then(function (r) { return r.json(); });
+        }
+        function thTdNormalizeFlightsJson(j) {
+            if (!j || j.success === false) return { flights: [], info: null };
+            var flights = j.flights;
+            if (!Array.isArray(flights) && j.data && Array.isArray(j.data.flights)) flights = j.data.flights;
+            if (!Array.isArray(flights)) flights = [];
+            var info = j.info || (j.data && j.data.info) || null;
+            return { flights: flights, info: info };
         }
         function thTdApplyFlightPackage(idx, opts) {
             opts = opts || {};
@@ -1536,15 +1558,15 @@ if ($return_url !== '' && $return_url[0] === '/') {
         if (tourId && tvApiBase) {
             var sepFl = tvApiBase.indexOf('?') >= 0 ? '&' : '?';
             var flightsUrl = tvApiBase + sepFl + 'type=tour-flights&tourId=' + encodeURIComponent(tourId) + '&currency=RUB';
-            fetch(flightsUrl, { cache: 'no-store' })
-                .then(function(r) { return r.json(); })
+            thTdFetchFlights(flightsUrl)
                 .then(function(j) {
-                    if (!j.success || !j.flights || !j.flights.length) {
+                    var norm = thTdNormalizeFlightsJson(j);
+                    if (!norm.flights.length) {
                         thTdFlightManagerFallback();
                         return;
                     }
-                    thTdFlightsList = j.flights.slice();
-                    thTdFlightsInfo = j.info || null;
+                    thTdFlightsList = norm.flights.slice();
+                    thTdFlightsInfo = norm.info;
                     var pick = (typeof thPickTourvisorFlightPackage === 'function')
                         ? thPickTourvisorFlightPackage(thTdFlightsList, defaultDeparture, (typeof departureId !== 'undefined' ? departureId : null))
                         : null;

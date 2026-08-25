@@ -3360,44 +3360,9 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             // Туристы: взрослые и возрасты детей (tvAdultsCount / tvChildrenAges — общие var выше)
             let adults = Math.max(1, Math.min(9, parseInt(tvAdultsCount, 10) || 2));
             let childs = tvChildsParam();
-            const datesVal = (document.getElementById('tv-dates')?.value || '').trim();
-            let dateFrom, dateTo;
-            const parseD = (s) => {
-                const t = (s || '').trim();
-                if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
-                if (/^\d{2}-\d{2}-\d{4}$/.test(t)) {
-                    const p = t.split('-');
-                    return p[2] + '-' + p[1] + '-' + p[0];
-                }
-                const m = t.replace(/\./g, '-').match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
-                return m ? m[3] + '-' + m[2].padStart(2,'0') + '-' + m[1].padStart(2,'0') : t;
-            };
-            if (datesVal) {
-                const parts = datesVal.split(/\s+(?:по|to)\s+|\s+[-–]\s+/i);
-                if (parts.length >= 2) {
-                    dateFrom = parseD(parts[0]);
-                    dateTo = parseD(parts[1]);
-                }
-            }
-            if ((!dateFrom || !dateTo) && typeof flatpickr !== 'undefined' && tvDatePicker && tvDatePicker.selectedDates && tvDatePicker.selectedDates.length >= 1) {
-                const sel = tvDatePicker.selectedDates;
-                dateFrom = flatpickr.formatDate(sel[0], 'Y-m-d');
-                dateTo = sel.length >= 2 ? flatpickr.formatDate(sel[1], 'Y-m-d') : flatpickr.formatDate(new Date(sel[0].getTime() + 30*864e5), 'Y-m-d');
-            }
-            if (!dateFrom || !dateTo) {
-                var defWin = getDefaultDateWindow();
-                if (typeof flatpickr !== 'undefined' && flatpickr.formatDate) {
-                    dateFrom = flatpickr.formatDate(defWin[0], 'Y-m-d');
-                    dateTo = flatpickr.formatDate(defWin[1], 'Y-m-d');
-                } else {
-                    var padYmd = function (d) {
-                        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-                    };
-                    dateFrom = padYmd(defWin[0]);
-                    dateTo = padYmd(defWin[1]);
-                }
-                applyDefaultDateWindow();
-            }
+            var resolvedDates = tvResolveSearchDatesYmd();
+            let dateFrom = resolvedDates.dateFrom;
+            let dateTo = resolvedDates.dateTo;
             
             const params = new URLSearchParams({
                 type: 'search',
@@ -3983,9 +3948,67 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 window.updateDateDisplayOnly(from, to);
             }
         }
+        function tvResolveSearchDatesYmd() {
+            var range = tvReadSearchDateRange();
+            if (range && typeof flatpickr !== 'undefined' && flatpickr.formatDate) {
+                return {
+                    dateFrom: flatpickr.formatDate(range[0], 'Y-m-d'),
+                    dateTo: flatpickr.formatDate(range[1], 'Y-m-d')
+                };
+            }
+            var datesVal = (document.getElementById('tv-dates')?.value || '').trim();
+            var dateFrom, dateTo;
+            var parseD = function (s) {
+                var t = (s || '').trim();
+                if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+                if (/^\d{2}-\d{2}-\d{4}$/.test(t)) {
+                    var p = t.split('-');
+                    return p[2] + '-' + p[1] + '-' + p[0];
+                }
+                var m = t.replace(/\./g, '-').match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+                return m ? m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0') : t;
+            };
+            if (datesVal) {
+                var parts = datesVal.split(/\s*(?:—|–|-|по|to)\s*/i);
+                if (parts.length >= 2) {
+                    dateFrom = parseD(parts[0]);
+                    dateTo = parseD(parts[1]);
+                }
+            }
+            if ((!dateFrom || !dateTo) && typeof flatpickr !== 'undefined' && tvDatePicker && tvDatePicker.selectedDates && tvDatePicker.selectedDates.length >= 1) {
+                var sel = tvDatePicker.selectedDates;
+                dateFrom = flatpickr.formatDate(sel[0], 'Y-m-d');
+                dateTo = sel.length >= 2 ? flatpickr.formatDate(sel[1], 'Y-m-d') : flatpickr.formatDate(new Date(sel[0].getTime() + 30 * 864e5), 'Y-m-d');
+            }
+            if ((!dateFrom || !dateTo) && typeof flatpickr !== 'undefined' && window.tvDatePickerInline && window.tvDatePickerInline.selectedDates && window.tvDatePickerInline.selectedDates.length >= 1) {
+                var selIn = window.tvDatePickerInline.selectedDates;
+                dateFrom = flatpickr.formatDate(selIn[0], 'Y-m-d');
+                dateTo = selIn.length >= 2 ? flatpickr.formatDate(selIn[1], 'Y-m-d') : flatpickr.formatDate(new Date(selIn[0].getTime() + 30 * 864e5), 'Y-m-d');
+            }
+            if (!dateFrom || !dateTo) {
+                var defWin = getDefaultDateWindow();
+                if (typeof flatpickr !== 'undefined' && flatpickr.formatDate) {
+                    dateFrom = flatpickr.formatDate(defWin[0], 'Y-m-d');
+                    dateTo = flatpickr.formatDate(defWin[1], 'Y-m-d');
+                } else {
+                    var padYmd = function (d) {
+                        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                    };
+                    dateFrom = padYmd(defWin[0]);
+                    dateTo = padYmd(defWin[1]);
+                }
+                applyDefaultDateWindow();
+            }
+            return { dateFrom: dateFrom, dateTo: dateTo };
+        }
         function tvShiftSearchDates(days) {
             var d = parseInt(String(days || ''), 10);
-            if (!d) return;
+            if (isNaN(d)) return;
+            if (!d) {
+                thTrackGoal('date_shift_click');
+                if (typeof performTvSearch === 'function') performTvSearch(true, { soft: true });
+                return;
+            }
             thTrackGoal('date_shift_click');
             var range = tvReadSearchDateRange();
             if (!range) {
@@ -4135,7 +4158,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     apiBase: base,
                     departureCity: depCityMainFl,
                     departureId: depActiveFl.id,
-                    maxTours: Math.min(hotels.length, 40),
+                    maxTours: Math.min(hotels.length, 12),
                     getTourId: getMainTourId,
                     patchContainer: document.getElementById('tv-search-results'),
                     onDone: callback
@@ -4252,6 +4275,8 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                         link = TourLinkUtils.sanitizeTourLink(link) || '';
                     }
                     const tourId = getMainTourId({ tours: [tour] });
+                    const opName = (tour.operator && (tour.operator.russianName || tour.operator.name))
+                        || tour.operatorName || '';
                     const cardImg = tvCardPrimaryImage(h);
                     const params = {
                         tour_link: link, country, hotel_name: (h.name || ''),
@@ -4262,6 +4287,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                         rating: String(h.rating || ''), category: String(h.category || ''),
                         adults: String(priceAdults), tour_id: tourId
                     };
+                    if (opName) params.tour_operator = String(opName).trim();
                     var childsStr = tvChildsParam();
                     if (childsStr) params.childs = childsStr;
                     if (startYmd) params.date_from = startYmd;

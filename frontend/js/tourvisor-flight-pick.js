@@ -112,7 +112,6 @@
                 if (portTextIsBlocked(depTxt)) continue;
                 if (depTextMatchesHints(depTxt, hints)) return f;
             }
-            return null;
         }
         for (var j = 0; j < flights.length; j++) {
             if (!flights[j]) continue;
@@ -404,7 +403,7 @@
         var base = opts.apiBase || global.TH_TV_API_BASE || global.TV_API_BASE || '';
         var depCity = opts.departureCity || (global.TH_DEPARTURE && global.TH_DEPARTURE.name) || 'Самара';
         var departureIdHint = opts.departureId != null ? opts.departureId : (global.TH_DEPARTURE && global.TH_DEPARTURE.id);
-        var maxTours = opts.maxTours != null ? opts.maxTours : 12;
+        var maxTours = opts.maxTours != null ? opts.maxTours : 8;
         var maxConcurrent = opts.maxConcurrent != null ? opts.maxConcurrent : 3;
         var patchEvery = opts.patchEvery != null ? opts.patchEvery : 4;
         var loadGen = opts.loadGen;

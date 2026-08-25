@@ -988,10 +988,11 @@ function tvRequest(string $endpoint, array $params = []): array {
         $url .= '?' . tvBuildQuery($params);
     }
     $isSearch = strpos($endpoint, '/tours/search') !== false;
+    $isTourFlights = (bool) preg_match('#/tours/[^/]+/flights$#', $endpoint);
     // На localhost возможны SSL connection timeout из-за сети/фаервола; увеличенные таймауты снижают число сбоев
-    $connectTimeout = $isSearch ? 35 : 25;
-    $totalTimeout = $isSearch ? 60 : 45;
-    $retries = $isSearch ? 3 : 2;
+    $connectTimeout = $isSearch ? 35 : ($isTourFlights ? 30 : 25);
+    $totalTimeout = $isSearch ? 60 : ($isTourFlights ? 75 : 45);
+    $retries = $isSearch ? 3 : ($isTourFlights ? 2 : 2);
     $response = null;
     $errNo = 0;
     $errMsg = '';
@@ -1665,8 +1666,8 @@ function tourvisor_proxy_dispatch(): array
         if ($tourId === '') {
             $r = ['success' => false, 'error' => 'tourId required', 'data' => null];
         } else {
-            $ttl = (int)(getenv('TOURVISOR_TOUR_LIVE_CACHE_TTL_SECONDS') ?: ($_ENV['TOURVISOR_TOUR_LIVE_CACHE_TTL_SECONDS'] ?? 60));
-            $ttl = min(max($ttl, 0), 600);
+            $ttl = (int)(getenv('TOURVISOR_TOUR_LIVE_CACHE_TTL_SECONDS') ?: ($_ENV['TOURVISOR_TOUR_LIVE_CACHE_TTL_SECONDS'] ?? 300));
+            $ttl = min(max($ttl, 60), 900);
             $r = tvCachedShort('tour-flights', ['tourId' => $tourId, 'currency' => $currency], $ttl, function() use ($tourId, $currency) {
                 $res = tvRequest('/tours/' . $tourId . '/flights', ['currency' => $currency]);
                 if ($res['success'] && isset($res['data'])) {

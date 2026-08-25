@@ -155,9 +155,7 @@ if ($svcFree !== '') {
 }
 
 $windows = [
-    [date('Y-m-d', strtotime('+2 days')), date('Y-m-d', strtotime('+16 days'))],
-    [date('Y-m-d', strtotime('+17 days')), date('Y-m-d', strtotime('+31 days'))],
-    [date('Y-m-d', strtotime('+32 days')), date('Y-m-d', strtotime('+46 days'))],
+    [date('Y-m-d', strtotime('+2 days')), date('Y-m-d', strtotime('+46 days'))],
 ];
 ?>
 <!DOCTYPE html>
@@ -431,6 +429,7 @@ include __DIR__ . '/../../../backend/components/header.php';
         var meal = (t.meal && (t.meal.russianName || t.meal.name)) || '';
         var start = tourStartYmd(t);
         var nights = parseInt(t.nights, 10) || 0;
+        var op = (t.operator && (t.operator.russianName || t.operator.name)) || t.operatorName || '';
         var params = new URLSearchParams({
             tour_link: link,
             country: CFG.countryName || (h.country && h.country.name) || '',
@@ -452,6 +451,7 @@ include __DIR__ . '/../../../backend/components/header.php';
             departure_id: String(CFG.departureId),
             return_url: window.location.pathname + window.location.search
         });
+        if (op) params.set('tour_operator', op);
         return '/frontend/window/tour-detail.php?' + params.toString();
     }
 
@@ -558,32 +558,57 @@ include __DIR__ . '/../../../backend/components/header.php';
         state.tours = [];
         state.shown = 0;
 
-        var collected = [];
+        var baseParams = {
+            departureId: CFG.departureId,
+            countryId: CFG.countryId,
+            nightsFrom: 6,
+            nightsTo: 14,
+            adults: CFG.adults,
+            currency: 'RUB',
+            hotelIds: String(CFG.hotelId)
+        };
+
+        async function fetchWindow(w, opts) {
+            var params = Object.assign({}, baseParams, {
+                dateFrom: w[0],
+                dateTo: w[1]
+            });
+            return tvFetch('search-cached', Object.assign({}, params, opts || {}));
+        }
+
         try {
-            for (var i = 0; i < CFG.windows.length; i++) {
-                var w = CFG.windows[i];
-                var params = {
-                    departureId: CFG.departureId,
-                    countryId: CFG.countryId,
-                    dateFrom: w[0],
-                    dateTo: w[1],
-                    nightsFrom: 6,
-                    nightsTo: 14,
-                    adults: CFG.adults,
-                    currency: 'RUB',
-                    hotelIds: String(CFG.hotelId)
-                };
-                var j = await tvFetch('search-cached', Object.assign({}, params, { _cacheOnly: true }));
-                if (!j || !j.success || !Array.isArray(j.data) || j.data.length === 0) {
-                    j = await tvFetch('search-cached', Object.assign({}, params, { _forceLive: true }));
-                }
-                if (j && j.success && Array.isArray(j.data)) {
-                    collected = collected.concat(flattenTours(j.data));
+            var collected = [];
+            var windows = CFG.windows || [];
+            if (!windows.length) {
+                el.empty.classList.remove('hidden');
+                return;
+            }
+
+            /* Сначала cache-only по всем окнам параллельно — быстрый первый экран */
+            var cacheJobs = windows.map(function (w) { return fetchWindow(w, { _cacheOnly: true }); });
+            var cacheResults = await Promise.all(cacheJobs);
+            cacheResults.forEach(function (j) {
+                if (j && j.success && Array.isArray(j.data)) collected = collected.concat(flattenTours(j.data));
+            });
+            collected = dedupe(collected);
+            if (collected.length) {
+                state.tours = collected;
+                render(true);
+            }
+
+            /* Если кэш пуст — один live-запрос на первое окно (не N live подряд) */
+            if (!collected.length) {
+                var liveJ = await fetchWindow(windows[0], { _forceLive: true });
+                if (liveJ && liveJ.success && Array.isArray(liveJ.data)) {
+                    collected = dedupe(flattenTours(liveJ.data));
                 }
             }
-            state.tours = dedupe(collected);
+
+            state.tours = collected;
             if (!state.tours.length) {
                 el.empty.classList.remove('hidden');
+            } else if (!state.shown) {
+                render(true);
             } else {
                 render(true);
             }
