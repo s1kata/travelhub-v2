@@ -1568,8 +1568,12 @@ function tourvisor_proxy_dispatch(): array
         }
         break;
     case 'countries':
-        $params = ['onlyCharter' => (bool)$onlyCharter];
-        if ($departureId) $params['departureId'] = $departureId;
+        // Без departureId кэш/API часто отдают урезанный список (~4 страны).
+        // Всегда привязываем к городу вылета (дефолт сайта).
+        if (!$departureId) {
+            $departureId = function_exists('th_departure_default_id') ? th_departure_default_id() : 7;
+        }
+        $params = ['onlyCharter' => (bool)$onlyCharter, 'departureId' => $departureId];
         $r = tvCached('countries', $params, function() use ($params) {
             $res = tvRequest('/countries', $params);
             if ((!$res['success'] || empty($res['data'])) && tv_dictionary_use_fallback()) {

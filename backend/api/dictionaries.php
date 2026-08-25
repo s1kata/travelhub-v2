@@ -96,22 +96,40 @@ foreach ([$r1, $r2] as $j) {
 }
 $departures = array_values($byId);
 
-// Страны: два запроса и объединение
-$cnt1 = $fetchJson(['type' => 'countries']);
-$cnt2 = $fetchJson(['type' => 'countries', 'onlyCharter' => '1']);
-$debug['countries1'] = $formatDebug($cnt1);
-$debug['countries2'] = $formatDebug($cnt2);
-$r1 = (!empty($cnt1['_fetch_failed']) || !empty($cnt1['_parse_failed'])) ? null : $cnt1;
-$r2 = (!empty($cnt2['_fetch_failed']) || !empty($cnt2['_parse_failed'])) ? null : $cnt2;
+// Страны: ТОЛЬКО с departureId.
+// Без departureId Tourvisor/кэш отдают урезанный список (4 шт.) — Вьетнам/Шри-Ланка пропадают.
+if (!function_exists('th_departure_default_id')) {
+    require_once __DIR__ . '/../config/departure_defaults.php';
+}
+$reqDepId = isset($_GET['departureId']) ? (int) $_GET['departureId'] : 0;
+$countryDepIds = [];
+if ($reqDepId > 0) {
+    $countryDepIds[] = $reqDepId;
+} else {
+    $countryDepIds[] = th_departure_default_id(); // Самара
+    $countryDepIds[] = 1; // Москва — широкий набор направлений
+}
+$countryDepIds = array_values(array_unique(array_filter(array_map('intval', $countryDepIds))));
 $byId = [];
-foreach ([$r1, $r2] as $j) {
-    $list = (isset($j['success']) && $j['success'] && isset($j['data']) && is_array($j['data'])) ? $j['data'] : [];
-    foreach ($list as $c) {
-        if (isset($c['id'])) {
-            $byId[$c['id']] = $c;
+$countriesDebugParts = [];
+foreach ($countryDepIds as $depIdForCountries) {
+    $cntA = $fetchJson(['type' => 'countries', 'departureId' => (string) $depIdForCountries]);
+    $cntB = $fetchJson(['type' => 'countries', 'departureId' => (string) $depIdForCountries, 'onlyCharter' => '1']);
+    $countriesDebugParts[] = 'dep' . $depIdForCountries . '=' . $formatDebug($cntA) . '+charter:' . $formatDebug($cntB);
+    foreach ([$cntA, $cntB] as $j) {
+        if (!empty($j['_fetch_failed']) || !empty($j['_parse_failed'])) {
+            continue;
+        }
+        $list = (isset($j['success']) && $j['success'] && isset($j['data']) && is_array($j['data'])) ? $j['data'] : [];
+        foreach ($list as $c) {
+            if (isset($c['id'])) {
+                $byId[$c['id']] = $c;
+            }
         }
     }
 }
+$debug['countries1'] = implode('; ', $countriesDebugParts);
+$debug['countries2'] = 'merged=' . count($byId);
 $countries = array_values($byId);
 
 // Турция первой в списке (только если есть реальные данные)

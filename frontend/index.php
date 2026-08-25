@@ -1152,17 +1152,42 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 });
             });
             var countriesPromise = dictPromise.then(function(o) {
-                if (o && o.countries && o.countries.length) return { success: true, data: o.countries };
-                return Promise.all([
-                    safeFetchJson(base + sep + 'type=countries', { success: false, data: [] }),
-                    safeFetchJson(base + sep + 'type=countries&onlyCharter=1', { success: false, data: [] })
-                ]).then(function(res) {
+                function mergeCountryLists(lists) {
                     var byId = {};
-                    res.forEach(function(j) {
-                        var list = (j && j.success && Array.isArray(j.data)) ? j.data : [];
-                        list.forEach(function(c) { if (c && c.id != null) byId[c.id] = c; });
+                    (lists || []).forEach(function (list) {
+                        (list || []).forEach(function (c) {
+                            if (c && c.id != null) byId[c.id] = c;
+                        });
                     });
-                    return { success: true, data: Object.values(byId) };
+                    return Object.keys(byId).map(function (k) { return byId[k]; });
+                }
+                function fetchCountriesForDep(depId) {
+                    var id = parseInt(String(depId || ''), 10) || 1;
+                    var q = 'type=countries&departureId=' + encodeURIComponent(String(id));
+                    return Promise.all([
+                        safeFetchJson(base + sep + q, { success: false, data: [] }),
+                        safeFetchJson(base + sep + q + '&onlyCharter=1', { success: false, data: [] })
+                    ]).then(function (res) {
+                        return mergeCountryLists(res.map(function (j) {
+                            return (j && j.success && Array.isArray(j.data)) ? j.data : [];
+                        }));
+                    });
+                }
+                var dictCountries = (o && Array.isArray(o.countries)) ? o.countries : [];
+                var depId = 1;
+                try {
+                    var stored = localStorage.getItem('th_departure_id');
+                    if (stored) depId = parseInt(String(stored), 10) || 1;
+                } catch (eDep) {}
+                // Всегда добираем из прокси с departureId (без него кэш отдаёт ~4 страны).
+                return fetchCountriesForDep(depId).then(function (proxyList) {
+                    var merged = mergeCountryLists([dictCountries, proxyList]);
+                    if (merged.length >= 15 || depId === 1) {
+                        return { success: true, data: merged };
+                    }
+                    return fetchCountriesForDep(1).then(function (msk) {
+                        return { success: true, data: mergeCountryLists([merged, msk]) };
+                    });
                 });
             });
             var mealsPromise = dictPromise.then(function(o) {
@@ -1797,7 +1822,10 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 });
                 return { success: true, data: Object.values(byId) };
             });
-            const pCountries = refsPromises ? refsPromises.countries : Promise.all([tvFetch('countries'), tvFetch('countries', { onlyCharter: '1' })]).then(function(res) {
+            const pCountries = refsPromises ? refsPromises.countries : Promise.all([
+                tvFetch('countries', { departureId: '1' }),
+                tvFetch('countries', { departureId: '1', onlyCharter: '1' })
+            ]).then(function(res) {
                 const byId = {};
                 res.forEach(function(j) {
                     const list = (j && j.success && Array.isArray(j.data)) ? j.data : [];
@@ -2042,6 +2070,47 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 countriesList = sortCountriesWithDefaultFirst(rCountries.data);
             }
 
+            function applyTvCountriesList(list, opts) {
+                opts = opts || {};
+                var keepId = opts.keepCountryId != null
+                    ? String(opts.keepCountryId)
+                    : (countrySel ? String(countrySel.value || '') : '');
+                countriesList = sortCountriesWithDefaultFirst(list || []);
+                if (!countrySel) return;
+                var defaultCountry = findDefaultCountry(countriesList);
+                countrySel.innerHTML = '<option value="">— Страна —</option>' + countriesList.map(function (c) {
+                    return '<option value="' + c.id + '">' + (c.name || '') + '</option>';
+                }).join('');
+                var keepOk = keepId && countriesList.some(function (c) { return String(c.id) === keepId; });
+                if (keepOk) countrySel.value = keepId;
+                else countrySel.value = defaultCountry ? defaultCountry.id : (countriesList[0] ? countriesList[0].id : '');
+                if (typeof renderCountryList === 'function') renderCountryList('');
+                if (window.THTourSearchWizard && typeof window.THTourSearchWizard.refreshSummary === 'function') {
+                    window.THTourSearchWizard.refreshSummary();
+                }
+            }
+
+            function reloadTvCountriesForDeparture(depId) {
+                var id = parseInt(String(depId || ''), 10) || 0;
+                if (!id || typeof tvFetch !== 'function') return Promise.resolve();
+                return Promise.all([
+                    tvFetch('countries', { departureId: String(id) }),
+                    tvFetch('countries', { departureId: String(id), onlyCharter: '1' })
+                ]).then(function (res) {
+                    var byId = {};
+                    res.forEach(function (j) {
+                        var list = (j && j.success && Array.isArray(j.data)) ? j.data : [];
+                        list.forEach(function (c) { if (c && c.id != null) byId[c.id] = c; });
+                    });
+                    var merged = Object.keys(byId).map(function (k) { return byId[k]; });
+                    if (!merged.length) return;
+                    applyTvCountriesList(merged, { keepCountryId: countrySel ? countrySel.value : '' });
+                    if (countrySel && countrySel.value) {
+                        try { countrySel.dispatchEvent(new Event('change', { bubbles: true })); } catch (eCh) {}
+                    }
+                }).catch(function () {});
+            }
+
             function resolveHomePopularDepartureId() {
                 if (!departuresList || !departuresList.length) return 0;
                 try {
@@ -2240,6 +2309,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             });
             if (depSel) {
                 depSel.addEventListener('change', function () {
+                    reloadTvCountriesForDeparture(depSel.value);
                     if (countrySel && countrySel.value) {
                         loadTvRegions();
                         tvSchedulePrefetchHomeSearch();
