@@ -1,12 +1,14 @@
 /**
- * Единая карточка тура (образец — раздел «Акции»).
- * window.THTourCard.render(hotel, options) → HTML string
+ * Единая карточка тура на весь сайт.
+ * Единственная точка рендера списков: window.THTourCard.render(hotel, options)
+ * После вставки HTML: THTourCard.mountInContainer(root) — карусель + перелёты + выбор рейса.
  */
 (function (global) {
   'use strict';
 
   var FALLBACK_IMG = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80';
   var DETAIL_BTN_LABEL = '\u0417\u0430\u0431\u0440\u043e\u043d\u0438\u0440\u043e\u0432\u0430\u0442\u044c';
+  var FLIGHT_PICKER_BOUND = false;
 
   /** Ссылка на tour-detail без авто-открытия модалки (best practice: сначала детали тура). */
   function bookingHref(href) {
@@ -288,6 +290,17 @@
       var meta = resolveFlightMeta(tourId, depCity, {});
       var html = buildFlightBlockHtml(depCity, tourId, meta ? { flightMeta: meta } : {});
       if (meta && meta.city) card.setAttribute('data-th-departure-city', meta.city);
+      var media = card.querySelector('.th-tour-card__media');
+      if (media && meta && typeof meta.direct === 'boolean') {
+        var oldDirect = media.querySelector('.th-tour-card__badge--direct');
+        var oldTransfer = media.querySelector('.th-tour-card__badge--transfer');
+        if (oldDirect) oldDirect.remove();
+        if (oldTransfer) oldTransfer.remove();
+        var badge = document.createElement('span');
+        badge.className = 'th-tour-card__badge ' + (meta.direct ? 'th-tour-card__badge--direct' : 'th-tour-card__badge--transfer');
+        badge.textContent = meta.direct ? '\u041f\u0440\u044f\u043c\u043e\u0439 \u0440\u0435\u0439\u0441' : '\u0421 \u043f\u0435\u0440\u0435\u0441\u0430\u0434\u043a\u043e\u0439';
+        media.appendChild(badge);
+      }
       var chip = body.querySelector('.th-tour-card__flight-chip');
       var dep = body.querySelector('.th-tour-card__dep-city');
       var anchor = body.querySelector('.th-tour-card__price-block');
@@ -597,7 +610,11 @@
     setTimeout(run, 0);
     setTimeout(run, 80);
     setTimeout(run, 300);
-    setTimeout(function () { hydrateCarouselsFromHotelApi(scope); }, 0);
+    if (isCarouselHydrateDeferred()) {
+      scheduleCarouselHydrate(scope, 1200);
+      return;
+    }
+    scheduleCarouselHydrate(scope, 400);
   }
 
   function resolveTvApiBase() {
@@ -608,10 +625,39 @@
     return global.TH_TV_IMAGE_PROXY || global.TV_IMAGE_PROXY || '';
   }
 
+  /** Во время live-поиска не долбим type=hotel / пачку фото — иначе PHP-FPM → 503. */
+  function isCarouselHydrateDeferred() {
+    return !!global.__thDeferHeavyCards;
+  }
+
   var thCarouselHydrateQueue = [];
   var thCarouselHydrateActive = 0;
-  var TH_CAROUSEL_HYDRATE_MAX = 2;
-  var TH_CAROUSEL_HYDRATE_GAP_MS = 120;
+  var thCarouselHydrateFailed = {};
+  var TH_CAROUSEL_HYDRATE_MAX = 1;
+  var TH_CAROUSEL_HYDRATE_GAP_MS = 700;
+  var TH_CAROUSEL_HYDRATE_LIST_LIMIT = 4;
+  var thCarouselHydrateTimer = null;
+
+  function clearCarouselHydrateQueue() {
+    thCarouselHydrateQueue = [];
+    thCarouselHydrateActive = 0;
+    if (thCarouselHydrateTimer) {
+      clearTimeout(thCarouselHydrateTimer);
+      thCarouselHydrateTimer = null;
+    }
+  }
+
+  function scheduleCarouselHydrate(root, delayMs) {
+    if (thCarouselHydrateTimer) clearTimeout(thCarouselHydrateTimer);
+    thCarouselHydrateTimer = setTimeout(function () {
+      thCarouselHydrateTimer = null;
+      if (isCarouselHydrateDeferred()) {
+        scheduleCarouselHydrate(root, 900);
+        return;
+      }
+      hydrateCarouselsFromHotelApi(root || document);
+    }, delayMs != null ? delayMs : 600);
+  }
 
   function rebuildCarouselTrack(carousel, slides, options) {
     var track = carousel.querySelector('.th-tour-card__carousel-track');
@@ -651,6 +697,7 @@
   }
 
   function thCarouselDrainHydrateQueue(apiBase) {
+    if (isCarouselHydrateDeferred()) return;
     while (thCarouselHydrateActive < TH_CAROUSEL_HYDRATE_MAX && thCarouselHydrateQueue.length) {
       var job = thCarouselHydrateQueue.shift();
       thCarouselHydrateActive++;
@@ -662,18 +709,26 @@
     var base = apiBase.replace(/\/$/, '');
     var sep = base.indexOf('?') >= 0 ? '&' : '?';
     var url = base + sep + 'type=hotel&hotelId=' + encodeURIComponent(job.hotelId);
+    if (thCarouselHydrateFailed[job.hotelId]) {
+      job.card.setAttribute('data-th-carousel-hydrated', '1');
+      thCarouselHydrateActive--;
+      setTimeout(function () { thCarouselDrainHydrateQueue(apiBase); }, TH_CAROUSEL_HYDRATE_GAP_MS);
+      return;
+    }
     function fetchHotel() {
       return fetch(url, { cache: 'force-cache' }).then(function (r) {
-        if (r.status !== 503 && r.status !== 429) return r;
-        return new Promise(function (resolve) {
-          setTimeout(resolve, 1200);
-        }).then(function () {
-          return fetch(url, { cache: 'force-cache' });
-        });
+        if (r.status === 503 || r.status === 429) {
+          thCarouselHydrateFailed[job.hotelId] = 1;
+          return r;
+        }
+        return r;
       });
     }
     fetchHotel()
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r || !r.ok) return null;
+        return r.json();
+      })
       .then(function (j) {
         if (!j || !j.success || !j.data) return;
         var proxy = resolveImageProxy();
@@ -686,6 +741,14 @@
           mapped.push(m);
         });
         if (mapped.length < 2) return;
+        var existingSlide = job.carousel.querySelector('.th-tour-card__carousel-slide.is-active')
+          || job.carousel.querySelector('.th-tour-card__carousel-slide')
+          || job.carousel.querySelector('.th-tour-card__img');
+        var existingSrc = existingSlide ? String(existingSlide.getAttribute('src') || '').trim() : '';
+        if (existingSrc && existingSrc.indexOf('unsplash.com') < 0 && !dedup[existingSrc]) {
+          mapped.unshift(existingSrc);
+          if (mapped.length > PHOTO_SLIDE_MAX) mapped = mapped.slice(0, PHOTO_SLIDE_MAX);
+        }
         var nameEl = job.card.querySelector('.th-tour-card__name');
         var linkEl = job.card.querySelector('.th-tour-card__link--main') || job.card.querySelector('a.th-tour-card__btn--secondary');
         rebuildCarouselTrack(job.carousel, mapped, {
@@ -709,13 +772,20 @@
 
   /** Догружает фото отеля из API Tourvisor, если в поиске было одно фото. */
   function hydrateCarouselsFromHotelApi(root) {
+    if (isCarouselHydrateDeferred()) {
+      scheduleCarouselHydrate(root, 1000);
+      return;
+    }
     var apiBase = resolveTvApiBase();
     if (!apiBase) return;
     var scope = root && root.querySelectorAll ? root : document;
     var promoResults = scope.id === 'promo-tours-results' ? scope : scope.querySelector('#promo-tours-results');
-    var hydrateLimit = promoResults ? 5 : 0;
+    var isMainSearch = !!(scope.id === 'tv-search-results' || scope.querySelector('#tv-search-results')
+      || (scope.closest && scope.closest('#tv-search-results')));
+    var hydrateLimit = promoResults ? 5 : (isMainSearch ? TH_CAROUSEL_HYDRATE_LIST_LIMIT : TH_CAROUSEL_HYDRATE_LIST_LIMIT);
     var queued = 0;
-    scope.querySelectorAll('.th-tour-card[data-th-hotel-id]').forEach(function (card) {
+    var cards = scope.querySelectorAll('.th-tour-card[data-th-hotel-id]');
+    cards.forEach(function (card) {
       if (hydrateLimit > 0 && queued >= hydrateLimit) return;
       if (card.getAttribute('data-th-carousel-hydrated') === '1') return;
       if (card.getAttribute('data-th-carousel-hydrate-pending') === '1') return;
@@ -729,7 +799,10 @@
         return;
       }
       var hotelId = card.getAttribute('data-th-hotel-id');
-      if (!hotelId) return;
+      if (!hotelId || thCarouselHydrateFailed[hotelId]) {
+        card.setAttribute('data-th-carousel-hydrated', '1');
+        return;
+      }
       card.setAttribute('data-th-carousel-hydrate-pending', '1');
       thCarouselHydrateQueue.push({ card: card, carousel: carousel, hotelId: hotelId });
       queued++;
@@ -891,6 +964,7 @@
     var badges = '';
     if (isPromo) badges += '<span class="th-tour-card__badge th-tour-card__badge--promo">\u0410\u043a\u0446\u0438\u044f</span>';
     if (options.directBadge) badges += '<span class="th-tour-card__badge th-tour-card__badge--direct">\u041f\u0440\u044f\u043c\u043e\u0439 \u0440\u0435\u0439\u0441</span>';
+    else if (options.transferBadge) badges += '<span class="th-tour-card__badge th-tour-card__badge--transfer">\u0421 \u043f\u0435\u0440\u0435\u0441\u0430\u0434\u043a\u043e\u0439</span>';
     if (options.badge) badges += '<span class="th-tour-card__badge th-tour-card__badge--exclusive">' + esc(options.badge) + '</span>';
 
     var targetAttr = options.target === '_blank' ? ' target="_blank" rel="noopener"' : '';
@@ -965,6 +1039,11 @@
     var starsHtml = catNum > 0 ? '\u2605'.repeat(Math.min(catNum, 5)) : '';
     var isPromo = !!options.promo;
     var showDirectBadge = !!options.directBadge;
+    var showTransferBadge = !!options.transferBadge;
+    if (!showDirectBadge && !showTransferBadge && options.flightMeta && typeof options.flightMeta.direct === 'boolean') {
+      if (options.flightMeta.direct) showDirectBadge = true;
+      else showTransferBadge = true;
+    }
     var cardHref = options.detailUrl || options.href || '#';
     if (slides.length && cardHref.indexOf('tour-detail') >= 0) {
       cardHref = appendGalleryToDetailUrl(cardHref, slides);
@@ -1009,6 +1088,7 @@
         hotelName: h.name,
         isPromo: isPromo,
         directBadge: showDirectBadge,
+        transferBadge: showTransferBadge,
         badge: options.badge,
         detailUrl: cardHref,
         target: options.target
@@ -1114,6 +1194,8 @@
     initCarouselsInContainer: initCarouselsInContainer,
     ensureCarouselsInContainer: ensureCarouselsInContainer,
     hydrateCarouselsFromHotelApi: hydrateCarouselsFromHotelApi,
+    clearCarouselHydrateQueue: clearCarouselHydrateQueue,
+    scheduleCarouselHydrate: scheduleCarouselHydrate,
     rebuildCarouselTrack: rebuildCarouselTrack,
     buildPromoLeadButtonHtml: buildPromoLeadButtonHtml,
     FALLBACK_IMG: FALLBACK_IMG
@@ -1133,8 +1215,16 @@
       var thCarouselMo = new MutationObserver(function () {
         if (thCarouselMoTimer) clearTimeout(thCarouselMoTimer);
         thCarouselMoTimer = setTimeout(function () {
-          ensureCarouselsInContainer(document);
-        }, 60);
+          var results = document.getElementById('tv-search-results')
+            || document.getElementById('promo-tours-results')
+            || document.getElementById('country-tv-search-results')
+            || document;
+          kickImagesInContainer(results);
+          initCarouselsInContainer(results);
+          if (!isCarouselHydrateDeferred()) {
+            scheduleCarouselHydrate(results, 500);
+          }
+        }, 180);
       });
       function thCarouselMoStart() {
         var targets = [

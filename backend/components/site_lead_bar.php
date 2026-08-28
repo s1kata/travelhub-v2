@@ -8,6 +8,13 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config/contacts.php';
 $thc = th_contacts();
 
+/* Логин / регистрация — бар перекрывает submit; не рендерим вовсе */
+$_th_page = isset($current_page) ? (string) $current_page : '';
+$_th_auth_pages = ['login', 'registration', 'register', 'forgot-password', 'reset-password'];
+if (!empty($th_hide_site_lead) || in_array($_th_page, $_th_auth_pages, true)) {
+    return;
+}
+
 if (!defined('TH_SITE_LEAD_CSS')) {
     define('TH_SITE_LEAD_CSS', true);
     $_th_sl_css = dirname(__DIR__, 2) . '/frontend/css/th-site-lead.css';

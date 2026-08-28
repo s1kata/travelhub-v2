@@ -47,13 +47,21 @@ $translations = [
 
 $current_page = 'home';
 
-// Search UI: original coral wizard by default. Optional experiment: ?search=v2
+// Search UI: wizard = поэтапный (default). Опции: ?search=tv | ?search=v2 | ?search=legacy
 if (isset($_GET['search']) && is_string($_GET['search']) && $_GET['search'] !== '') {
     $th_search_ui_raw = strtolower(trim($_GET['search']));
 } else {
-    $th_search_ui_raw = strtolower(trim((string) (getenv('TH_SEARCH_UI') ?: ($_ENV['TH_SEARCH_UI'] ?? 'legacy'))));
+    $th_search_ui_raw = strtolower(trim((string) (getenv('TH_SEARCH_UI') ?: ($_ENV['TH_SEARCH_UI'] ?? 'wizard'))));
 }
-$th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
+if ($th_search_ui_raw === 'legacy') {
+    $th_search_ui = 'legacy';
+} elseif ($th_search_ui_raw === 'v2') {
+    $th_search_ui = 'v2';
+} elseif ($th_search_ui_raw === 'tv') {
+    $th_search_ui = 'tv';
+} else {
+    $th_search_ui = 'wizard';
+}
 ?>
 
 <!DOCTYPE html>
@@ -85,8 +93,11 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     $page_type = 'website';
     $page_lang = $lang;
 
-    $schema_public_base = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $schema_public_base .= '://' . ($_SERVER['HTTP_HOST'] ?? 'travelhub63.ru');
+    if (!function_exists('tourvisor_request_is_https')) {
+        require_once __DIR__ . '/../backend/components/tourvisor_proxy_url.php';
+    }
+    $schema_public_base = (tourvisor_request_is_https() ? 'https' : 'http')
+        . '://' . ($_SERVER['HTTP_HOST'] ?? 'travelhub63.ru');
     
     // Дополнительная Schema.org разметка для главной страницы
     $schema_data = [
@@ -149,25 +160,31 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     <link rel="stylesheet" href="/frontend/css/responsive.css?v=17" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="/frontend/css/responsive.css?v=17"></noscript>
     <link rel="stylesheet" href="/frontend/css/design-system.css?v=14">
-    <link rel="stylesheet" href="/frontend/css/redesign.css?v=38">
+    <link rel="stylesheet" href="/frontend/css/redesign.css?v=40">
     <link rel="stylesheet" href="/frontend/css/v2-theme.css?v=4">
     <?php if ($th_search_ui === 'legacy'): ?>
     <link rel="stylesheet" href="/frontend/search-legacy/css/tour-search-wizard.css?v=legacy1">
     <link rel="stylesheet" href="/frontend/search-legacy/css/th-coral-search.css?v=legacy3">
-    <?php else: ?>
-    <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=13">
-    <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=20">
+    <?php elseif ($th_search_ui === 'v2'): ?>
+    <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=16">
+    <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=27">
     <link rel="stylesheet" href="/frontend/css/th-search-v2.css?v=1">
+    <?php elseif ($th_search_ui === 'tv'): ?>
+    <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=16">
+    <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=27">
+    <link rel="stylesheet" href="/frontend/css/th-search-tv.css?v=7">
+    <?php else: ?>
+    <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=16">
+    <link rel="stylesheet" href="/frontend/css/th-coral-search.css?v=27">
     <?php endif; ?>
     <link rel="stylesheet" href="/frontend/css/th-hard-funnel.css?v=8">
-    <link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=14">
-    <link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=9">
+    <link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=15">
+    <link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=11">
     <link rel="stylesheet" href="/frontend/css/yandex-mobile.css?v=10">
-    <link rel="stylesheet" href="/frontend/css/pages/home.css?v=19">
-    <link rel="stylesheet" href="/frontend/css/pages/home-hotels-promo.css?v=2">
+    <link rel="stylesheet" href="/frontend/css/pages/home.css?v=27">
     <link rel="stylesheet" href="/frontend/css/th-sheet.css?v=7">
     <?php include __DIR__ . '/../backend/components/mobile_site_head.php'; ?>
-    <link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=7">
+    <link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=11">
     <link rel="stylesheet" href="/frontend/css/support-chat.css?v=9">
     <!-- After unified-ui: mobile results dock overrides Call/MAX/Заявка bar -->
     <link rel="stylesheet" href="/frontend/css/th-results-ux.css?v=3">
@@ -177,10 +194,17 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     <?php if ($th_search_ui === 'legacy'): ?>
     <script src="/frontend/search-legacy/js/tour-search-wizard.js?v=legacy2" defer></script>
     <script src="/frontend/search-legacy/js/th-coral-search.js?v=legacy1" defer></script>
-    <?php else: ?>
-    <script src="/frontend/js/tour-search-wizard.js?v=16" defer></script>
-    <script src="/frontend/js/th-coral-search.js?v=11" defer></script>
+    <?php elseif ($th_search_ui === 'v2'): ?>
+    <script src="/frontend/js/tour-search-wizard.js?v=17" defer></script>
+    <script src="/frontend/js/th-coral-search.js?v=12" defer></script>
     <script src="/frontend/js/th-search-v2.js?v=1" defer></script>
+    <?php elseif ($th_search_ui === 'tv'): ?>
+    <script src="/frontend/js/tour-search-wizard.js?v=17" defer></script>
+    <script src="/frontend/js/th-coral-search.js?v=12" defer></script>
+    <script src="/frontend/js/th-search-tv.js?v=3" defer></script>
+    <?php else: ?>
+    <script src="/frontend/js/tour-search-wizard.js?v=17" defer></script>
+    <script src="/frontend/js/th-coral-search.js?v=12" defer></script>
     <?php endif; ?>
     <script src="/frontend/js/th-lead-capture.js?v=2" defer></script>
     <script src="/frontend/js/th-mobile.js?v=14" defer></script>
@@ -210,17 +234,6 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             <p id="tv-loader-msg" class="tv-search-loader-msg">Проверяем кэш...</p>
             <p id="tv-loader-sub" class="tv-search-loader-sub tv-search-loader-sub--sla">Обычно быстро · при необходимости уточняем у операторов</p>
             <p id="tv-loader-instant" aria-live="polite"></p>
-            <div id="tv-loader-slow" class="tv-search-loader-slow">
-                <p>Поиск идёт дольше 2 минут — можно подождать<br>или оставить телефон, менеджер подберёт тур.</p>
-                <form id="tv-loader-lead-form" class="tv-search-loader-slow__form">
-                    <input type="tel" name="phone" required class="tv-search-loader-slow__input" placeholder="+7 (___) ___-__-__" autocomplete="tel">
-                    <label class="tv-search-loader-slow__agree"><input type="checkbox" name="agree" required> <?php echo th_legal_consent_checkbox_html(); ?></label>
-                    <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;height:0;width:0">
-                    <p id="tv-loader-lead-msg" class="tv-search-loader-slow__msg hidden"></p>
-                    <button type="submit" class="tv-search-loader-slow__submit"><i class="fas fa-headset" aria-hidden="true"></i>Подобрать за меня</button>
-                </form>
-                <button type="button" data-open-lead-modal="slow-search" style="margin-top:8px;background:transparent;border:none;color:rgba(255,255,255,0.75);font-size:0.8125rem;cursor:pointer;text-decoration:underline">Открыть форму с комментарием</button>
-            </div>
         </div>
     </div>
     <!-- Баннер геолокации: только по кнопке «Определить» в форме, не показываем при загрузке -->
@@ -250,21 +263,23 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
         <div class="hero-overlay"></div>
 
         <div class="th-container home-hero-inner mx-auto px-4 sm:px-6 md:px-8 relative z-10 w-full flex flex-col flex-1 min-h-0 justify-start md:justify-center items-center">
-            <div class="w-full max-w-4xl mx-auto text-center hero-content mb-6 sm:mb-8 md:mb-10">
+            <div class="w-full max-w-5xl mx-auto text-center hero-content mb-5 sm:mb-6 md:mb-8">
                 <p class="heading-font text-white/90 text-sm sm:text-base font-semibold tracking-[0.18em] uppercase mb-3 drop-shadow-[0_1px_10px_rgba(0,0,0,0.35)]">Travel Hub</p>
-                <h1 class="heading-font text-[2rem] sm:text-4xl md:text-5xl lg:text-[2.5rem] font-bold text-white mb-4 leading-[1.2] tracking-tight drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)] th-home-hero__title">
-                    <span class="th-home-hero__title-line">Найдите тур за минуту</span>
+                <h1 class="heading-font text-[1.85rem] sm:text-4xl md:text-5xl font-bold text-white mb-2 leading-[1.2] tracking-tight drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)] th-home-hero__title">
+                    <span class="th-home-hero__title-line">Поможем найти тур</span>
                 </h1>
                 <p class="th-home-hero__steps text-[15px] sm:text-lg text-white/90 max-w-xl mx-auto leading-relaxed drop-shadow-[0_1px_12px_rgba(0,0,0,0.35)]">
                     <span>Откуда</span><span class="th-home-hero__dot" aria-hidden="true">·</span><span>Куда</span><span class="th-home-hero__dot" aria-hidden="true">·</span><span>Даты</span><span class="th-home-hero__dot" aria-hidden="true">·</span><span>Ночи</span><span class="th-home-hero__dot" aria-hidden="true">·</span><span>Туристы</span>
                 </p>
             </div>
 
-            <!-- ===================================================
-                 CORAL-STYLE ПОЭТАПНЫЙ ПОИСК (#tv-* для Tourvisor)
-                 5 шагов: Откуда → Куда → Когда → Ночи → Туристы
-                 =================================================== -->
-            <div id="tour-search-section" class="tv-sc-shell th-coral-search th-coral-wizard th-wizard w-full" data-th-wizard="home" data-step="1" data-start-step="1" data-search-mode="tours">
+            <!-- Поиск: wizard = поэтапно (default). ?search=tv — все поля сразу. Логика #tv-* без изменений. -->
+            <div id="tour-search-section"
+                 class="tv-sc-shell th-coral-search th-coral-wizard th-wizard w-full<?php echo $th_search_ui === 'tv' ? ' th-search-tv' : ($th_search_ui === 'v2' ? ' th-search-v2' : ' th-search-wizard'); ?>"
+                 data-th-wizard="home"
+                 data-step="<?php echo $th_search_ui === 'tv' ? '5' : '1'; ?>"
+                 data-start-step="<?php echo $th_search_ui === 'tv' ? '5' : '1'; ?>"
+                 data-search-mode="tours">
                 <?php
                 if (!function_exists('th_departure_default_id')) {
                     require_once __DIR__ . '/../backend/config/departure_defaults.php';
@@ -276,28 +291,40 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     <button type="button" class="th-search-mode__btn is-active" data-th-search-mode="tours" role="tab" aria-selected="true">Туры</button>
                     <button type="button" class="th-search-mode__btn" data-th-search-mode="hotels" role="tab" aria-selected="false">Отели</button>
                 </div>
-                <nav class="th-coral-wizard__rail" aria-label="Шаги поиска">
-                    <button type="button" class="th-coral-wizard__rail-item is-active" data-thw-goto="1" aria-current="step">
-                        <span class="th-coral-search__label">Откуда</span>
+                <p class="th-search-mode__hint" id="th-hotel-mode-hint" hidden>Цены только за проживание — без перелёта</p>
+
+                <?php if ($th_search_ui === 'tv'): ?>
+                <div class="th-search-tv__form">
+                <?php endif; ?>
+                <nav class="th-coral-wizard__rail" aria-label="Параметры поиска">
+                    <button type="button" class="th-coral-wizard__rail-item<?php echo $th_search_ui === 'tv' ? '' : ' is-active'; ?>" data-thw-goto="1" data-th-search-open="departure"<?php echo $th_search_ui === 'tv' ? '' : ' aria-current="step"'; ?>>
+                        <span class="th-coral-search__label" data-th-dep-label>Откуда</span>
                         <span class="th-coral-wizard__rail-value" data-th-label="departure"><?php echo $th_def_dep_name; ?></span>
                     </button>
-                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="2">
+                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="2" data-th-search-open="country">
                         <span class="th-coral-search__label">Куда</span>
-                        <span class="th-coral-wizard__rail-value is-placeholder" data-th-label="country">Страна</span>
+                        <span class="th-coral-wizard__rail-value is-placeholder" data-th-label="country">Загрузка…</span>
                     </button>
-                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="3">
-                        <span class="th-coral-search__label">Когда</span>
+                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="3" data-th-search-open="dates">
+                        <span class="th-coral-search__label" data-th-dates-label>Даты вылета</span>
                         <span class="th-coral-wizard__rail-value is-placeholder" data-th-label="dates">Даты</span>
                     </button>
-                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="4">
-                        <span class="th-coral-search__label">Ночи</span>
+                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="4" data-th-search-open="nights">
+                        <span class="th-coral-search__label">Ночей</span>
                         <span class="th-coral-wizard__rail-value" data-th-label="nights">6–9 ночей</span>
                     </button>
-                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="5">
+                    <button type="button" class="th-coral-wizard__rail-item" data-thw-goto="5" data-th-search-open="tourists">
                         <span class="th-coral-search__label">Туристы</span>
                         <span class="th-coral-wizard__rail-value" data-th-label="tourists">2 взрослых</span>
                     </button>
                 </nav>
+                <?php if ($th_search_ui === 'tv'): ?>
+                    <button type="button" class="th-search-tv__find" data-th-tv-find>
+                        <i class="fas fa-search" aria-hidden="true"></i>
+                        <span>Найти</span>
+                    </button>
+                </div>
+                <?php endif; ?>
 
                 <div class="th-wizard__stepbar" aria-live="polite">
                     <div class="th-wizard__stepbar-track" aria-hidden="true">
@@ -346,15 +373,15 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     <div class="th-wizard__panel" data-panel="3" hidden>
                         <button type="button" class="th-coral-search__field th-coral-search__field--step" data-th-search-open="dates" aria-label="Когда">
                             <span class="th-coral-search__field-inner">
-                                <span class="th-coral-search__label">Когда</span>
+                                <span class="th-coral-search__label" data-th-dates-label>Даты вылета</span>
                                 <span class="th-coral-search__value is-placeholder" data-th-label="dates">Выберите даты</span>
                             </span>
                             <i class="fas fa-chevron-right th-coral-search__chevron" aria-hidden="true"></i>
                         </button>
-                        <div class="th-wizard__nav">
+                        <div class="th-wizard__nav th-wizard__nav--dates">
                             <button type="button" class="th-wizard__back" data-thw-back>Назад</button>
                             <button type="button" class="th-wizard__next" data-thw-next>Далее</button>
-                            <button type="button" class="th-coral-search__search-btn button button-primary tv-sc-search-btn th-hotel-find-btn" data-th-hotel-find>
+                            <button type="button" class="th-hotel-find-btn th-wizard__cta" data-th-hotel-find>
                                 <i class="fas fa-hotel" aria-hidden="true"></i>
                                 <span>Найти отели</span>
                             </button>
@@ -445,7 +472,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                             </label>
                             <label class="th-wizard__flight-toggle">
                                 <input type="checkbox" id="tv-only-direct" class="th-wizard__flight-toggle-input">
-                                <span>Прямой рейс</span>
+                                <span>Только прямой</span>
                             </label>
                         </div>
                         <button type="button" id="tv-filters-modal-open" class="sr-only" aria-hidden="true" tabindex="-1"
@@ -648,9 +675,12 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     <!-- Основная колонка: прогресс + карточки -->
                     <div class="tv-results-main" style="min-width:0">
                         <div class="tv-results-toolbar">
+                            <div class="tv-results-toolbar__head">
                             <h3 class="tv-results-toolbar__title heading-font text-xl font-bold text-slate-900">
                                 Найдено <span id="tv-result-count">0</span> <span id="tv-result-noun">туров</span>
                             </h3>
+                            <p class="tv-results-hotel-note" id="tv-results-hotel-note" hidden>Цены без перелёта — только проживание</p>
+                            </div>
                             <div class="tv-sort-rail">
                                 <div class="tv-results-calendar-quick" role="group" aria-label="Сдвиг дат">
                                     <button type="button" class="tv-cal-quick-btn" data-tv-shift-days="-3">−3 дня</button>
@@ -673,6 +703,10 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                                 <span class="text-slate-600">Поиск туров...</span>
                                 <span id="tv-progress-text" class="text-slate-500 text-sm"></span>
                             </div>
+                        </div>
+                        <div id="tv-live-refine" class="tv-live-refine hidden" aria-live="polite">
+                            <span class="tv-live-refine__spin" aria-hidden="true"></span>
+                            <span id="tv-live-refine-text">Уточняем цены у операторов…</span>
                         </div>
                         <div id="tv-search-results" class="tv-search-results-grid th-tour-grid">
                             <!-- Карточки туров подставляются JS -->
@@ -733,25 +767,11 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     } elseif (!empty($homeShowcaseBoot['tours']) && is_array($homeShowcaseBoot['tours'])) {
         $homeShowcaseBootTours = $homeShowcaseBoot['tours'];
     }
-    $homeShowcaseBootTours = array_slice($homeShowcaseBootTours, 0, 12);
+    $homeShowcaseBootTours = array_slice($homeShowcaseBootTours, 0, 8);
     ?>
-    <section class="th-want-cheaper" aria-labelledby="th-want-cheaper-title">
-        <div class="th-container mx-auto px-4 sm:px-6 md:px-8 max-w-7xl">
-            <div class="th-want-cheaper__card">
-                <div class="th-want-cheaper__top">
-                    <span class="th-want-cheaper__avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
-                    <h2 id="th-want-cheaper-title" class="th-want-cheaper__title heading-font">Хотите дешевле?</h2>
-                </div>
-                <p class="th-want-cheaper__sub">Получите наш волшебный отпускной промокод</p>
-                <button type="button" class="th-want-cheaper__btn" id="th-want-cheaper-btn">Получить промокод</button>
-                <div class="th-want-cheaper__done hidden" id="th-want-cheaper-done" hidden>
-                    <p class="th-want-cheaper__code-label">Ваш промокод</p>
-                    <p class="th-want-cheaper__code" id="th-want-cheaper-code"></p>
-                    <p class="th-want-cheaper__cap">Скидка по промокоду — не более 5000 ₽. Один раз на человека.</p>
-                </div>
-            </div>
-        </div>
-    </section>
+    <?php
+    /* Блок «Хотите дешевле?» убран с главной — промо на /promotions и в апп-флоу */
+    ?>
     <section class="th-home-showcase py-6 md:py-10 bg-[#F9FAFB]" aria-labelledby="dest-heading">
         <div class="th-container mx-auto px-4 sm:px-6 md:px-8 max-w-7xl">
             <div class="th-showcase-head mb-5 md:mb-6">
@@ -760,19 +780,6 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     <p class="text-[#6B7280] text-sm sm:text-base mt-1">Готовые варианты с ценой — открывайте сразу</p>
                 </div>
                 <a class="th-showcase-hot__all" href="/frontend/window/promotions.php">Смотреть все</a>
-            </div>
-
-            <div class="th-showcase-toolbar mb-4">
-                <div class="th-showcase-departure-switch" role="group" aria-label="Город вылета">
-                    <button type="button" class="th-showcase-departure-btn<?php echo ((int)($homeShowcaseBoot['departureId'] ?? 7) === 7) ? ' is-active' : ''; ?>" data-showcase-departure-city="samara" data-showcase-departure-id="7">Самара</button>
-                    <button type="button" class="th-showcase-departure-btn<?php echo ((int)($homeShowcaseBoot['departureId'] ?? 7) === 1) ? ' is-active' : ''; ?>" data-showcase-departure-city="moscow" data-showcase-departure-id="1">Москва</button>
-                </div>
-                <div class="th-showcase-moods__chips" role="tablist" aria-label="Подборки">
-                    <button type="button" class="th-mood-chip is-active" data-home-mood="beach" role="tab" aria-selected="true">На пляж</button>
-                    <button type="button" class="th-mood-chip" data-home-mood="mountains" role="tab" aria-selected="false">В горы</button>
-                    <button type="button" class="th-mood-chip" data-home-mood="family" role="tab" aria-selected="false">С детьми</button>
-                    <button type="button" class="th-mood-chip" data-home-mood="budget" role="tab" aria-selected="false">Недорого</button>
-                </div>
             </div>
 
             <div id="home-hot-tours-grid" class="th-tour-offer-grid">
@@ -816,188 +823,37 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             </div>
             <p id="home-hot-tours-empty" class="th-showcase-empty<?php echo $homeShowcaseBootTours !== [] ? ' hidden' : ''; ?>">Сейчас подгружаем актуальные туры… Если долго не появляются — откройте <a href="/frontend/window/promotions.php">все акции</a>.</p>
             <p class="mt-5 text-center text-sm text-[#6B7280]">
-                Или смотрите <a href="/frontend/window/tour-calendar.php" class="font-semibold text-[#5DA9A4] hover:underline">календарь выгодных дат</a> — цены по дням вылета.
+                Больше вариантов — в <a href="/frontend/window/promotions.php" class="font-semibold text-[#5DA9A4] hover:underline">акциях</a>
+                и <a href="/frontend/window/tour-calendar.php" class="font-semibold text-[#5DA9A4] hover:underline">календаре выгодных дат</a>.
             </p>
         </div>
     </section>
 
-    <!-- Продающая витрина: отели с турами -->
-    <section class="th-hh" aria-labelledby="home-hotels-heading">
+    <section class="th-home-trust py-8 md:py-10 bg-white" aria-label="Почему Travel Hub">
         <div class="th-container mx-auto px-4 sm:px-6 md:px-8 max-w-7xl">
-            <div class="th-hh__stage">
-                <div class="th-hh__media" aria-hidden="true"></div>
-                <div class="th-hh__glow" aria-hidden="true"></div>
-                <div class="th-hh__body">
-                    <div class="th-hh__copy">
-                        <span class="th-hh__badge"><i class="fas fa-bolt" aria-hidden="true"></i> Новое</span>
-                        <h2 id="home-hotels-heading" class="heading-font th-hh__title">Сначала отель — сразу туры</h2>
-                        <p class="th-hh__lead">Только отели с реальными ценами. Страна → отель → тур. Без пустых карточек и лишних форм.</p>
-                        <div class="th-hh__actions">
-                            <a class="th-hh__cta" href="/frontend/window/popular-hotels.php">
-                                Смотреть отели
-                                <i class="fas fa-arrow-right" aria-hidden="true"></i>
-                            </a>
-                            <a class="th-hh__ghost" href="/frontend/window/turkey-vip-hotels.php">VIP Турция</a>
-                        </div>
-                        <div class="th-hh__chips" aria-label="Быстрый переход">
-                            <a class="th-hh__chip" href="/frontend/window/popular-hotels.php?country=4">Турция</a>
-                            <a class="th-hh__chip" href="/frontend/window/popular-hotels.php?country=1">Египет</a>
-                            <a class="th-hh__chip" href="/frontend/window/popular-hotels.php?country=9">ОАЭ</a>
-                            <a class="th-hh__chip" href="/frontend/window/tour-calendar.php">Календарь дат</a>
-                        </div>
+            <ul class="th-home-trust__list">
+                <li class="th-home-trust__item">
+                    <span class="th-home-trust__icon" aria-hidden="true"><i class="fas fa-search"></i></span>
+                    <div>
+                        <strong>Поиск по операторам</strong>
+                        <p>Актуальные цены туров в одном месте</p>
                     </div>
-                    <div class="th-hh__preview">
-                        <a class="th-hh__preview-card" href="/frontend/window/popular-hotels.php">
-                            <strong>Отели с ценой на карточке</strong>
-                            <span>Открыли — и сразу видите, сколько стоит тур</span>
-                            <em>Перейти к отелям →</em>
-                        </a>
-                        <a class="th-hh__preview-card" href="/frontend/window/promotions.php">
-                            <strong>Горящие направления</strong>
-                            <span>Египет · ОАЭ · Таиланд · Турция</span>
-                            <em>Смотреть акции →</em>
-                        </a>
+                </li>
+                <li class="th-home-trust__item">
+                    <span class="th-home-trust__icon" aria-hidden="true"><i class="fas fa-headset"></i></span>
+                    <div>
+                        <strong>Живая поддержка</strong>
+                        <p>Ответим в мессенджере или по телефону</p>
                     </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Баннер мобильного приложения (компактно) -->
-    <section class="py-8 md:py-10 bg-white">
-        <div class="th-container mx-auto px-4 sm:px-6 md:px-8 max-w-7xl">
-            <a href="https://apps.apple.com/ru/app/travelhub/id6786282632"
-               id="th-app-install-link"
-               target="_blank" rel="noopener"
-               class="th-app-banner group block rounded-3xl overflow-hidden">
-                <div class="th-app-banner__inner flex flex-col sm:flex-row items-center gap-5 sm:gap-6 p-6 sm:p-7">
-                    <div class="th-app-banner__icon flex-shrink-0 flex items-center justify-center">
-                        <i class="fas fa-mobile-screen-button" aria-hidden="true"></i>
+                </li>
+                <li class="th-home-trust__item">
+                    <span class="th-home-trust__icon" aria-hidden="true"><i class="fas fa-map-marker-alt"></i></span>
+                    <div>
+                        <strong>Офисы в Самаре и Москве</strong>
+                        <p><a href="/frontend/window/offices.php">Адреса и как добраться</a></p>
                     </div>
-                    <div class="flex-1 text-center sm:text-left">
-                        <p class="th-app-banner__eyebrow">Приложение TravelHub</p>
-                        <h2 class="th-app-banner__title heading-font">Бронируйте со смартфона</h2>
-                    </div>
-                    <span class="th-app-banner__cta flex-shrink-0 inline-flex items-center gap-2">
-                        <i class="fab fa-apple" aria-hidden="true"></i>
-                        <span>App Store</span>
-                    </span>
-                </div>
-            </a>
-            <div id="th-app-promo-teaser" class="th-app-banner-note">
-                <p class="th-app-banner-note__lead">
-                    После перехода в App Store покажем промокод <strong>−10%</strong> на бронирование на сайте.
-                </p>
-            </div>
-            <div id="th-app-promo-unlocked" class="th-app-banner-promo th-app-banner-promo--unlocked" hidden>
-                <span class="th-app-banner-promo__badge" aria-hidden="true">−10%</span>
-                <div class="th-app-banner-promo__body">
-                    <p class="th-app-banner-promo__text">
-                        Промокод:
-                        <button type="button" class="th-app-banner-promo__code" id="th-app-promo-copy" data-promo-code="TRAVELAPP" aria-label="Скопировать промокод TRAVELAPP">TRAVELAPP</button>
-                    </p>
-                    <p class="th-app-banner-note__disclaimer th-app-banner-note__disclaimer--compact" style="margin-top:4px">Скидка по промокоду — не более 5000 ₽</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Testimonials -->
-    <section class="py-20 bg-[#F9FAFB]">
-        <div class="th-container mx-auto px-6">
-            <div class="max-w-4xl mx-auto text-center mb-12">
-                <span class="pill-badge mb-4">Отзывы гостей</span>
-                <h2 class="heading-font text-3xl sm:text-4xl font-bold text-slate-900 mb-4">Travel Hub — это команда, которая предвосхищает желания</h2>
-                <p class="text-slate-700 text-lg max-w-2xl mx-auto">Актуальные отзывы наших клиентов.</p>
-            </div>
-            <div class="max-w-6xl mx-auto">
-                <div class="surface-card p-6 sm:p-8">
-                    <script src="https://res.smartwidgets.ru/app.js" async></script>
-                    <div class="w-full min-h-[280px]">
-                        <div class="sw-app" data-app="c8bf82eb261ead0450f68aa38e8c94f2"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Contact Info with Map -->
-    <section id="contact" class="relative py-14 md:py-16 bg-gradient-to-br from-gray-50 via-white to-indigo-50/30">
-        <div class="th-container mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="max-w-7xl mx-auto">
-                <div class="text-center mb-8 md:mb-10">
-                    <h2 class="heading-font text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Контакты и офис</h2>
-                    <p class="text-slate-600 max-w-xl mx-auto">Телефон, мессенджеры и адрес — ответим за 15 минут</p>
-                </div>
-                
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-10 items-start">
-                    <div class="space-y-6">
-                        <div class="surface-card p-6 lg:p-8 space-y-4 bg-gradient-to-br from-indigo-50/80 via-white to-sky-50/70 border border-indigo-100/80">
-                            <h3 class="heading-font text-xl font-bold text-slate-900 mb-4">Контакты</h3>
-                            <div class="space-y-4">
-                                <div class="flex items-start gap-3">
-                                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center flex-shrink-0 shadow-md shadow-indigo-500/20 text-[10px] font-extrabold text-white">
-                                        MAX
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-slate-600 mb-1">MAX</p>
-                                        <p class="text-slate-800 font-semibold"><a href="https://max.ru/u/f9LHodD0cOJpBbwh-zr3lqTmDxZiZMLDP-FuyTUa8fyzWO3S2tgc4_Mirnk" target="_blank" rel="noopener noreferrer" class="hover:text-indigo-600 transition-colors">Написать в MAX</a></p>
-                                    </div>
-                                </div>
-                                <div class="flex items-start gap-3">
-                                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center flex-shrink-0 shadow-md shadow-indigo-500/20">
-                                        <i class="fab fa-telegram text-white"></i>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-slate-600 mb-1">Telegram</p>
-                                        <p class="text-slate-800 font-semibold"><a href="https://t.me/TravelHub63" target="_blank" rel="noopener noreferrer" class="hover:text-indigo-600 transition-colors">@TravelHub63</a></p>
-                                    </div>
-                                </div>
-                                <div class="flex items-start gap-3">
-                                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center flex-shrink-0 shadow-md shadow-indigo-500/20">
-                                        <i class="fas fa-envelope text-white"></i>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-slate-600 mb-1">Email</p>
-                                        <p class="text-slate-800"><a href="mailto:hello@travelhub63.ru" class="hover:text-indigo-600 transition-colors">hello@travelhub63.ru</a></p>
-                                    </div>
-                                </div>
-                                <div class="flex items-start gap-3">
-                                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center flex-shrink-0 shadow-md shadow-indigo-500/20">
-                                        <i class="fas fa-map-marker-alt text-white"></i>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-slate-600 mb-1">Офис (Самара)</p>
-                                        <p class="text-slate-800">Самара, Московское шоссе, 81Б, ТЦ «Парк Хаус»</p>
-                                        <p class="text-xs text-slate-500 mt-1"><a href="/frontend/window/offices.php" class="text-[#5DA9A4] hover:underline">Все офисы в Самаре и Москве</a></p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex gap-3 pt-4 border-t border-gray-100">
-                                <a href="https://max.ru/u/f9LHodD0cOJpBbwh-zr3lqTmDxZiZMLDP-FuyTUa8fyzWO3S2tgc4_Mirnk" class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white flex items-center justify-center hover:from-indigo-600 hover:to-indigo-800 transition text-xs font-extrabold shadow-md shadow-indigo-500/20" aria-label="MAX" target="_blank" rel="noopener noreferrer">MAX</a>
-                                <a href="https://t.me/TravelHub63" class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition" aria-label="Telegram" target="_blank" rel="noopener noreferrer">
-                                    <i class="fab fa-telegram text-xl"></i>
-                                </a>
-                                <a href="https://vk.ru/hubtravel" class="w-12 h-12 rounded-xl bg-sky-100 text-[#0077FF] flex items-center justify-center hover:bg-sky-200 transition" aria-label="VK" target="_blank" rel="noopener noreferrer">
-                                    <i class="fab fa-vk text-xl"></i>
-                                </a>
-                                <a href="tel:+78462541656" class="w-12 h-12 rounded-xl bg-[#FF6B6B]/10 text-[#FF6B6B] flex items-center justify-center hover:bg-[#FF6B6B]/20 transition" aria-label="Позвонить">
-                                    <i class="fas fa-phone text-lg"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="lg:col-span-2">
-                        <div class="surface-card p-0 overflow-hidden">
-                            <?php
-                            require_once __DIR__ . '/../backend/config/maps.php';
-                            $yandex_map_open_url = th_maps()['widget_samara_hq'];
-                            include __DIR__ . '/../backend/components/yandex_map_open_link.php';
-                            ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                </li>
+            </ul>
         </div>
     </section>
 
@@ -1193,15 +1049,26 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     var stored = localStorage.getItem('th_departure_id');
                     if (stored) depId = parseInt(String(stored), 10) || 1;
                 } catch (eDep) {}
-                // Всегда добираем из прокси с departureId (без него кэш отдаёт ~4 страны).
-                return fetchCountriesForDep(depId).then(function (proxyList) {
+
+                /* Сразу отдаём словарь (UI не висит на «Страна»), прокси дотягиваем фоном. */
+                var proxyEnrich = fetchCountriesForDep(depId).then(function (proxyList) {
                     var merged = mergeCountryLists([dictCountries, proxyList]);
-                    if (merged.length >= 15 || depId === 1) {
-                        return { success: true, data: merged };
-                    }
+                    if (merged.length >= 15 || depId === 1) return merged;
                     return fetchCountriesForDep(1).then(function (msk) {
-                        return { success: true, data: mergeCountryLists([merged, msk]) };
+                        return mergeCountryLists([merged, msk]);
                     });
+                }).catch(function () {
+                    return dictCountries.slice();
+                });
+
+                window.__tv_countriesEnrichPromise = proxyEnrich;
+
+                if (dictCountries.length >= 8) {
+                    return { success: true, data: dictCountries.slice(), _enrichPending: true };
+                }
+
+                return proxyEnrich.then(function (merged) {
+                    return { success: true, data: merged };
                 });
             });
             var mealsPromise = dictPromise.then(function(o) {
@@ -1232,12 +1099,41 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             return j.success ? 'OK' : (j.error || 'Ошибка');
         }
 
-        async function tvFetch(type, params = {}, opts) {
+        var tvFetchInflight = Object.create(null);
+        var tvFetchMissMemo = Object.create(null);
+        var TV_FETCH_MISS_TTL_MS = 45000;
+        var tvFetchQueue = [];
+        var tvFetchActive = 0;
+        var TV_FETCH_MAX_CONCURRENT = 3;
+
+        function tvFetchReleaseSlot() {
+            tvFetchActive = Math.max(0, tvFetchActive - 1);
+            while (tvFetchQueue.length && tvFetchActive < TV_FETCH_MAX_CONCURRENT) {
+                var next = tvFetchQueue.shift();
+                if (next) next();
+            }
+        }
+
+        function tvFetchAcquireSlot() {
+            return new Promise(function (resolve) {
+                function tryAcquire() {
+                    if (tvFetchActive < TV_FETCH_MAX_CONCURRENT) {
+                        tvFetchActive++;
+                        resolve(tvFetchReleaseSlot);
+                        return;
+                    }
+                    tvFetchQueue.push(tryAcquire);
+                }
+                tryAcquire();
+            });
+        }
+
+        function tvFetchBuildUrl(type, params, opts) {
             opts = opts || {};
             const base = TV_API_BASE;
             const u = new URL(base);
             u.searchParams.set('type', type);
-            Object.entries(params).forEach(([k, v]) => {
+            Object.entries(params || {}).forEach(([k, v]) => {
                 if (k === 'childs') {
                     if (v === undefined || v === null) return;
                     const s = String(v).trim();
@@ -1249,40 +1145,99 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             if (type === 'search-cached') {
                 if (opts.cacheScope) u.searchParams.set('cacheScope', String(opts.cacheScope));
                 if (opts.cacheOnly) u.searchParams.set('cacheOnly', '1');
-                if (!opts.cacheOnly && !opts.backgroundRefresh) u.searchParams.set('live', '1');
-                if (opts.backgroundRefresh) u.searchParams.set('live', '1');
+                if (opts.live || opts.forceLive || opts.backgroundRefresh) u.searchParams.set('live', '1');
                 if (opts.slim !== false) u.searchParams.set('slim', '1');
                 if (opts.full) u.searchParams.set('full', '1');
-                u.searchParams.set('_t', String(Date.now()));
+                if (!opts.cacheOnly) u.searchParams.set('_t', String(Date.now()));
             }
-            const url = u.toString();
+            if (type === 'results') {
+                if (opts.slim !== false) u.searchParams.set('slim', '1');
+                if (opts.persist === false || opts.persist === 0 || opts.persist === '0') {
+                    u.searchParams.set('persist', '0');
+                }
+            }
+            if (type === 'status' && params.operatorStatus == null) {
+                u.searchParams.set('operatorStatus', '1');
+            }
+            return u.toString();
+        }
+
+        async function tvFetch(type, params = {}, opts) {
+            opts = opts || {};
+            const dedupKey = tvFetchBuildUrl(type, params, opts);
+            if (opts.cacheOnly && type === 'search-cached') {
+                var memo = tvFetchMissMemo[dedupKey];
+                if (memo && (Date.now() - memo.ts) < TV_FETCH_MISS_TTL_MS) {
+                    return memo.result;
+                }
+            }
+            if (tvFetchInflight[dedupKey]) {
+                return tvFetchInflight[dedupKey];
+            }
+            const url = dedupKey;
             const paramsStr = Object.keys(params).length ? JSON.stringify(params) : '{}';
             console.log('%c[Tourvisor] Запрос', 'color: #1A1A40; font-weight: bold', 'type:', type, 'params:', paramsStr);
-            try {
-                const r = await fetch(url, { method: 'GET', cache: 'no-store' });
-                const cacheHeader = r.headers.get('X-Tourvisor-Cache');
-                const cacheSaved = r.headers.get('X-Tourvisor-Cache-Saved');
-                const itemsCount = r.headers.get('X-Tourvisor-Items');
-                const text = await r.text();
-                if (!r.ok) throw new Error('HTTP ' + r.status);
-                let j;
-                try { j = text ? JSON.parse(text) : { success: false, error: 'Empty response', data: null }; } catch (e) { j = { success: false, error: 'Invalid JSON', data: null }; }
-                const summary = tvFetchSummary(type, j);
-                if (j.success) {
-                    const cacheInfo = cacheHeader ? ` | кэш: ${cacheHeader}${cacheSaved ? ', сохранён в кэш: ' + cacheSaved : ''}${itemsCount ? ', записей: ' + itemsCount : ''}` : '';
-                    console.log('%c[Tourvisor] Ответ ✓', 'color: #22c55e; font-weight: bold', 'type:', type, '|', summary + cacheInfo, j);
-                } else if (type === 'search-cached' && (j.error === 'Cache miss' || j.fromCache === false)) {
-                    console.log('%c[Tourvisor] Кэш пуст', 'color: #94a3b8', 'type: search-cached | для этих параметров кэша нет, будет выполнен живой поиск');
-                } else {
-                    console.warn('%c[Tourvisor] Ответ с ошибкой', 'color: #ef4444', 'type:', type, '| error:', j.error || j, j);
-                    if (typeof j.error === 'string' && (j.error.includes('SSL') || j.error.includes('timeout'))) {
-                        console.info('%c[API → сайт] На localhost SSL/timeout бывает из-за сети или фаервола. На продакшене обычно стабильнее. Настройка верная.', 'color: #64748b; font-size: 10px;');
-                    }
+            var timeoutMs = opts.timeoutMs;
+            if (timeoutMs == null) {
+                if (type === 'search') timeoutMs = 65000;
+                else if (type === 'status') timeoutMs = 45000;
+                else if (type === 'results') timeoutMs = 60000;
+                else if (type === 'search-cached') timeoutMs = opts.cacheOnly ? 12000 : 65000;
+                else if (type === 'tour-flights') timeoutMs = 45000;
+                else timeoutMs = 25000;
+            }
+            var run = (async function () {
+                var releaseSlot = await tvFetchAcquireSlot();
+                var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+                var abortTimer = null;
+                if (ctrl && timeoutMs > 0) {
+                    abortTimer = setTimeout(function () {
+                        try { ctrl.abort(); } catch (eAb) {}
+                    }, timeoutMs);
                 }
-                return j;
-            } catch (e) {
-                console.error('%c[Tourvisor] Ошибка запроса ✗', 'color: #ef4444; font-weight: bold', 'type:', type, '|', e.message, '| URL:', url);
-                return { success: false, error: String(e.message) };
+                try {
+                    const r = await fetch(url, {
+                        method: 'GET',
+                        cache: 'no-store',
+                        signal: ctrl ? ctrl.signal : undefined
+                    });
+                    const cacheHeader = r.headers.get('X-Tourvisor-Cache');
+                    const cacheSaved = r.headers.get('X-Tourvisor-Cache-Saved');
+                    const itemsCount = r.headers.get('X-Tourvisor-Items');
+                    const text = await r.text();
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    let j;
+                    try { j = text ? JSON.parse(text) : { success: false, error: 'Empty response', data: null }; } catch (e) { j = { success: false, error: 'Invalid JSON', data: null }; }
+                    const summary = tvFetchSummary(type, j);
+                    if (j.success) {
+                        const cacheInfo = cacheHeader ? ` | кэш: ${cacheHeader}${cacheSaved ? ', сохранён в кэш: ' + cacheSaved : ''}${itemsCount ? ', записей: ' + itemsCount : ''}` : '';
+                        console.log('%c[Tourvisor] Ответ ✓', 'color: #22c55e; font-weight: bold', 'type:', type, '|', summary + cacheInfo, j);
+                    } else if (type === 'search-cached' && (j.error === 'Cache miss' || j.fromCache === false)) {
+                        console.log('%c[Tourvisor] Кэш пуст', 'color: #94a3b8', 'type: search-cached | для этих параметров кэша нет, будет выполнен живой поиск');
+                        if (opts.cacheOnly) {
+                            tvFetchMissMemo[dedupKey] = { ts: Date.now(), result: j };
+                        }
+                    } else {
+                        console.warn('%c[Tourvisor] Ответ с ошибкой', 'color: #ef4444', 'type:', type, '| error:', j.error || j, j);
+                        if (typeof j.error === 'string' && (j.error.includes('SSL') || j.error.includes('timeout'))) {
+                            console.info('%c[API → сайт] На localhost SSL/timeout бывает из-за сети или фаервола. На продакшене обычно стабильнее. Настройка верная.', 'color: #64748b; font-size: 10px;');
+                        }
+                    }
+                    return j;
+                } catch (e) {
+                    var aborted = !!(e && (e.name === 'AbortError' || /abort/i.test(String(e.message || ''))));
+                    console.error('%c[Tourvisor] Ошибка запроса ✗', 'color: #ef4444; font-weight: bold', 'type:', type, '|', aborted ? 'timeout' : e.message, '| URL:', url);
+                    return { success: false, error: aborted ? 'timeout' : String(e.message) };
+                } finally {
+                    if (abortTimer) clearTimeout(abortTimer);
+                    releaseSlot();
+                }
+            })();
+            tvFetchInflight[dedupKey] = run;
+            try {
+                return await run;
+            } finally {
+                delete tvFetchInflight[dedupKey];
             }
         }
 
@@ -1334,7 +1289,10 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
         function tvCollectHomeCacheParams() {
             var dep = '7';
             try {
-                if (typeof tvActiveDeparture === 'function') {
+                if (typeof tvEffectiveSearchDeparture === 'function') {
+                    var ed = tvEffectiveSearchDeparture();
+                    if (ed && ed.id) dep = String(ed.id);
+                } else if (typeof tvActiveDeparture === 'function') {
                     var da = tvActiveDeparture();
                     if (da && da.id) dep = String(da.id);
                 } else if (document.getElementById('tv-departure') && document.getElementById('tv-departure').value) {
@@ -1403,6 +1361,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
         }
 
         function tvPrefetchHomeSearchCache() {
+            if (window.__tvSearchBusy || window.__thDeferHeavyCards) return;
             var params = tvCollectHomeCacheParams();
             if (!params || !params.countryId || !params.dateFrom || !params.dateTo) return;
             var key = tvHomeSwrKey(params);
@@ -1420,8 +1379,9 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
         }
 
         function tvSchedulePrefetchHomeSearch() {
+            if (window.__tvSearchBusy || window.__thDeferHeavyCards) return;
             if (tvPrefetchTimer) clearTimeout(tvPrefetchTimer);
-            tvPrefetchTimer = setTimeout(tvPrefetchHomeSearchCache, 450);
+            tvPrefetchTimer = setTimeout(tvPrefetchHomeSearchCache, 900);
         }
 
         function tvResultsSkeletonHtml(n) {
@@ -1797,8 +1757,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 else if (depSel.options.length > 1) depSel.selectedIndex = 1;
             }
 
-            if (depSel && depSel.tagName === 'SELECT') depSel.innerHTML = '<option value="">Загрузка...</option>';
-            if (countrySel) countrySel.innerHTML = '<option value="">Загрузка...</option>';
+            // Keep SSR defaults in selects until dictionaries arrive (no «Загрузка...» flash)
             moodChips.forEach(function(btn) {
                 btn.addEventListener('click', function() {
                     var mood = String(btn.getAttribute('data-home-mood') || 'beach');
@@ -1924,7 +1883,168 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     }
                     window.__tvCalDayCreate = tvCalDayCreate;
                     window.tvFlightFlags = tvFlightFlags;
+                    function tvMapsEqual(a, b) {
+                        var ka = Object.keys(a || {});
+                        var kb = Object.keys(b || {});
+                        if (ka.length !== kb.length) return false;
+                        for (var i = 0; i < ka.length; i++) {
+                            if (!b[ka[i]]) return false;
+                        }
+                        return true;
+                    }
+                    function tvYmdFromTs(ts) {
+                        var d = new Date(ts);
+                        var p = function (n) { return String(n).padStart(2, '0'); };
+                        return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+                    }
+                    /** Прямые даты: /tours/dates&onlyDirect сломан — окна search-cached&onlyDirect (только кэш, без live). */
+                    async function tvLoadDirectDatesViaSearch(depId, cid, allMap) {
+                        if (window.__tvSearchBusy || window.__thDeferHeavyCards) return {};
+                        var keys = Object.keys(allMap || {}).sort();
+                        var directMap = {};
+                        if (!keys.length || typeof tvFetch !== 'function') return directMap;
+                        var i = 0;
+                        var windows = 0;
+                        var maxWindows = 2;
+                        while (i < keys.length && windows < maxWindows) {
+                            var from = keys[i];
+                            var fromTs = Date.parse(from + 'T12:00:00');
+                            if (!isFinite(fromTs)) { i++; continue; }
+                            var toTs = fromTs + 6 * 86400 * 1000;
+                            var toStr = tvYmdFromTs(toTs);
+                            var inWin = [];
+                            while (i < keys.length) {
+                                var kt = Date.parse(keys[i] + 'T12:00:00');
+                                if (!isFinite(kt) || kt > toTs) break;
+                                inWin.push(keys[i]);
+                                i++;
+                            }
+                            windows++;
+                            if (!inWin.length) continue;
+                            var baseParams = {
+                                departureId: String(depId),
+                                countryId: String(cid),
+                                dateFrom: from,
+                                dateTo: toStr,
+                                nightsFrom: '7',
+                                nightsTo: '14',
+                                adults: '2',
+                                currency: 'RUB',
+                                onlyDirect: '1'
+                            };
+                            /* Без live-fallback: на холодных направлениях (Шри-Ланка) live onlyDirect вешает FPM → 503. */
+                            var r = await tvFetch('search-cached', baseParams, { cacheOnly: true, slim: false });
+                            if (r && r.success && Array.isArray(r.data) && r.data.length) {
+                                inWin.forEach(function (k) { directMap[k] = true; });
+                            }
+                        }
+                        return directMap;
+                    }
+                    async function tvTourIdIsDirectFlight(tourId, depName, depId) {
+                        if (!tourId) return null;
+                        if (typeof thFlightsCacheGet === 'function') {
+                            var cachedMeta = thFlightsCacheGet(String(tourId), depName);
+                            if (cachedMeta && typeof cachedMeta.direct === 'boolean') return cachedMeta.direct;
+                        }
+                        try {
+                            var j;
+                            if (typeof thFetchTourFlightsJson === 'function') {
+                                j = await thFetchTourFlightsJson(tourId, { departureCity: depName });
+                            } else if (typeof tvFetch === 'function') {
+                                j = await tvFetch('tour-flights', { tourId: String(tourId), currency: 'RUB' }, {});
+                            } else {
+                                return null;
+                            }
+                            if (j && j._fromCache) {
+                                var cm = typeof thFlightsCacheGet === 'function' ? thFlightsCacheGet(String(tourId), depName) : null;
+                                if (cm && typeof cm.direct === 'boolean') return cm.direct;
+                                return null;
+                            }
+                            if (j && j._memoFail) return null;
+                            var flights = (j && Array.isArray(j.flights))
+                                ? j.flights
+                                : (j && j.data && Array.isArray(j.data.flights) ? j.data.flights : []);
+                            if (!flights.length) return null;
+                            var pick = (typeof window.thPickTourvisorFlightPackage === 'function')
+                                ? window.thPickTourvisorFlightPackage(flights, depName, depId)
+                                : flights[0];
+                            var meta = (typeof window.thFlightMetaFromPackage === 'function')
+                                ? window.thFlightMetaFromPackage(pick, depName)
+                                : null;
+                            if (meta && typeof meta.direct === 'boolean') return meta.direct;
+                            if (!pick) return null;
+                            var fw = pick.forward;
+                            var bw = pick.backward || pick.back;
+                            if (!Array.isArray(fw) || fw.length !== 1) return false;
+                            if (Array.isArray(bw) && bw.length > 1) return false;
+                            return true;
+                        } catch (eTf) {
+                            return null;
+                        }
+                    }
+                    /** Уточнение прямых ночей через tour-flights (когда onlyDirect в search бесполезен). */
+                    async function tvEnrichDirectNightsFromFlights(depId, depName, tourIdsByNight, seedDirect) {
+                        if (window.__tvSearchBusy || window.__thDeferHeavyCards) {
+                            return Object.assign({}, seedDirect || {});
+                        }
+                        var directMap = Object.assign({}, seedDirect || {});
+                        var nights = Object.keys(tourIdsByNight || {});
+                        if (!nights.length) return directMap;
+                        var queue = [];
+                        nights.forEach(function (n) {
+                            var ids = tourIdsByNight[n] || [];
+                            for (var t = 0; t < Math.min(1, ids.length); t++) {
+                                queue.push({ n: n, id: ids[t] });
+                            }
+                        });
+                        queue = queue.slice(0, 8);
+                        var known = {};
+                        for (var qi = 0; qi < queue.length; qi++) {
+                            var item = queue[qi];
+                            if (directMap[item.n]) continue;
+                            var key = String(item.id);
+                            var isD;
+                            if (Object.prototype.hasOwnProperty.call(known, key)) {
+                                isD = known[key];
+                            } else {
+                                isD = await tvTourIdIsDirectFlight(item.id, depName, depId);
+                                known[key] = isD;
+                                if (qi < queue.length - 1) {
+                                    await new Promise(function (r) { setTimeout(r, 450); });
+                                }
+                            }
+                            if (isD === true) directMap[item.n] = true;
+                        }
+                        return directMap;
+                    }
+                    function tvCollectTourIdsByNight(list, target) {
+                        target = target || {};
+                        (list || []).forEach(function (h) {
+                            if (!h) return;
+                            var tours = h.tours ? h.tours : [];
+                            if (!tours.length && (h.nights || h.minNights)) {
+                                var hn = parseInt(String(h.nights || h.minNights || ''), 10);
+                                var hid = h.id || h.hotelId;
+                                if (hn >= 1 && hn <= 28 && hid) {
+                                    if (!target[hn]) target[hn] = [];
+                                    // без tourId не проверяем flights
+                                }
+                                return;
+                            }
+                            tours.forEach(function (t) {
+                                if (!t) return;
+                                var n = parseInt(String(t.nights || t.nightsCount || ''), 10);
+                                var tid = t.id || t.tourId || t.tourid;
+                                if (!(n >= 1 && n <= 28) || tid == null || tid === '') return;
+                                if (!target[n]) target[n] = [];
+                                var s = String(tid);
+                                if (target[n].indexOf(s) < 0) target[n].push(s);
+                            });
+                        });
+                        return target;
+                    }
                     window.tvLoadFlyAvailability = async function () {
+                        if (window.__tvSearchBusy || window.__thDeferHeavyCards) return;
                         var depId = parseInt(String((depSel && depSel.value) || '7'), 10) || 7;
                         var cid = parseInt(String((countrySel && countrySel.value) || ''), 10) || 0;
                         if (!cid || typeof tvFetch !== 'function') {
@@ -1939,15 +2059,13 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                         try {
                             var res = await Promise.all([
                                 tvFetch('dates', { departureId: String(depId), countryId: String(cid) }),
-                                tvFetch('dates', { departureId: String(depId), countryId: String(cid), onlyCharter: '1' }),
-                                tvFetch('dates', { departureId: String(depId), countryId: String(cid), onlyDirect: '1' })
+                                tvFetch('dates', { departureId: String(depId), countryId: String(cid), onlyCharter: '1' })
                             ]);
                             var allMap = tvDatesToMap(res[0] && res[0].success ? res[0].data : []);
                             var charterMap = tvDatesToMap(res[1] && res[1].success ? res[1].data : []);
-                            var directMap = tvDatesToMap(res[2] && res[2].success ? res[2].data : []);
-                            // Если onlyDirect не поддержан API — direct совпадёт с all; тогда не приглушаем всё подряд.
-                            var directUseful = Object.keys(directMap).length > 0
-                                && Object.keys(directMap).length < Object.keys(allMap).length;
+                            var directMap = await tvLoadDirectDatesViaSearch(depId, cid, allMap);
+                            // Если «прямой» совпал со всеми датами — API не дал различия; оставляем метки (всё прямое).
+                            var directUseful = Object.keys(directMap).length > 0;
                             window.__tvFlyDates = {
                                 key: flyKey,
                                 all: allMap,
@@ -1961,7 +2079,11 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                         } catch (eFly) {}
                     };
                     window.tvLoadFlyNights = async function () {
+                        if (window.__tvSearchBusy || window.__thDeferHeavyCards) return;
                         var depId = parseInt(String((depSel && depSel.value) || '7'), 10) || 7;
+                        var depName = (depSel && depSel.options && depSel.selectedIndex >= 0)
+                            ? String(depSel.options[depSel.selectedIndex].textContent || '').trim()
+                            : ((window.TH_DEPARTURE && window.TH_DEPARTURE.name) || 'Самара');
                         var cid = parseInt(String((countrySel && countrySel.value) || ''), 10) || 0;
                         var datesVal = (document.getElementById('tv-dates') && document.getElementById('tv-dates').value) || '';
                         var dateFrom = '';
@@ -1995,47 +2117,110 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                         if (!cid || !dateFrom || !dateTo || typeof tvFetch !== 'function') return;
                         var flags = tvFlightFlags();
                         var nKey = [depId, cid, dateFrom, dateTo, flags.charter ? 1 : 0, flags.direct ? 1 : 0].join(':');
-                        if (window.__tvFlyNights && window.__tvFlyNights.key === nKey) {
-                            if (typeof renderTvNightsGrid === 'function') renderTvNightsGrid(true);
+                        if (window.__tvFlyNights && window.__tvFlyNights.key === nKey && Object.keys(window.__tvFlyNights.all || {}).length
+                            && window.__tvFlyNights.enriched) {
+                            if (typeof window.renderTvNightsGrid === 'function') window.renderTvNightsGrid(true);
                             return;
                         }
                         function nightsFromHotels(list) {
                             var map = {};
                             (list || []).forEach(function (h) {
-                                var tours = (h && h.tours) ? h.tours : [];
+                                if (!h) return;
+                                var hn = parseInt(String(h.nights || h.minNights || ''), 10);
+                                if (hn >= 1 && hn <= 28) map[hn] = true;
+                                var tours = h.tours ? h.tours : [];
                                 tours.forEach(function (t) {
-                                    var n = parseInt(String(t && t.nights || ''), 10);
+                                    var n = parseInt(String(t && (t.nights || t.nightsCount) || ''), 10);
                                     if (n >= 1 && n <= 28) map[n] = true;
                                 });
                             });
                             return map;
                         }
-                        var baseParams = {
-                            departureId: String(depId),
-                            countryId: String(cid),
-                            dateFrom: dateFrom,
-                            dateTo: dateTo,
-                            nightsFrom: '1',
-                            nightsTo: '11',
-                            adults: '2',
-                            currency: 'RUB'
-                        };
+                        function mergeNightMaps(target, src) {
+                            Object.keys(src || {}).forEach(function (k) { target[k] = true; });
+                            return target;
+                        }
+                        function mapSize(m) { return Object.keys(m || {}).length; }
+                        var nFromSel = (typeof tvNightsFrom !== 'undefined' ? parseInt(tvNightsFrom, 10) : 6) || 6;
+                        var nToSel = (typeof tvNightsTo !== 'undefined' ? parseInt(tvNightsTo, 10) : 9) || 9;
+                        var bandLo = Math.max(1, Math.min(nFromSel, nToSel) - 2);
+                        var bandHi = Math.min(28, Math.max(nFromSel, nToSel) + 2);
+                        var nightBands = [[bandLo, bandHi]];
+                        var reqId = (window.__tvFlyNightsReqId = (window.__tvFlyNightsReqId || 0) + 1);
                         try {
-                            var reqs = [
-                                tvFetch('search-cached', baseParams, { cacheOnly: true, slim: true })
-                            ];
-                            var charterParams = Object.assign({}, baseParams, { onlyCharter: '1' });
-                            var directParams = Object.assign({}, baseParams, { onlyDirect: '1' });
-                            reqs.push(tvFetch('search-cached', charterParams, { cacheOnly: true, slim: true }));
-                            reqs.push(tvFetch('search-cached', directParams, { cacheOnly: true, slim: true }));
-                            var nr = await Promise.all(reqs);
+                            var allMap = {};
+                            var charterMap = {};
+                            var directMap = {};
+                            var tourIdsByNight = {};
+                            var wantCharterDirect = flags.charter || flags.direct;
+                            async function fetchBand(band, cacheOnly, withDirect) {
+                                var baseParams = {
+                                    departureId: String(depId),
+                                    countryId: String(cid),
+                                    dateFrom: dateFrom,
+                                    dateTo: dateTo,
+                                    nightsFrom: String(band[0]),
+                                    nightsTo: String(band[1]),
+                                    adults: '2',
+                                    currency: 'RUB'
+                                };
+                                var opts = { cacheOnly: !!cacheOnly, slim: false };
+                                var nr = await tvFetch('search-cached', baseParams, opts);
+                                var allList = nr && nr.success ? nr.data : [];
+                                mergeNightMaps(allMap, nightsFromHotels(allList));
+                                tvCollectTourIdsByNight(allList, tourIdsByNight);
+                                if (cacheOnly && wantCharterDirect) {
+                                    if (flags.charter) {
+                                        var nc = await tvFetch('search-cached', Object.assign({}, baseParams, { onlyCharter: '1' }), opts);
+                                        mergeNightMaps(charterMap, nightsFromHotels(nc && nc.success ? nc.data : []));
+                                    }
+                                    if (withDirect && flags.direct) {
+                                        var nd = await tvFetch('search-cached', Object.assign({}, baseParams, { onlyDirect: '1' }), opts);
+                                        mergeNightMaps(directMap, nightsFromHotels(nd && nd.success ? nd.data : []));
+                                    }
+                                }
+                            }
+                            for (var bi = 0; bi < nightBands.length; bi++) {
+                                await fetchBand(nightBands[bi], true, true);
+                                if (bi < nightBands.length - 1) await new Promise(function (r) { setTimeout(r, 250); });
+                            }
+                            /* Без live-fallback: search-cached без cacheOnly вешает FPM и рвёт основной поиск. */
+                            if (mapSize(allMap) === 0) {
+                                window.__tvFlyNights = {
+                                    key: nKey,
+                                    all: {},
+                                    charter: {},
+                                    direct: {},
+                                    enriched: true
+                                };
+                                if (typeof window.renderTvNightsGrid === 'function') window.renderTvNightsGrid(true);
+                                return;
+                            } else if (mapSize(directMap) === 0 || tvMapsEqual(directMap, allMap)) {
+                                /* Direct-метки без live fan-out: только tour-flights по уже известным tourId. */
+                            }
+                            if (reqId !== window.__tvFlyNightsReqId) return;
+                            var onlyDirectUseful = mapSize(directMap) > 0 && !tvMapsEqual(directMap, allMap);
+                            if (!onlyDirectUseful) {
+                                // onlyDirect в search часто бесполезен (совпадает с all / пуст) — подтверждаем через tour-flights
+                                window.__tvFlyNights = {
+                                    key: nKey,
+                                    all: allMap,
+                                    charter: charterMap,
+                                    direct: {},
+                                    enriched: false
+                                };
+                                if (typeof window.renderTvNightsGrid === 'function') window.renderTvNightsGrid(true);
+                                directMap = await tvEnrichDirectNightsFromFlights(depId, depName, tourIdsByNight, {});
+                                if (reqId !== window.__tvFlyNightsReqId) return;
+                            }
                             window.__tvFlyNights = {
                                 key: nKey,
-                                all: nightsFromHotels(nr[0] && nr[0].success ? nr[0].data : []),
-                                charter: nightsFromHotels(nr[1] && nr[1].success ? nr[1].data : []),
-                                direct: nightsFromHotels(nr[2] && nr[2].success ? nr[2].data : [])
+                                all: allMap,
+                                charter: charterMap,
+                                direct: mapSize(directMap) > 0 ? directMap : {},
+                                enriched: true
                             };
-                            if (typeof renderTvNightsGrid === 'function') renderTvNightsGrid(true);
+                            if (typeof window.renderTvNightsGrid === 'function') window.renderTvNightsGrid(true);
                         } catch (eNights) {}
                     };
                     window.tvLoadCalendarPriceMap = async function () {
@@ -2048,6 +2233,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                         }
                         var mapKey = depId + ':' + cid;
                         if (window.__tvCalPriceMapKey === mapKey && window.__tvCalPriceMap && Object.keys(window.__tvCalPriceMap).length) {
+                            if (typeof window.tvLoadFlyAvailability === 'function') window.tvLoadFlyAvailability();
                             return;
                         }
                         try {
@@ -2254,6 +2440,18 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 if (window.THTourSearchWizard && typeof window.THTourSearchWizard.refreshSummary === 'function') {
                     window.THTourSearchWizard.refreshSummary();
                 }
+                if (window.THSearchUI && typeof window.THSearchUI.refreshLabels === 'function') {
+                    window.THSearchUI.refreshLabels();
+                }
+            }
+
+            /* Фоновый догруз из прокси (полный список под departure) */
+            if (window.__tv_countriesEnrichPromise && typeof window.__tv_countriesEnrichPromise.then === 'function') {
+                window.__tv_countriesEnrichPromise.then(function (merged) {
+                    if (!merged || !merged.length) return;
+                    if (merged.length <= countriesList.length) return;
+                    applyTvCountriesList(merged, { keepCountryId: countrySel ? countrySel.value : '' });
+                }).catch(function () {});
             }
 
             function reloadTvCountriesForDeparture(depId) {
@@ -2276,6 +2474,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     }
                 }).catch(function () {});
             }
+            window.reloadTvCountriesForDeparture = reloadTvCountriesForDeparture;
 
             function resolveHomePopularDepartureId() {
                 if (!departuresList || !departuresList.length) return 0;
@@ -2468,10 +2667,15 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             window.loadTvRegions = loadTvRegions;
 
             countrySel.addEventListener('change', async function() {
+                window.__tvFlyDates = { key: '', all: {}, charter: {}, direct: {} };
+                window.__tvFlyNights = { key: '', all: {}, charter: {}, direct: {}, enriched: false };
+                window.__tvCalPriceMap = {};
+                window.__tvCalPriceMapKey = '';
                 await loadTvRegions();
                 applyDefaultDateWindow();
                 tvSchedulePrefetchHomeSearch();
                 if (typeof window.tvLoadCalendarPriceMap === 'function') window.tvLoadCalendarPriceMap();
+                if (typeof window.tvLoadFlyAvailability === 'function') window.tvLoadFlyAvailability();
             });
             if (depSel) {
                 depSel.addEventListener('change', function () {
@@ -2511,6 +2715,10 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             document.addEventListener('click', function(e) {
                 var shiftBtn = e.target && e.target.closest ? e.target.closest('[data-tv-shift-days]') : null;
                 if (!shiftBtn) return;
+                if (shiftBtn.disabled || shiftBtn.getAttribute('aria-disabled') === 'true' || shiftBtn.classList.contains('is-disabled')) {
+                    e.preventDefault();
+                    return;
+                }
                 e.preventDefault();
                 tvShiftSearchDates(parseInt(String(shiftBtn.getAttribute('data-tv-shift-days') || '0'), 10));
             });
@@ -2627,6 +2835,17 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 tvNightsSelectFrom = true;
                 renderTvNightsGrid(true);
                 updateTvNightsDraftHint();
+                syncTvNightsQuickActive();
+            }
+            function syncTvNightsQuickActive() {
+                if (!tvNightsQuick) return;
+                tvNightsQuick.querySelectorAll('.tv-nights-quick__chip').forEach(function (chip) {
+                    var f = parseInt(chip.getAttribute('data-nights-from') || chip.getAttribute('data-from'), 10);
+                    var t = parseInt(chip.getAttribute('data-nights-to') || chip.getAttribute('data-to'), 10);
+                    var on = Number.isFinite(f) && Number.isFinite(t)
+                        && f === draftNightsFrom && t === draftNightsTo;
+                    chip.classList.toggle('active', on);
+                });
             }
             if (tvNightsQuick) {
                 if (window.THDatePresets && typeof window.THDatePresets.renderNightsChips === 'function') {
@@ -2639,6 +2858,8 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                         b.type = 'button';
                         b.className = 'tv-nights-quick__chip';
                         b.textContent = p[2];
+                        b.setAttribute('data-nights-from', String(p[0]));
+                        b.setAttribute('data-nights-to', String(p[1]));
                         b.addEventListener('click', function () { applyTvNightsQuick(p[0], p[1]); });
                         tvNightsQuick.appendChild(b);
                     });
@@ -2663,10 +2884,20 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                         : (draftNightsFrom + '–' + draftNightsTo + ' ' + nWord(draftNightsTo));
                 }
             }
+            var tvNightsHoverTo = null;
             function renderTvNightsGrid(useDraft) {
                 if (!tvNightsGrid) return;
                 var fromN = useDraft ? draftNightsFrom : tvNightsFrom;
                 var toN = useDraft ? draftNightsTo : tvNightsTo;
+                if (!tvNightsSelectFrom && tvNightsHoverTo != null) {
+                    var h = tvNightsHoverTo;
+                    if (h < fromN) {
+                        toN = fromN;
+                        fromN = h;
+                    } else {
+                        toN = h;
+                    }
+                }
                 var flags = (typeof tvFlightFlags === 'function')
                     ? tvFlightFlags()
                     : {
@@ -2678,15 +2909,23 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     ? (flyN.direct || {})
                     : (flags.charter ? (flyN.charter || {}) : (flyN.all || {}));
                 var hasAvail = Object.keys(availMap).length > 0;
+                var legend = document.querySelector('#tv-nights-popup .tv-nights-legend');
+                if (legend) {
+                    legend.classList.toggle('is-filter-on', !!(flags.direct || flags.charter));
+                    legend.classList.toggle('has-data', !!(
+                        (flyN.all && Object.keys(flyN.all).length)
+                        || (flyN.direct && Object.keys(flyN.direct).length)
+                    ));
+                }
                 tvNightsGrid.querySelectorAll('.tv-nights-cell').forEach(function(btn) {
                     var n = parseInt(btn.getAttribute('data-n'), 10);
-                    btn.classList.remove('is-from', 'is-to', 'is-in-range', 'text-white', 'is-fly-available', 'is-fly-direct', 'is-fly-off');
+                    btn.classList.remove('is-from', 'is-to', 'is-in-range', 'is-range-hover', 'text-white', 'is-fly-available', 'is-fly-direct', 'is-fly-off');
                     if (n === fromN) {
                         btn.classList.add('is-from', 'text-white');
                     } else if (n === toN && toN !== fromN) {
                         btn.classList.add('is-to', 'text-white');
                     } else if (n > fromN && n < toN) {
-                        btn.classList.add('is-in-range');
+                        btn.classList.add(!tvNightsSelectFrom && tvNightsHoverTo != null ? 'is-range-hover' : 'is-in-range');
                     }
                     if (flyN.direct && flyN.direct[n]) btn.classList.add('is-fly-direct');
                     else if (flyN.all && flyN.all[n]) btn.classList.add('is-fly-available');
@@ -2694,7 +2933,9 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                         btn.classList.add('is-fly-off');
                     }
                 });
+                syncTvNightsQuickActive();
             }
+            window.renderTvNightsGrid = renderTvNightsGrid;
             function openTvNightsPopup() {
                 draftNightsFrom = tvNightsFrom;
                 draftNightsTo = tvNightsTo;
@@ -2726,6 +2967,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 }
                 var n = parseInt(btn.getAttribute('data-n'), 10);
                 if (!Number.isFinite(n) || n < 1 || n > 28) return;
+                tvNightsHoverTo = null;
                 if (tvNightsSelectFrom) {
                     draftNightsFrom = n;
                     draftNightsTo = n;
@@ -2746,6 +2988,28 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 handleTvNightsCellSelect(e.target.closest('.tv-nights-cell'), e);
             });
             if (tvNightsGrid) {
+                tvNightsGrid.addEventListener('pointerover', function (e) {
+                    if (tvNightsSelectFrom) return;
+                    var btn = e.target.closest('.tv-nights-cell');
+                    if (!btn || !tvNightsGrid.contains(btn)) return;
+                    var n = parseInt(btn.getAttribute('data-n'), 10);
+                    if (!Number.isFinite(n) || n === tvNightsHoverTo) return;
+                    tvNightsHoverTo = n;
+                    renderTvNightsGrid(true);
+                    var fromLbl = document.getElementById('tv-nights-from-label');
+                    var toLbl = document.getElementById('tv-nights-to-label');
+                    var a = draftNightsFrom;
+                    var b = n;
+                    if (b < a) { var t = a; a = b; b = t; }
+                    if (fromLbl) fromLbl.textContent = a;
+                    if (toLbl) toLbl.textContent = b;
+                });
+                tvNightsGrid.addEventListener('pointerleave', function () {
+                    if (tvNightsHoverTo == null) return;
+                    tvNightsHoverTo = null;
+                    renderTvNightsGrid(true);
+                    updateTvNightsDraftHint();
+                });
                 tvNightsGrid.querySelectorAll('.tv-nights-cell').forEach(function (btn) {
                     btn.addEventListener('touchend', function (e) { handleTvNightsCellSelect(btn, e); }, { passive: false });
                 });
@@ -3147,6 +3411,70 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
         let tvCompareMap = {};
         const TV_COMPARE_MAX = 3;
         window.__thSearchMode = window.__thSearchMode || 'tours';
+        /** Tourvisor: departureId=99 («Без перелёта») — цена только за проживание, без авиа. */
+        var TH_HOTEL_DEPARTURE_ID = 99;
+        var TH_HOTEL_DEPARTURE_NAME = 'Без перелёта';
+        /** Прямые рейсы приоритетно: Таиланд(2), Шри-Ланка(12), Вьетнам(16/18), Фукуок(16104). Без UI-текста. */
+        var TH_DIRECT_PRIORITY_COUNTRY_IDS = { '2': 1, '12': 1, '16': 1, '18': 1, '16104': 1 };
+        function thIsDirectPriorityCountry(countryId) {
+            var id = parseInt(String(countryId != null ? countryId : ''), 10);
+            if (!id) return false;
+            return !!TH_DIRECT_PRIORITY_COUNTRY_IDS[String(id)];
+        }
+        function tvFlightMetaLookup(tourId, depCity) {
+            if (!tourId) return null;
+            if (typeof thFlightsCacheGet === 'function') {
+                var cached = thFlightsCacheGet(String(tourId), depCity);
+                if (cached) return cached;
+            }
+            if (!window.__mainFlightsByTourId) return null;
+            var cityKey = String(depCity || '').trim().toLowerCase().replace(/ё/g, 'е');
+            return window.__mainFlightsByTourId[String(tourId) + '@' + cityKey]
+                || window.__mainFlightsByTourId[String(tourId)]
+                || null;
+        }
+        function tvHotelFlightIsDirect(h) {
+            if (!h) return false;
+            if (h._thDirectWave) return true;
+            var tour = (typeof tvHotelCheapestTour === 'function')
+                ? tvHotelCheapestTour(h)
+                : ((h.tours && h.tours[0]) ? h.tours[0] : {});
+            var tourId = tour && (tour.id != null && tour.id !== '') ? String(tour.id) : '';
+            if (!tourId) return false;
+            var depCity = (typeof tvActiveDeparture === 'function' ? tvActiveDeparture().name : '') || 'Самара';
+            var meta = tvFlightMetaLookup(tourId, depCity);
+            return !!(meta && meta.direct === true);
+        }
+        function tvSortHotelsDirectFlightFirst(list) {
+            if (!Array.isArray(list) || !list.length) return list || [];
+            return list.slice().sort(function (a, b) {
+                var da = tvHotelFlightIsDirect(a) ? 0 : 1;
+                var db = tvHotelFlightIsDirect(b) ? 0 : 1;
+                if (da !== db) return da - db;
+                return (tvHotelListPrice(a) || 0) - (tvHotelListPrice(b) || 0);
+            });
+        }
+        function tvMaybeResortDirectPriority() {
+            if (thIsHotelSearchMode()) return;
+            var cid = document.getElementById('tv-country') && document.getElementById('tv-country').value;
+            if (!thIsDirectPriorityCountry(cid)) return;
+            if (window.__tvSearchFlightFlags && window.__tvSearchFlightFlags.onlyDirect) return;
+            if (!Array.isArray(tvHotelsBeforeBudgetFilter) || !tvHotelsBeforeBudgetFilter.length) return;
+            var before = tvHotelsBeforeBudgetFilter.map(function (h) { return tvHotelKey(h); }).join(',');
+            tvHotelsBeforeBudgetFilter = tvSortHotelsDirectFlightFirst(tvHotelsBeforeBudgetFilter);
+            var after = tvHotelsBeforeBudgetFilter.map(function (h) { return tvHotelKey(h); }).join(',');
+            if (before === after) return;
+            var list = tvHotelsBeforeBudgetFilter.slice();
+            list = list.filter(function (h) { return tvHotelListPrice(h) > 0 && !h._catalogOnly; });
+            if (window.THTourPostFilters && tvPostFiltersCtrl) {
+                list = window.THTourPostFilters.filterHotels(list, tvPostFiltersCtrl.state, { getPrice: tvHotelListPrice });
+            }
+            list = applyBudgetFilterToHotels(list);
+            tvLastResults = list;
+        }
+        function tvHotelKey(h) {
+            return h && h.id != null ? String(h.id) : '';
+        }
         var TV_MAIN_SNAPSHOT_KEY = 'tv_main_search_snapshot_v1';
         var TV_MAIN_SNAPSHOT_TTL_MS = 45 * 60 * 1000;
 
@@ -3258,21 +3586,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             if (el) { el.classList.add('active'); el.setAttribute('aria-hidden', 'false'); }
             if (msg) msg.classList.remove('done');
             if (tvLoaderRotateInterval) { clearInterval(tvLoaderRotateInterval); tvLoaderRotateInterval = null; }
-            const slow = document.getElementById('tv-loader-slow');
-            if (slow) slow.classList.remove('show');
-            if (tvLoaderSlowTimer) clearTimeout(tvLoaderSlowTimer);
-            tvLoaderSlowTimer = setTimeout(function () {
-                const s = document.getElementById('tv-loader-slow');
-                const loaderEl = document.getElementById('tv-search-loader');
-                if (s && loaderEl && loaderEl.classList.contains('active')) {
-                    s.classList.add('show');
-                    if (typeof window.openQuickLeadModalWithIntent === 'function') {
-                        window.openQuickLeadModalWithIntent('slow-search');
-                    } else if (typeof window.openQuickLeadModal === 'function') {
-                        window.openQuickLeadModal('slow-search');
-                    }
-                }
-            }, 120000);
+            if (tvLoaderSlowTimer) { clearTimeout(tvLoaderSlowTimer); tvLoaderSlowTimer = null; }
             const instant = document.getElementById('tv-loader-instant');
             if (instant) instant.textContent = '';
             tvLoaderSetStage('cache');
@@ -3325,9 +3639,39 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             const el = document.getElementById('tv-search-loader');
             if (tvLoaderRotateInterval) { clearInterval(tvLoaderRotateInterval); tvLoaderRotateInterval = null; }
             if (tvLoaderSlowTimer) { clearTimeout(tvLoaderSlowTimer); tvLoaderSlowTimer = null; }
-            const slow = document.getElementById('tv-loader-slow');
-            if (slow) slow.classList.remove('show');
             if (el) { el.classList.remove('active'); el.setAttribute('aria-hidden', 'true'); }
+        }
+
+        function tvShowLiveRefine(show, text) {
+            var el = document.getElementById('tv-live-refine');
+            var txt = document.getElementById('tv-live-refine-text');
+            if (show) {
+                window.__thDeferHeavyCards = true;
+                if (el) {
+                    if (txt) txt.textContent = text || 'Уточняем цены у операторов…';
+                    el.classList.remove('hidden');
+                }
+                return;
+            }
+            if (el) el.classList.add('hidden');
+            var wasDeferred = !!window.__thDeferHeavyCards;
+            window.__thDeferHeavyCards = false;
+            if (window.THTourCard && typeof window.THTourCard.scheduleCarouselHydrate === 'function') {
+                var resEl = document.getElementById('tv-search-results');
+                window.THTourCard.scheduleCarouselHydrate(resEl || document, 800);
+            }
+            if (wasDeferred && Array.isArray(tvLastResults) && tvLastResults.length && typeof applyTvSort === 'function') {
+                setTimeout(function () {
+                    if (!window.__thDeferHeavyCards) applyTvSort({});
+                }, 400);
+            }
+        }
+
+        function tvNormalizeHotelsList(raw) {
+            if (Array.isArray(raw)) return raw;
+            if (raw && Array.isArray(raw.hotels)) return raw.hotels;
+            if (raw && Array.isArray(raw.data)) return raw.data;
+            return [];
         }
 
         function tvActiveDeparture() {
@@ -3348,13 +3692,188 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             };
         }
 
+        /** Город вылета для API. «Отели» → dep=99 (только проживание, без авиа). */
+        function tvEffectiveSearchDeparture() {
+            if (typeof thIsHotelSearchMode === 'function' && thIsHotelSearchMode()) {
+                return { id: String(TH_HOTEL_DEPARTURE_ID), name: TH_HOTEL_DEPARTURE_NAME };
+            }
+            return tvActiveDeparture();
+        }
+
+        function tvSleep(ms) {
+            return new Promise(function (resolve) { setTimeout(resolve, ms); });
+        }
+
+        /**
+         * Live по доке Tourvisor: search → wait 3с → status → results.
+         * Early paint с ~30% / ~3.5с после старта poll; дальше фоновая догрузка.
+         * Один searchId = один слот суточной квоты search.
+         */
+        async function tvProgressiveLiveSearch(params, opts) {
+            opts = opts || {};
+            var gen = opts.gen;
+            var onPartial = typeof opts.onPartial === 'function' ? opts.onPartial : null;
+            var softMaxMs = Math.max(8000, Math.min(25000, opts.softMaxMs || 16000));
+            var earlyProgress = Math.max(20, Math.min(80, opts.earlyProgress || 30));
+            var earlyLimit = Math.max(40, Math.min(200, opts.earlyLimit || 80));
+            var finalLimit = Math.max(80, Math.min(500, opts.finalLimit || 200));
+            var isStale = function () {
+                return gen != null && gen !== window.__tvSearchGen;
+            };
+            if (isStale()) return { success: false, aborted: true, data: [] };
+
+            var started = await tvFetch('search', params);
+            if (isStale()) return { success: false, aborted: true, data: [] };
+            if (!started || !started.success || !started.searchId) {
+                return {
+                    success: false,
+                    data: [],
+                    error: (started && started.error) ? started.error : 'Не удалось запустить поиск'
+                };
+            }
+            var sid = parseInt(String(started.searchId), 10);
+            if (!sid) {
+                return { success: false, data: [], error: 'searchId missing' };
+            }
+
+            // Дока: первых результатов обычно нет раньше 3–5с
+            await tvSleep(2800);
+            if (isStale()) return { success: false, aborted: true, data: [] };
+
+            var paintedPartial = false;
+            var lastPaintCount = 0;
+            var t0 = Date.now();
+            var lastProgress = 0;
+            var done = false;
+
+            while ((Date.now() - t0) < softMaxMs) {
+                if (isStale()) return { success: false, aborted: true, data: [] };
+                var st = await tvFetch('status', { searchId: String(sid), operatorStatus: '1' });
+                if (isStale()) return { success: false, aborted: true, data: [] };
+                if (!st || !st.success) {
+                    var err = String((st && st.error) || '');
+                    if (/429|rate/i.test(err)) {
+                        await tvSleep(4000);
+                        continue;
+                    }
+                    if (/timeout/i.test(err)) {
+                        // не рвём цикл сразу — пробуем забрать накопленное
+                        break;
+                    }
+                    break;
+                }
+                var sd = st.data || {};
+                var status = String(sd.status || '').toLowerCase();
+                lastProgress = parseInt(String(sd.progress != null ? sd.progress : 0), 10) || 0;
+                if (status === 'error') {
+                    return { success: false, data: [], error: 'Search error', searchId: sid };
+                }
+
+                var elapsed = Date.now() - t0;
+                var shouldTryResults = onPartial && (
+                    lastProgress >= earlyProgress
+                    || elapsed >= 3500
+                    || (paintedPartial && lastProgress >= earlyProgress - 5)
+                );
+                if (shouldTryResults) {
+                    var early = await tvFetch('results', {
+                        searchId: String(sid),
+                        limit: String(earlyLimit)
+                    }, { persist: false, slim: true });
+                    if (isStale()) return { success: false, aborted: true, data: [] };
+                    var earlyList = tvNormalizeHotelsList(early && early.data);
+                    if (early && early.success && earlyList.length > lastPaintCount) {
+                        lastPaintCount = earlyList.length;
+                        paintedPartial = true;
+                        try {
+                            onPartial(earlyList, { partial: true, progress: lastProgress, searchId: sid });
+                        } catch (ePart) {}
+                    }
+                }
+
+                if (status === 'completed' || lastProgress >= 100) {
+                    done = true;
+                    break;
+                }
+                await tvSleep(paintedPartial ? 1500 : 1800);
+            }
+
+            if (isStale()) return { success: false, aborted: true, data: [] };
+            var fin = await tvFetch('results', {
+                searchId: String(sid),
+                limit: String(finalLimit)
+            }, { slim: true });
+            if (isStale()) return { success: false, aborted: true, data: [] };
+            var finList = tvNormalizeHotelsList(fin && fin.data);
+            if (fin && fin.success && finList.length) {
+                fin.data = finList;
+                fin.searchId = sid;
+                fin.partial = !done;
+                fin.progress = lastProgress;
+                return fin;
+            }
+            if (paintedPartial && lastPaintCount > 0) {
+                return {
+                    success: true,
+                    data: [],
+                    searchId: sid,
+                    partial: true,
+                    progress: lastProgress,
+                    keptPartial: true
+                };
+            }
+            return {
+                success: false,
+                data: [],
+                searchId: sid,
+                error: (fin && fin.error) ? fin.error : 'No results',
+                progress: lastProgress
+            };
+        }
+
+        function tvCountPlausibleHotels(list) {
+            if (!Array.isArray(list)) return 0;
+            return list.filter(function (h) {
+                return tvHotelListPrice(h) > 0 && !h._catalogOnly;
+            }).length;
+        }
+        function tvBuildAltNightsParams(baseParams, origFrom, origTo) {
+            origFrom = parseInt(origFrom, 10) || 6;
+            origTo = parseInt(origTo, 10) || 9;
+            if (origFrom === 6 && origTo === 9) {
+                return Object.assign({}, baseParams, { nightsFrom: 5, nightsTo: 10 });
+            }
+            if (origFrom >= 10) {
+                var relaxedFrom = Math.max(7, origFrom - 2);
+                if (relaxedFrom < origFrom) {
+                    return Object.assign({}, baseParams, { nightsFrom: relaxedFrom, nightsTo: origTo });
+                }
+            }
+            return null;
+        }
+        function tvMaybeShowAltNightsBanner(list, origFrom, origTo, forced) {
+            if (forced) {
+                tvShowAltNightsBanner(true, origFrom, origTo);
+                return;
+            }
+            origFrom = parseInt(origFrom, 10) || 0;
+            origTo = parseInt(origTo, 10) || 0;
+            if (origFrom < 10 || !Array.isArray(list) || !list.length) return;
+            var hasExact = list.some(function (h) {
+                var t = (h && h.tours && h.tours[0]) ? h.tours[0] : null;
+                var n = t ? (parseInt(String(t.nights || ''), 10) || 0) : 0;
+                return n >= origFrom && n <= origTo;
+            });
+            if (!hasExact) tvShowAltNightsBanner(true, origFrom, origTo);
+        }
+
         async function performTvSearch(manual, opts) {
             opts = opts || {};
             var softSearch = !!opts.soft;
             if (window.__tvRestoringFromBack && !manual && !softSearch) return;
             if (manual) window.__tvRestoringFromBack = false;
             if (window.THLeadCapture && !softSearch) window.THLeadCapture.reachGoal('search_start');
-            const depActive = tvActiveDeparture();
+            const depActive = tvEffectiveSearchDeparture();
             const dep = depActive.id || document.getElementById('tv-departure')?.value || '7';
             const country = document.getElementById('tv-country')?.value;
             if (!country) { alert('Выберите страну'); return; }
@@ -3364,11 +3883,6 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             const origNFrom = nFrom;
             const origNTo = nTo;
             if (nTo < nFrom) nTo = nFrom;
-            if (thIsHotelSearchMode()) {
-                if (!nFrom || nFrom < 1) nFrom = 6;
-                if (!nTo || nTo < nFrom) nTo = 14;
-                if ((nTo - nFrom) < 3) nTo = nFrom + 8;
-            }
             
             // Туристы: взрослые и возрасты детей (tvAdultsCount / tvChildrenAges — общие var выше)
             let adults = Math.max(1, Math.min(9, parseInt(tvAdultsCount, 10) || 2));
@@ -3397,11 +3911,19 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             if (typeof tvSelectedServiceIds !== 'undefined' && tvSelectedServiceIds.length > 0) {
                 params.set('hotelServices', tvSelectedServiceIds.join(','));
             }
-            var onlyCharterOn = !!(document.getElementById('tv-only-charter') && document.getElementById('tv-only-charter').checked);
-            var onlyDirectOn = !!(document.getElementById('tv-only-direct') && document.getElementById('tv-only-direct').checked);
+            var hotelModeSearch = thIsHotelSearchMode();
+            var onlyCharterOn = !hotelModeSearch && !!(document.getElementById('tv-only-charter') && document.getElementById('tv-only-charter').checked);
+            var onlyDirectOn = !hotelModeSearch && !!(document.getElementById('tv-only-direct') && document.getElementById('tv-only-direct').checked);
+            var preferDirectFirst = !hotelModeSearch && !onlyDirectOn && thIsDirectPriorityCountry(country);
             if (onlyCharterOn) params.set('onlyCharter', '1');
+            /* onlyDirect в API — только если юзер явно включил «Только прямой».
+               Для TH/VN/LK без галочки: сначала прямые из кэша, потом полная выдача. */
             if (onlyDirectOn) params.set('onlyDirect', '1');
-            window.__tvSearchFlightFlags = { onlyCharter: onlyCharterOn, onlyDirect: onlyDirectOn };
+            window.__tvSearchFlightFlags = {
+                onlyCharter: onlyCharterOn,
+                onlyDirect: onlyDirectOn,
+                preferDirect: preferDirectFirst
+            };
 
             const wrapper = document.getElementById('tv-results-wrapper');
             const resultsDiv = document.getElementById('tv-search-results');
@@ -3410,6 +3932,14 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             tvHotelsBeforeBudgetFilter = [];
             tvLastResults = [];
             tvShowAltNightsBanner(false);
+            window.__thDeferHeavyCards = true;
+            window.__tvSearchBusy = true;
+            if (window.THTourCard && typeof window.THTourCard.clearCarouselHydrateQueue === 'function') {
+                window.THTourCard.clearCarouselHydrateQueue();
+            }
+            tvShowLiveRefine(false);
+            /* defer снова: tvShowLiveRefine(false) сбрасывает флаг — держим до конца live */
+            window.__thDeferHeavyCards = true;
             if (tvPostFiltersCtrl && typeof tvPostFiltersCtrl.reset === 'function') tvPostFiltersCtrl.reset();
             tvShowResultsSkeleton();
             if (wrapper) wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -3433,12 +3963,45 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             }
             if (onlyCharterOn) cacheParams.onlyCharter = '1';
             if (onlyDirectOn) cacheParams.onlyDirect = '1';
+            var earlyDirectHotels = [];
 
+            function tvMergeHotelsDirectFirst(directList, allList) {
+                var byId = {};
+                var order = [];
+                function add(h, prefer) {
+                    if (!h) return;
+                    var id = tvHotelKey(h);
+                    if (!id) return;
+                    if (byId[id]) {
+                        if (prefer && !byId[id]._thDirectWave) {
+                            h._thDirectWave = true;
+                            byId[id] = h;
+                        }
+                        return;
+                    }
+                    if (prefer) h._thDirectWave = true;
+                    byId[id] = h;
+                    order.push(id);
+                }
+                (directList || []).forEach(function (h) { add(h, true); });
+                (allList || []).forEach(function (h) { add(h, false); });
+                var directs = [];
+                var rest = [];
+                order.forEach(function (id) {
+                    var h = byId[id];
+                    if (h && h._thDirectWave) directs.push(h);
+                    else if (h) rest.push(h);
+                });
+                return directs.concat(rest);
+            }
             function tvPaintSearchHotels(list, logLabel) {
                 var raw = Array.isArray(list) ? list.slice() : [];
                 tvHotelsBeforeBudgetFilter = raw.filter(function (h) {
                     return tvHotelListPrice(h) > 0 && !h._catalogOnly;
                 });
+                if (preferDirectFirst) {
+                    tvHotelsBeforeBudgetFilter = tvSortHotelsDirectFlightFirst(tvHotelsBeforeBudgetFilter);
+                }
                 if (tvPostFiltersCtrl && typeof tvPostFiltersCtrl.updateFromHotels === 'function') {
                     tvPostFiltersCtrl.updateFromHotels(tvHotelsBeforeBudgetFilter);
                 }
@@ -3454,10 +4017,13 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             }
 
             /* Session SWR — paint до сети */
+            var searchGen = (window.__tvSearchGen = (window.__tvSearchGen || 0) + 1);
             var swrHit = tvHomeSwrRead(cacheParams);
             var paintedFromSwr = false;
+            var paintedAny = false;
             if (swrHit) {
                 paintedFromSwr = true;
+                paintedAny = true;
                 tvLoaderHide();
                 tvPaintSearchHotels(swrHit.data, '%c[Главная · Поиск] Session SWR');
             } else if (!softSearch) {
@@ -3472,76 +4038,226 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 }
             }
 
+            function tvIsSearchStale() {
+                return searchGen !== window.__tvSearchGen;
+            }
+
             let rCache = { success: false, data: [] };
+            var usedAltNights = false;
             try {
                 if (!softSearch && !paintedFromSwr) tvLoaderSetStage('cache');
                 console.log('%c[API → сайт] Параметры поиска отправляются в API', 'color: #5DA9A4; font-weight: bold', cacheParams);
+
+                /* 1) Параллельный cacheOnly: основной + alt + (для TH/VN/LK) прямые */
                 const cacheOpts = { cacheOnly: true, cacheScope: 'country_page', slim: true };
-                rCache = await tvFetch('search-cached', cacheParams, cacheOpts);
-                if ((!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0) && origNFrom === 6 && origNTo === 9) {
-                    const altParams = Object.assign({}, cacheParams, { nightsFrom: 5, nightsTo: 10 });
-                    const rAlt = await tvFetch('search-cached', altParams, cacheOpts);
+                var wantAltNights = (origNFrom === 6 && origNTo === 9) || origNFrom >= 10;
+                var altParams = tvBuildAltNightsParams(cacheParams, origNFrom, origNTo);
+                var cacheReqs = [tvFetch('search-cached', cacheParams, cacheOpts)];
+                var altReqIdx = -1;
+                var directReqIdx = -1;
+                if (altParams) {
+                    altReqIdx = cacheReqs.length;
+                    cacheReqs.push(tvFetch('search-cached', altParams, cacheOpts));
+                }
+                if (preferDirectFirst) {
+                    directReqIdx = cacheReqs.length;
+                    cacheReqs.push(tvFetch('search-cached', Object.assign({}, cacheParams, { onlyDirect: '1' }), cacheOpts));
+                }
+                var cachePack = await Promise.all(cacheReqs);
+                if (tvIsSearchStale()) return;
+                rCache = cachePack[0] || rCache;
+                if ((!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0) && altReqIdx >= 0 && cachePack[altReqIdx]) {
+                    var rAlt = cachePack[altReqIdx];
                     if (rAlt.success && Array.isArray(rAlt.data) && rAlt.data.length > 0) {
                         rCache = rAlt;
-                        tvShowAltNightsBanner(true);
+                        usedAltNights = true;
+                        tvShowAltNightsBanner(true, origNFrom, origNTo);
                     }
                 }
-                var hadInstantCache = rCache.success && Array.isArray(rCache.data) && rCache.data.length > 0;
-                if (hadInstantCache) {
-                    tvLoaderHide();
-                    var progOk = document.getElementById('tv-search-progress');
-                    if (progOk) progOk.classList.add('hidden');
-                    tvHomeSwrWrite(cacheParams, rCache.data);
-                    tvPaintSearchHotels(rCache.data, softSearch ? '%c[Главная · Поиск] Soft date shift (cache)' : '%c[Главная · Поиск] Мгновенная выдача из кэша');
-                    if (!softSearch) document.getElementById('tv-results-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    tvBackgroundRefreshPrices();
-                    return;
-                }
-                if (!paintedFromSwr) {
-                    if (!softSearch) tvLoaderSetStage('search');
-                    rCache = await tvFetch('search-cached', cacheParams, { cacheScope: 'country_page', slim: true });
-                    if ((!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0) && origNFrom === 6 && origNTo === 9) {
-                        const altParams = Object.assign({}, cacheParams, { nightsFrom: 5, nightsTo: 10 });
-                        var rAltLive = await tvFetch('search-cached', altParams, { cacheScope: 'country_page', slim: true });
-                        if (rAltLive.success && Array.isArray(rAltLive.data) && rAltLive.data.length > 0) {
-                            rCache = rAltLive;
-                            tvShowAltNightsBanner(true);
+                if (preferDirectFirst && directReqIdx >= 0 && cachePack[directReqIdx]) {
+                    var rDirect = cachePack[directReqIdx];
+                    if (rDirect.success && Array.isArray(rDirect.data) && rDirect.data.length > 0) {
+                        earlyDirectHotels = rDirect.data.map(function (h) {
+                            var copy = Object.assign({}, h);
+                            copy._thDirectWave = true;
+                            return copy;
+                        });
+                        if (!paintedAny && !softSearch) {
+                            paintedAny = true;
+                            tvLoaderHide();
+                            tvShowLiveRefine(true, 'Показаны прямые рейсы · подгружаем остальные варианты…');
+                            tvPaintSearchHotels(earlyDirectHotels, '%c[Главная · Поиск] Early direct (cache TH/VN/LK)');
+                            try {
+                                var wrapD = document.getElementById('tv-results-wrapper');
+                                if (wrapD) wrapD.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            } catch (eD) {}
                         }
                     }
-                } else {
-                    /* Уже показали SWR — догоняем live в фоне */
-                    tvBackgroundRefreshPrices();
+                }
+
+                var hadInstantCache = rCache.success && Array.isArray(rCache.data) && rCache.data.length > 0;
+                if (hadInstantCache) {
+                    var paintListCache = preferDirectFirst
+                        ? tvMergeHotelsDirectFirst(earlyDirectHotels, rCache.data)
+                        : rCache.data;
+                    if (tvCountPlausibleHotels(paintListCache) > 0) {
+                        tvLoaderHide();
+                        tvShowLiveRefine(false);
+                        var progOk = document.getElementById('tv-search-progress');
+                        if (progOk) progOk.classList.add('hidden');
+                        tvHomeSwrWrite(cacheParams, paintListCache);
+                        paintedAny = true;
+                        if (rCache.nightsExpanded) usedAltNights = true;
+                        tvMaybeShowAltNightsBanner(paintListCache, origNFrom, origNTo, usedAltNights || !!rCache.nightsExpanded);
+                        tvPaintSearchHotels(paintListCache, softSearch ? '%c[Главная · Поиск] Soft date shift (cache)' : '%c[Главная · Поиск] Мгновенная выдача из кэша');
+                        if (!softSearch) document.getElementById('tv-results-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        return;
+                    }
+                }
+
+                /* 2) Soft ±3/±6: один hop без live=1 (exact→cover→live) — cover часто закрывает сдвиг дат */
+                if (softSearch) {
+                    if (!paintedFromSwr) {
+                        rCache = await tvFetch('search-cached', cacheParams, { cacheScope: 'country_page', slim: true });
+                        if (tvIsSearchStale()) return;
+                        if (rCache.success && Array.isArray(rCache.data) && rCache.data.length > 0) {
+                            paintedAny = true;
+                            tvHomeSwrWrite(cacheParams, rCache.data);
+                            tvPaintSearchHotels(rCache.data, '%c[Главная · Поиск] Soft date shift (cover/live)');
+                            return;
+                        }
+                        // One-hop уже мог сходить в live — второй progressive не жжём
+                    } else {
+                        rCache = await tvFetch('search-cached', cacheParams, { cacheScope: 'country_page', slim: true });
+                        if (tvIsSearchStale()) return;
+                        if (rCache.success && Array.isArray(rCache.data) && rCache.data.length > 0) {
+                            tvHomeSwrWrite(cacheParams, rCache.data);
+                            tvPaintSearchHotels(rCache.data, '%c[Главная · Поиск] Soft SWR refresh');
+                        }
+                        return;
+                    }
+                } else if (paintedFromSwr) {
+                    /* SWR уже на экране — one-hop refresh без progressive */
+                    rCache = await tvFetch('search-cached', cacheParams, { cacheScope: 'country_page', slim: true });
+                    if (tvIsSearchStale()) return;
+                    if (rCache.success && Array.isArray(rCache.data) && rCache.data.length > 0) {
+                        tvHomeSwrWrite(cacheParams, rCache.data);
+                        tvPaintSearchHotels(rCache.data, '%c[Главная · Поиск] SWR refresh');
+                    }
                     return;
+                } else {
+                    /* 3) Progressive live — без onlyDirect (кроме явной галочки).
+                       Для TH/VN/LK: если уже показали прямые из кэша — догружаем остальные. */
+                    tvLoaderSetStage('search');
+                    if (preferDirectFirst && earlyDirectHotels.length && paintedAny) {
+                        tvShowLiveRefine(true, 'Подгружаем варианты с пересадкой…');
+                    }
+                    rCache = await tvProgressiveLiveSearch(cacheParams, {
+                        gen: searchGen,
+                        earlyProgress: 30,
+                        softMaxMs: 16000,
+                        onPartial: function (list, meta) {
+                            if (tvIsSearchStale()) return;
+                            paintedAny = true;
+                            tvLoaderHide();
+                            var merged = preferDirectFirst
+                                ? tvMergeHotelsDirectFirst(earlyDirectHotels, list)
+                                : list;
+                            tvShowLiveRefine(true, preferDirectFirst
+                                ? ('Прямые сверху · уточняем выдачу' + (meta && meta.progress != null ? ' (' + meta.progress + '%)' : '…'))
+                                : ((meta && meta.progress)
+                                    ? ('Показываем первые варианты · уточняем ещё (' + meta.progress + '%)')
+                                    : 'Показываем первые варианты · уточняем цены…'));
+                            tvPaintSearchHotels(merged, '%c[Главная · Поиск] Early paint (live)');
+                            try {
+                                var wrap = document.getElementById('tv-results-wrapper');
+                                if (wrap && !wrap.dataset.thEarlyScrolled) {
+                                    wrap.dataset.thEarlyScrolled = '1';
+                                    wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }
+                            } catch (eScr) {}
+                        }
+                    });
+                    if (tvIsSearchStale()) return;
+
+                    /* 4) Alt-ночи: только если основной live пуст (не параллельный второй live) */
+                    if ((!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0) && !rCache.keptPartial && wantAltNights && altParams) {
+                        var altLive = await tvProgressiveLiveSearch(altParams, {
+                            gen: searchGen,
+                            earlyProgress: 30,
+                            softMaxMs: 16000,
+                            onPartial: function (list, meta) {
+                                if (tvIsSearchStale()) return;
+                                paintedAny = true;
+                                usedAltNights = true;
+                                tvShowAltNightsBanner(true, origNFrom, origNTo);
+                                tvLoaderHide();
+                                tvShowLiveRefine(true, 'Показываем первые варианты · уточняем цены…');
+                                tvPaintSearchHotels(
+                                    preferDirectFirst ? tvMergeHotelsDirectFirst(earlyDirectHotels, list) : list,
+                                    '%c[Главная · Поиск] Early paint (alt nights)'
+                                );
+                            }
+                        });
+                        if (tvIsSearchStale()) return;
+                        if (altLive.success && Array.isArray(altLive.data) && altLive.data.length > 0) {
+                            rCache = altLive;
+                            usedAltNights = true;
+                            tvShowAltNightsBanner(true, origNFrom, origNTo);
+                        }
+                    }
                 }
             } catch (err) {
                 console.error('[Главная · Поиск] Ошибка запроса поиска', err);
                 rCache = { success: false, data: [], error: String(err && err.message ? err.message : err) };
             } finally {
+                if (tvIsSearchStale()) return;
+                window.__tvSearchBusy = false;
                 if (!softSearch) tvLoaderSetStage('done');
                 var progEnd = document.getElementById('tv-search-progress');
                 if (progEnd) progEnd.classList.add('hidden');
-                if (!paintedFromSwr && !softSearch) await new Promise(r => setTimeout(r, 180));
+                if (!paintedAny && !softSearch) await new Promise(r => setTimeout(r, 120));
                 tvLoaderHide();
+                tvShowLiveRefine(false);
+                try {
+                    var wrapClr = document.getElementById('tv-results-wrapper');
+                    if (wrapClr) delete wrapClr.dataset.thEarlyScrolled;
+                } catch (eClr) {}
             }
 
+            if (tvIsSearchStale()) return;
+
             if (rCache.success && Array.isArray(rCache.data) && rCache.data.length > 0) {
-                tvHomeSwrWrite(cacheParams, rCache.data);
-                tvPaintSearchHotels(rCache.data, null);
+                var finalList = preferDirectFirst
+                    ? tvMergeHotelsDirectFirst(earlyDirectHotels, rCache.data)
+                    : rCache.data;
+                if (tvCountPlausibleHotels(finalList) <= 0) {
+                    if (resultsDiv) resultsDiv.innerHTML = tvEmptyResultsHtml(origNFrom, origNTo, usedAltNights);
+                    showTvResultsChrome();
+                    updateTvLoadMoreButton();
+                    return;
+                }
+                tvHomeSwrWrite(cacheParams, finalList);
+                if (usedAltNights || rCache.nightsExpanded) usedAltNights = true;
+                tvMaybeShowAltNightsBanner(finalList, origNFrom, origNTo, usedAltNights);
+                tvPaintSearchHotels(finalList, null);
                 document.getElementById('tv-results-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 const fromCache = rCache.fromCache === true;
-                console.log('%c[API → сайт] Результаты с API получены и отображены на сайте', 'color: #22c55e; font-weight: bold', { туров: tvLastResults.length, изКэша: fromCache });
-                console.log('%c[Главная · Поиск] ' + (fromCache ? 'Показаны данные из кэша:' : 'Показаны результаты поиска Tourvisor (актуальные данные):'), 'color: #22c55e', tvLastResults.length, 'туров');
+                console.log('%c[API → сайт] Результаты с API получены и отображены на сайте', 'color: #22c55e; font-weight: bold', { туров: tvLastResults.length, изКэша: fromCache, progressive: !fromCache, preferDirect: preferDirectFirst });
+                console.log('%c[Главная · Поиск] ' + (fromCache ? 'Показаны данные из кэша:' : 'Показаны результаты progressive live:'), 'color: #22c55e', tvLastResults.length, 'туров');
                 return;
             }
 
-            if (paintedFromSwr) return;
+            if (paintedFromSwr || paintedAny || rCache.keptPartial) {
+                return;
+            }
 
             tvHotelsBeforeBudgetFilter = [];
             tvLastResults = [];
             document.getElementById('tv-result-count').textContent = '0';
             thSyncResultNoun(0);
             var isApiErr = rCache && rCache.error && String(rCache.error).length > 0;
-            if (resultsDiv) resultsDiv.innerHTML = isApiErr ? tvSearchErrorHtml(rCache.error) : tvEmptyResultsHtml(origNFrom, origNTo, false);
+            if (resultsDiv) resultsDiv.innerHTML = isApiErr ? tvSearchErrorHtml(rCache.error) : tvEmptyResultsHtml(origNFrom, origNTo, usedAltNights);
             showTvResultsChrome();
             updateTvLoadMoreButton();
             if (isApiErr && window.THLeadCapture) window.THLeadCapture.reachGoal('search_error');
@@ -3584,6 +4300,9 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
         /** Цена одной позиции тура (totalPrice приоритетнее сырого price). */
         function tvTourUnitPrice(tour) {
             if (!tour) return 0;
+            if (window.THTourPriceSanity && typeof window.THTourPriceSanity.pickPriceNum === 'function') {
+                return window.THTourPriceSanity.pickPriceNum(tour);
+            }
             return Math.round(thPickFirstPositivePriceNum(
                 tour.totalPrice,
                 tour.price,
@@ -3591,12 +4310,25 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 tour.cost
             ));
         }
+        function tvPriceSanityOpts(h) {
+            var adults = Math.max(1, Math.min(9, parseInt(String(typeof tvAdultsCount !== 'undefined' ? tvAdultsCount : 2), 10) || 2));
+            var batch = (Array.isArray(tvHotelsBeforeBudgetFilter) && tvHotelsBeforeBudgetFilter.length >= 3)
+                ? tvHotelsBeforeBudgetFilter
+                : ((Array.isArray(tvLastResults) && tvLastResults.length >= 3) ? tvLastResults : (h ? [h] : []));
+            return { hotelOnly: false, adults: adults, batchHotels: batch };
+        }
         /**
          * Мин. цена по отелю: минимум по всем турам в выдаче, иначе hotel.price.
          * На карточке всегда «от», не цена случайного tours[0].
+         * Мусор Tourvisor: битый парсинг полей и выбросы относительно выдачи (не ручные полы).
          */
         function tvHotelListPrice(h) {
             if (!h) return 0;
+            var hotelOnly = typeof thIsHotelSearchMode === 'function' && thIsHotelSearchMode();
+            if (!hotelOnly && window.THTourPriceSanity && typeof window.THTourPriceSanity.hotelMinPlausiblePrice === 'function') {
+                var sane = window.THTourPriceSanity.hotelMinPlausiblePrice(h, tvPriceSanityOpts(h));
+                return sane > 0 ? sane : 0;
+            }
             let min = 0;
             const tours = Array.isArray(h.tours) ? h.tours : [];
             for (let i = 0; i < tours.length; i++) {
@@ -3610,6 +4342,12 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
         function tvHotelCheapestTour(h) {
             const tours = (h && Array.isArray(h.tours)) ? h.tours : [];
             if (!tours.length) return {};
+            var hotelOnly = typeof thIsHotelSearchMode === 'function' && thIsHotelSearchMode();
+            if (!hotelOnly && window.THTourPriceSanity && typeof window.THTourPriceSanity.pickCheapestPlausibleTour === 'function') {
+                var saneTour = window.THTourPriceSanity.pickCheapestPlausibleTour(h, tvPriceSanityOpts(h));
+                if (saneTour) return saneTour;
+                return {};
+            }
             let best = tours[0];
             let bestPrice = tvTourUnitPrice(best) || Number.POSITIVE_INFINITY;
             for (let i = 1; i < tours.length; i++) {
@@ -3652,6 +4390,37 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
         function thIsHotelSearchMode() {
             return window.__thSearchMode === 'hotels';
         }
+        function thSyncHotelModeChrome() {
+            var hotel = thIsHotelSearchMode();
+            var hint = document.getElementById('th-hotel-mode-hint');
+            if (hint) {
+                if (hotel) hint.removeAttribute('hidden');
+                else hint.setAttribute('hidden', '');
+            }
+            var note = document.getElementById('tv-results-hotel-note');
+            if (note) {
+                if (hotel) note.removeAttribute('hidden');
+                else note.setAttribute('hidden', '');
+            }
+            document.querySelectorAll('[data-th-dates-label]').forEach(function (el) {
+                el.textContent = hotel ? 'Даты заезда' : 'Даты вылета';
+            });
+            document.querySelectorAll('[data-th-search-open="departure"]').forEach(function (el) {
+                el.classList.toggle('is-hotel-locked', hotel);
+                if (hotel) el.setAttribute('aria-disabled', 'true');
+                else el.removeAttribute('aria-disabled');
+            });
+            if (window.THSearchUI && typeof window.THSearchUI.refreshLabels === 'function') {
+                window.THSearchUI.refreshLabels();
+            } else {
+                document.querySelectorAll('[data-th-label="departure"]').forEach(function (el) {
+                    if (hotel) {
+                        el.textContent = TH_HOTEL_DEPARTURE_NAME;
+                        el.classList.remove('is-placeholder');
+                    }
+                });
+            }
+        }
         function thResultNoun(n) {
             n = parseInt(String(n), 10) || 0;
             if (thIsHotelSearchMode()) {
@@ -3677,6 +4446,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
         }
         function thApplySearchMode(mode) {
             mode = mode === 'hotels' ? 'hotels' : 'tours';
+            var prev = window.__thSearchMode;
             window.__thSearchMode = mode;
             document.body.classList.toggle('th-search-mode-hotels', mode === 'hotels');
             var root = document.getElementById('tour-search-section');
@@ -3691,16 +4461,29 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             var steps = document.querySelector('.th-home-hero__steps');
             if (steps) {
                 steps.innerHTML = mode === 'hotels'
-                    ? '<span>Откуда</span><span class="th-home-hero__dot" aria-hidden="true">·</span><span>Куда</span><span class="th-home-hero__dot" aria-hidden="true">·</span><span>Даты</span><span class="th-home-hero__dot" aria-hidden="true">·</span><span>Фильтры</span>'
+                    ? '<span>Куда</span><span class="th-home-hero__dot" aria-hidden="true">·</span><span>Даты</span><span class="th-home-hero__dot" aria-hidden="true">·</span><span>Фильтры</span>'
                     : '<span>Откуда</span><span class="th-home-hero__dot" aria-hidden="true">·</span><span>Куда</span><span class="th-home-hero__dot" aria-hidden="true">·</span><span>Даты</span><span class="th-home-hero__dot" aria-hidden="true">·</span><span>Ночи</span><span class="th-home-hero__dot" aria-hidden="true">·</span><span>Туристы</span>';
             }
+            thSyncHotelModeChrome();
             try { sessionStorage.setItem('th_search_mode', mode); } catch (eS) {}
             if (window.THTourSearchWizard && typeof window.THTourSearchWizard.go === 'function') {
                 var w = window.THTourSearchWizard;
-                var max = typeof w.maxStep === 'function' ? w.maxStep() : 5;
-                w.go(Math.min(w.step || 1, max), true);
+                if (typeof w.onSearchModeChange === 'function') {
+                    w.onSearchModeChange(mode);
+                } else {
+                    var min = typeof w.minStep === 'function' ? w.minStep() : 1;
+                    var max = typeof w.maxStep === 'function' ? w.maxStep() : 5;
+                    w.go(mode === 'hotels' ? min : Math.min(Math.max(w.step || 1, min), max), true);
+                }
             }
             thSyncResultNoun(document.getElementById('tv-result-count') ? document.getElementById('tv-result-count').textContent : 0);
+            if (prev !== mode && typeof window.reloadTvCountriesForDeparture === 'function') {
+                var depForCountries = mode === 'hotels'
+                    ? TH_HOTEL_DEPARTURE_ID
+                    : (tvActiveDeparture().id || 7);
+                window.reloadTvCountriesForDeparture(depForCountries);
+            }
+            if (typeof tvSchedulePrefetchHomeSearch === 'function') tvSchedulePrefetchHomeSearch();
         }
         function tvCompareCount() {
             return Object.keys(tvCompareMap || {}).length;
@@ -3850,6 +4633,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             if (!box) return;
             if (!Array.isArray(tvLastResults) || !tvLastResults.length) {
                 box.innerHTML = '';
+                tvSyncDateShiftButtons();
                 return;
             }
             var minPrice = tvLastResults.reduce(function(min, h) {
@@ -3860,13 +4644,20 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             }, 0);
             var minText = minPrice > 0 ? ('от ' + minPrice.toLocaleString('ru-RU') + ' ₽') : 'цена уточняется';
             var points = [-6, -3, 0, 3, 6];
+            var backRoom = tvSearchDateBackroomDays();
             box.innerHTML = '<div class="tv-price-calendar__head">Календарь цен (быстрый сдвиг дат)</div>' +
                 '<div class="tv-price-calendar__row">' + points.map(function(p) {
                     var label = (p === 0 ? 'Текущие даты' : (p > 0 ? ('+' + p + ' дн') : (p + ' дн')));
                     var val = (p === 0 ? minText : 'Показать');
-                    return '<button type="button" class="tv-price-point' + (p === 0 ? ' is-current' : '') + '" data-tv-shift-days="' + p + '">' +
-                        '<span>' + label + '</span><strong>' + val + '</strong></button>';
+                    var blocked = p < 0 && backRoom < Math.abs(p);
+                    var cls = 'tv-price-point' + (p === 0 ? ' is-current' : '') + (blocked ? ' is-disabled' : '');
+                    var title = blocked ? 'Раньше сегодня нельзя — вылет уже у нижней границы' : '';
+                    return '<button type="button" class="' + cls + '" data-tv-shift-days="' + p + '"' +
+                        (blocked ? ' disabled aria-disabled="true"' : '') +
+                        (title ? ' title="' + title + '"' : '') + '>' +
+                        '<span>' + label + '</span><strong>' + (blocked ? 'Недоступно' : val) + '</strong></button>';
                 }).join('') + '</div>';
+            tvSyncDateShiftButtons();
         }
         function tvCompareToggleFromButton(btn) {
             if (!btn) return;
@@ -3960,6 +4751,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             if (typeof window.updateDateDisplayOnly === 'function') {
                 window.updateDateDisplayOnly(from, to);
             }
+            if (typeof tvSyncDateShiftButtons === 'function') tvSyncDateShiftButtons();
         }
         function tvResolveSearchDatesYmd() {
             var range = tvReadSearchDateRange();
@@ -4022,6 +4814,10 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 if (typeof performTvSearch === 'function') performTvSearch(true, { soft: true });
                 return;
             }
+            if (!tvCanShiftSearchDates(d)) {
+                tvSyncDateShiftButtons();
+                return;
+            }
             thTrackGoal('date_shift_click');
             var range = tvReadSearchDateRange();
             if (!range) {
@@ -4030,18 +4826,60 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             }
             var from = new Date(range[0]);
             var to = new Date(range[1]);
+            var spanDays = Math.max(0, Math.round((to.getTime() - from.getTime()) / 86400000));
             from.setDate(from.getDate() + d);
             to.setDate(to.getDate() + d);
             var minD = new Date();
             minD.setHours(0, 0, 0, 0);
+            from.setHours(0, 0, 0, 0);
+            to.setHours(0, 0, 0, 0);
             if (from < minD) {
-                var shiftBack = Math.round((minD.getTime() - from.getTime()) / 86400000);
-                from.setDate(from.getDate() + shiftBack);
-                to.setDate(to.getDate() + shiftBack);
+                from = new Date(minD);
+                to = new Date(minD);
+                to.setDate(to.getDate() + spanDays);
             }
             tvWriteSearchDateRange(from, to);
+            tvSyncDateShiftButtons();
             if (typeof syncNightsFromDates === 'function') syncNightsFromDates();
             if (typeof performTvSearch === 'function') performTvSearch(true, { soft: true });
+        }
+        /** Сколько дней можно сдвинуть вылет назад (до сегодня). */
+        function tvSearchDateBackroomDays() {
+            var range = tvReadSearchDateRange();
+            if (!range || !range[0]) return 0;
+            var minD = new Date();
+            minD.setHours(0, 0, 0, 0);
+            var from = new Date(range[0]);
+            from.setHours(0, 0, 0, 0);
+            var diff = Math.round((from.getTime() - minD.getTime()) / 86400000);
+            return Math.max(0, diff);
+        }
+        function tvCanShiftSearchDates(days) {
+            var d = parseInt(String(days || ''), 10);
+            if (isNaN(d) || d >= 0) return true;
+            return tvSearchDateBackroomDays() >= Math.abs(d);
+        }
+        function tvSyncDateShiftButtons() {
+            var backRoom = tvSearchDateBackroomDays();
+            document.querySelectorAll('[data-tv-shift-days]').forEach(function (btn) {
+                var d = parseInt(String(btn.getAttribute('data-tv-shift-days') || '0'), 10);
+                if (isNaN(d) || d >= 0) {
+                    btn.disabled = false;
+                    btn.removeAttribute('aria-disabled');
+                    btn.classList.remove('is-disabled');
+                    btn.removeAttribute('title');
+                    return;
+                }
+                var blocked = backRoom < Math.abs(d);
+                btn.disabled = blocked;
+                btn.setAttribute('aria-disabled', blocked ? 'true' : 'false');
+                btn.classList.toggle('is-disabled', blocked);
+                if (blocked) {
+                    btn.title = 'Раньше сегодня нельзя — вылет уже у нижней границы';
+                } else {
+                    btn.removeAttribute('title');
+                }
+            });
         }
         function tvApplyClientFiltersAndRender() {
             var list = Array.isArray(tvHotelsBeforeBudgetFilter) ? tvHotelsBeforeBudgetFilter.slice() : [];
@@ -4059,11 +4897,17 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             applyTvSort();
             updateTvLoadMoreButton();
         }
-        function tvShowAltNightsBanner(show) {
+        function tvShowAltNightsBanner(show, origFrom, origTo) {
             var el = document.getElementById('tv-search-alt-banner');
             if (!el) return;
             if (show) {
-                el.textContent = 'Подобраны ближайшие альтернативы (диапазон ночей расширен).';
+                origFrom = parseInt(origFrom, 10) || 0;
+                origTo = parseInt(origTo, 10) || 0;
+                if (origFrom >= 10) {
+                    el.textContent = 'На ' + origFrom + '–' + origTo + ' ночей сейчас нет живых туров — показаны ближайшие варианты (диапазон расширен).';
+                } else {
+                    el.textContent = 'Подобраны ближайшие альтернативы (диапазон ночей расширен).';
+                }
                 el.classList.remove('hidden');
             } else {
                 el.classList.add('hidden');
@@ -4096,22 +4940,34 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             }
             return out;
         }
-        function applyTvSort() {
+        function applyTvSort(opts) {
+            opts = opts || {};
             const sortVal = document.getElementById('tv-sort')?.value || 'price-asc';
             let arr = [...tvLastResults];
             if (sortVal === 'price-asc') arr.sort((a, b) => tvHotelListPrice(a) - tvHotelListPrice(b));
             else if (sortVal === 'price-desc') arr.sort((a, b) => tvHotelListPrice(b) - tvHotelListPrice(a));
             else if (sortVal === 'rating') arr.sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0));
+            var preferDirect = !thIsHotelSearchMode()
+                && window.__tvSearchFlightFlags
+                && window.__tvSearchFlightFlags.preferDirect
+                && !window.__tvSearchFlightFlags.onlyDirect;
+            if (preferDirect && (sortVal === 'price-asc' || sortVal === 'rating')) {
+                arr = tvSortHotelsDirectFlightFirst(arr);
+            }
             var slice = arr.slice(0, tvDisplayedCount);
             renderTvResults(slice);
             tvCompareSyncButtons();
             tvCompareRenderPanel();
             var tvResEl = document.getElementById('tv-search-results');
-            var skipFlightFetch = window.__tvRestoringFromBack
+            var skipFlightFetch = !!opts.skipFlights
+                || !!window.__thDeferHeavyCards
+                || (window.__tvRestoringFromBack
                 && window.__mainFlightsByTourId
-                && Object.keys(window.__mainFlightsByTourId).length > 0;
+                && Object.keys(window.__mainFlightsByTourId).length > 0);
             function afterFlightsPatch() {
-                if (tvResEl && window.THTourCard && typeof window.THTourCard.patchFlightsInContainer === 'function') {
+                if (tvResEl && window.THTourCard && typeof window.THTourCard.mountInContainer === 'function') {
+                    window.THTourCard.mountInContainer(tvResEl);
+                } else if (tvResEl && window.THTourCard && typeof window.THTourCard.patchFlightsInContainer === 'function') {
                     window.THTourCard.patchFlightsInContainer(tvResEl);
                 }
                 if (tvResEl && window.THTourCard && typeof window.THTourCard.ensureCarouselsInContainer === 'function') {
@@ -4119,11 +4975,26 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 } else if (tvResEl && window.THTourCard && typeof window.THTourCard.kickImagesInContainer === 'function') {
                     window.THTourCard.kickImagesInContainer(tvResEl);
                 }
+                if (!opts.skipFlights && !thIsHotelSearchMode() && typeof thLoadFlightsForVisibleCards === 'function' && tvResEl) {
+                    thLoadFlightsForVisibleCards(tvResEl, {
+                        apiBase: (typeof TV_API_BASE !== 'undefined' ? TV_API_BASE : ''),
+                        departureCity: (typeof tvEffectiveSearchDeparture === 'function' ? tvEffectiveSearchDeparture().name : '') || 'Самара',
+                        departureId: (typeof tvEffectiveSearchDeparture === 'function' ? tvEffectiveSearchDeparture().id : '') || '',
+                        maxConcurrent: 2,
+                        patchContainer: tvResEl
+                    });
+                }
             }
-            if (skipFlightFetch) {
+            if (skipFlightFetch || thIsHotelSearchMode()) {
                 afterFlightsPatch();
             } else if (typeof loadMainFlightsForTours === 'function') {
-                loadMainFlightsForTours(slice, afterFlightsPatch);
+                loadMainFlightsForTours(slice, function () {
+                    afterFlightsPatch();
+                    if (preferDirect) {
+                        tvMaybeResortDirectPriority();
+                        applyTvSort({ skipFlights: true });
+                    }
+                });
             } else {
                 afterFlightsPatch();
             }
@@ -4140,10 +5011,11 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             if (hasResults) {
                 wrapper.classList.remove('hidden');
                 btn.disabled = !canLoadMore;
-                if (textEl) textEl.textContent = canLoadMore ? 'Загрузить ещё туры' : 'Загрузить ещё туры';
+                var moreLabel = thIsHotelSearchMode() ? 'Загрузить ещё отели' : 'Загрузить ещё туры';
+                if (textEl) textEl.textContent = moreLabel;
             } else {
                 wrapper.classList.add('hidden');
-                if (textEl) textEl.textContent = 'Загрузить ещё туры';
+                if (textEl) textEl.textContent = thIsHotelSearchMode() ? 'Загрузить ещё отели' : 'Загрузить ещё туры';
             }
         }
 
@@ -4171,7 +5043,9 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     apiBase: base,
                     departureCity: depCityMainFl,
                     departureId: depActiveFl.id,
-                    maxTours: Math.min(hotels.length, 12),
+                    maxTours: hotels.length,
+                    maxConcurrent: 2,
+                    patchEvery: 2,
                     getTourId: getMainTourId,
                     patchContainer: document.getElementById('tv-search-results'),
                     onDone: callback
@@ -4267,7 +5141,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 container.innerHTML = tvEmptyResultsHtml(nf0, nt0, false);
                 return;
             }
-            const depActive = tvActiveDeparture();
+            const depActive = tvEffectiveSearchDeparture();
             const departureCity = depActive.name || 'Самара';
             const departureIdMain = depActive.id || '7';
             const tourDetailBase = (typeof TOUR_DETAIL_BASE !== 'undefined' ? TOUR_DETAIL_BASE : '') || '/frontend';
@@ -4318,7 +5192,9 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     } catch (eRet) {}
                     var hotelHref = h.id
                         ? (tourDetailBase + '/window/hotels/tv-hotel-detail.php?id=' + encodeURIComponent(h.id)
-                            + '&countryId=' + encodeURIComponent((h.country && h.country.id) || document.getElementById('tv-country')?.value || ''))
+                            + '&countryId=' + encodeURIComponent((h.country && h.country.id) || document.getElementById('tv-country')?.value || '')
+                            + (hotelMode ? ('&departureId=' + encodeURIComponent(String(TH_HOTEL_DEPARTURE_ID))
+                                + '&departureName=' + encodeURIComponent(TH_HOTEL_DEPARTURE_NAME)) : ''))
                         : '';
                     const tourHref = country ? (tourDetailBase + '/window/tour-detail.php?' + new URLSearchParams(params).toString()) : (link || '#');
                     const cardHref = (hotelMode && hotelHref) ? hotelHref : tourHref;
@@ -4328,16 +5204,28 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                         adults: priceAdults, childAges: tvChildAgesForSearch(), dateFrom: startYmd, dateTo: retYmd,
                         price, departureCity, departureId: departureIdMain, carousel: true,
                         compareEnabled: true,
-                        priceLabel: hotelMode ? 'туры от' : null,
-                        hideFlight: hotelMode,
-                        directBadge: !!(!hotelMode && window.__tvSearchFlightFlags && window.__tvSearchFlightFlags.onlyDirect),
-                        flightMeta: (!hotelMode && window.__mainFlightsByTourId && tourId) ? window.__mainFlightsByTourId[tourId] : null
+                        priceLabel: hotelMode ? 'проживание от' : null,
+                        hideFlight: !!hotelMode,
+                        directBadge: !!(!hotelMode && (
+                            (window.__tvSearchFlightFlags && window.__tvSearchFlightFlags.onlyDirect)
+                            || (tourId && (function () {
+                                var fm = tvFlightMetaLookup(tourId, departureCity);
+                                return fm && fm.direct === true;
+                            })())
+                        )),
+                        transferBadge: !!(!hotelMode && !((window.__tvSearchFlightFlags && window.__tvSearchFlightFlags.onlyDirect)) && (function () {
+                            var fm = tvFlightMetaLookup(tourId, departureCity);
+                            return fm && fm.direct === false;
+                        })()),
+                        flightMeta: (!hotelMode && tourId) ? tvFlightMetaLookup(tourId, departureCity) : null
                     });
                 }).join('');
                 document.getElementById('tv-result-count').textContent = tvLastResults.length;
                 thSyncResultNoun(tvLastResults.length);
                 updateTvLoadMoreButton();
-                if (window.THTourCard && typeof window.THTourCard.ensureCarouselsInContainer === 'function') {
+                if (window.THTourCard && typeof window.THTourCard.mountInContainer === 'function') {
+                    window.THTourCard.mountInContainer(container);
+                } else if (window.THTourCard && typeof window.THTourCard.ensureCarouselsInContainer === 'function') {
                     window.THTourCard.ensureCarouselsInContainer(container);
                 } else if (window.THTourCard && typeof window.THTourCard.kickImagesInContainer === 'function') {
                     window.THTourCard.kickImagesInContainer(container);
@@ -4377,7 +5265,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 const hasCountry = country && country.length > 0;
                 const desc = (h.description || h.hotelDescription || h.descr || '').toString().trim();
                 const tourId = getMainTourId(h);
-                const flightData = window.__mainFlightsByTourId[tourId];
+                const flightData = tvFlightMetaLookup(tourId, departureCity);
                 const airlineLabel = (flightData && flightData.companies && flightData.companies[0]) ? flightData.companies[0] : '—';
                 var pickTourists = tvAdultsCount + ' взр.';
                 if (tvChildrenAges && tvChildrenAges.length > 0) pickTourists += ', ' + tvChildrenAges.length + ' реб.';
@@ -4429,7 +5317,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 const starsHtml = catNum > 0 ? '★'.repeat(Math.min(catNum, 5)) : '';
                 // Форматирование дат
                 const fmtDate = (ymd) => { if (!ymd) return ''; const [y,m,d] = ymd.split('-'); return `${d}.${m}.${String(y).slice(2)}`; };
-                const pricePartyLabel = hotelModeLegacy ? 'туры от' : tvPartyPriceLabel(priceAdults);
+                const pricePartyLabel = hotelModeLegacy ? 'проживание от' : tvPartyPriceLabel(priceAdults);
                 const partySummary = tvPartySummaryLabel(priceAdults);
                 const datesMeta = (startYmd && retYmd)
                     ? `${fmtDate(startYmd)} – ${fmtDate(retYmd)}, ${nightsNum} ${nightsNum === 1 ? 'ночь' : (nightsNum < 5 ? 'ночи' : 'ночей')}, ${partySummary}`
@@ -4712,16 +5600,17 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 </button>
             </div>
             <div class="th-coral-popup__body">
-                <p id="tv-nights-draft-preview" class="th-coral-popup__preview" aria-live="polite">6–9 ночей</p>
-                <div class="tv-nights-range-bar" aria-hidden="true">
+                <div class="tv-nights-range-bar" aria-live="polite">
                     <div class="tv-nights-range-bar__item"><span>От</span><strong id="tv-nights-from-label">6</strong></div>
                     <div class="tv-nights-range-bar__sep">—</div>
                     <div class="tv-nights-range-bar__item"><span>До</span><strong id="tv-nights-to-label">9</strong></div>
                 </div>
+                <p id="tv-nights-draft-preview" class="th-coral-popup__preview" aria-hidden="true">6–9 ночей</p>
                 <div id="tv-nights-quick" class="tv-nights-quick" aria-label="Быстрый выбор ночей"></div>
                 <p id="tv-nights-hint" class="th-coral-popup__hint">Свой диапазон: сначала «от», потом «до»</p>
                 <div class="tv-nights-legend" aria-hidden="true">
-                    <span class="tv-nights-legend__item tv-nights-legend__item--avail">Доступно</span>
+                    <span class="tv-nights-legend__item tv-nights-legend__item--avail">Есть туры</span>
+                    <span class="tv-nights-legend__item tv-nights-legend__item--direct">Прямой рейс</span>
                     <span class="tv-nights-legend__item tv-nights-legend__item--off">Нет под фильтром</span>
                 </div>
                 <div id="tv-nights-grid" class="tv-nights-grid th-coral-nights-popup__grid">
@@ -4956,11 +5845,8 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             if (!currentMonthDiv) return;
 
             var nativeMonth = currentMonthDiv.querySelector('.flatpickr-monthDropdown-months:not(.tv-cal-period-select)');
-            if (nativeMonth) nativeMonth.style.display = 'none';
             var nativeYear = currentMonthDiv.querySelector('.numInputWrapper');
-            if (nativeYear) nativeYear.style.display = 'none';
             var staticMonth = currentMonthDiv.querySelector('.cur-month');
-            if (staticMonth) staticMonth.style.display = 'none';
 
             var opts = tvCalendarPeriodOptions(minD, maxD);
             var optsKey = String(minD.getTime()) + '-' + String(maxD.getTime());
@@ -4982,6 +5868,7 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                     tvCalendarRefreshUI(fp);
                 });
             }
+            select.style.display = '';
 
             if (select.dataset.optsKey !== optsKey) {
                 select.innerHTML = '';
@@ -4996,6 +5883,15 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
 
             var selectedKey = fp.currentYear + '-' + fp.currentMonth;
             if (select.value !== selectedKey) select.value = selectedKey;
+
+            // Прячем native только когда наш select уже с подписью месяца
+            if (select.options && select.options.length) {
+                if (nativeMonth) nativeMonth.style.display = 'none';
+                if (nativeYear) nativeYear.style.display = 'none';
+                if (staticMonth) staticMonth.style.display = 'none';
+            } else if (staticMonth) {
+                staticMonth.style.display = '';
+            }
         }
 
         /** Стрелки ‹ › для листания месяцев */
@@ -5119,6 +6015,14 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
             if (!daysWrap) return;
 
             var dayContainers = Array.prototype.slice.call(daysWrap.querySelectorAll(':scope > .dayContainer'));
+            if (!dayContainers.length) {
+                dayContainers = Array.prototype.slice.call(daysWrap.children).filter(function (el) {
+                    return el && el.classList && el.classList.contains('dayContainer');
+                });
+            }
+            if (!dayContainers.length) {
+                dayContainers = Array.prototype.slice.call(daysWrap.querySelectorAll('.dayContainer'));
+            }
             if (!dayContainers.length) return;
 
             var labels = tvCalendarMonthLonghand();
@@ -6141,10 +7045,6 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
                 var trigger = e.target.closest('[data-open-lead-modal]');
                 if (trigger) {
                     e.preventDefault();
-                    /* slow-search: не закрываем loader — поиск продолжается */
-                    if (trigger.dataset.openLeadModal !== 'slow-search' || typeof tvLoaderHide !== 'function') {
-                        /* no-op for slow-search inline form path */
-                    }
                     openQuickModal(trigger.dataset.openLeadModal || 'trigger');
                 }
             });
@@ -6181,11 +7081,6 @@ $th_search_ui = ($th_search_ui_raw === 'v2') ? 'v2' : 'legacy';
     $_th_app_promo_ver = is_file($_th_app_promo_path) ? (string) filemtime($_th_app_promo_path) : '1';
     ?>
     <script src="/frontend/js/th-app-promo.js?v=<?php echo htmlspecialchars($_th_app_promo_ver, ENT_QUOTES, 'UTF-8'); ?>" defer></script>
-    <?php
-    $_th_promo_claim_path = __DIR__ . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'th-promo-claim.js';
-    $_th_promo_claim_ver = is_file($_th_promo_claim_path) ? (string) filemtime($_th_promo_claim_path) : '1';
-    ?>
-    <script src="/frontend/js/th-promo-claim.js?v=<?php echo htmlspecialchars($_th_promo_claim_ver, ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 
     <?php
     // Завершаем буферизацию и сохраняем в кэш

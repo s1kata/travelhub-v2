@@ -2,7 +2,10 @@
 /**
  * Прокси Tourvisor. СВЕЖЕСТЬ > СКОРОСТЬ (как в TravelHubNew).
  * — Справочники: из файлов tourvisor_cache (до 7 дней), при ошибке API — устаревший до 30 дней.
- * — Поиск: type=search — всегда живой API. type=search-cached без live=1 — при наличии записи отдаётся сохранённая выдача (TTL поискового кэша), иначе живой API; результат сохраняется в файл/all_tours/Firestore.
+ * — Поиск: type=search — старт live, сразу searchId (клиент поллит status/results).
+ *   type=search-cached без live=1 — exact → cover → live; live=1 — принудительный bypass кэша.
+ *   Persist кэша/cover/Firestore — после ответа клиенту (fastcgi_finish_request).
+ *   Poll: early ~55% / soft ~16с; results?persist=0 — early paint без записи кэша.
  * https://api.tourvisor.ru/search/docs
  *
  * Подключено во все «свои» поисковики через единый URL (backend/components/tourvisor_proxy_url.php):
@@ -278,7 +281,9 @@ function tv_slim_hotels_for_list(array $hotels): array
                     'totalPrice' => $t0['totalPrice'] ?? null,
                     'priceRub' => $t0['priceRub'] ?? null,
                     'cost' => $t0['cost'] ?? null,
+                    'fuelCharge' => $t0['fuelCharge'] ?? null,
                     'nights' => $t0['nights'] ?? null,
+                    'date' => $t0['date'] ?? $t0['flydate'] ?? null,
                     'meal' => $meal ?: null,
                     'roomType' => $t0['roomType'] ?? null,
                     'flydate' => $t0['flydate'] ?? null,
@@ -286,6 +291,8 @@ function tv_slim_hotels_for_list(array $hotels): array
                     'dateto' => $t0['dateto'] ?? $t0['dateTo'] ?? null,
                     'adults' => $t0['adults'] ?? null,
                     'childs' => $t0['childs'] ?? null,
+                    'operator' => $t0['operator'] ?? ($t0['operatorName'] ?? null),
+                    'operatorName' => $t0['operatorName'] ?? null,
                 ], static fn($v) => $v !== null && $v !== '');
             }
         }
@@ -380,6 +387,22 @@ function tvCacheGet(string $key, ?int $ttlOverride = null): ?array {
     return is_array($d) ? $d : null;
 }
 
+/** Кэш старше TTL, но не старше $maxAge — для stale-while-error (tour-flights). */
+function tvCacheGetStale(string $key, int $maxAge = 604800): ?array {
+    $file = tvCacheDir() . DIRECTORY_SEPARATOR . $key . '.json';
+    if (!file_exists($file)) {
+        return null;
+    }
+    $age = time() - filemtime($file);
+    if ($age >= $maxAge) {
+        return null;
+    }
+    $raw = @file_get_contents($file);
+    $d = is_string($raw) ? json_decode($raw, true) : null;
+
+    return is_array($d) ? $d : null;
+}
+
 /** Берёт данные из любого файла кэша для типа (departures_*, countries_*, meals_*), если есть и не старше maxAge. Заполнение поисковика из отложенного кэша. */
 function tvCacheGetAnyForType(string $type, int $maxAge = 86400): ?array {
     $dir = tvCacheDir();
@@ -469,7 +492,7 @@ function tvParseChildAges(mixed $childs): array
  * Короткий кэш для «живых» данных (цена тура, перелёты) — снижает burst-нагрузку, но почти не влияет на свежесть.
  * Уважает live=1 / bypassCache=1 (не читает кэш, но записывает результат).
  */
-function tvCachedShort(string $type, array $params, int $ttlSeconds, callable $fetchFn): array {
+function tvCachedShort(string $type, array $params, int $ttlSeconds, callable $fetchFn, bool $staleOnError = false): array {
     $cacheKey = tvCacheKey($type, $params);
     if (!$GLOBALS['tv_bypass_cache']) {
         $cached = tvCacheGet($cacheKey, $ttlSeconds);
@@ -482,7 +505,17 @@ function tvCachedShort(string $type, array $params, int $ttlSeconds, callable $f
     $res = $fetchFn();
     if (is_array($res) && !empty($res['success'])) {
         tvCacheSet($cacheKey, $res);
+        return $res;
     }
+    if ($staleOnError) {
+        $stale = tvCacheGetStale($cacheKey, max($ttlSeconds * 4, 86400));
+        if (is_array($stale) && !empty($stale['success'])) {
+            $stale['fromStaleCache'] = true;
+            $GLOBALS['tv_cache_hit'] = true;
+            return $stale;
+        }
+    }
+
     return $res;
 }
 
@@ -723,6 +756,38 @@ function tvRelaxSearchParams(array $params): array {
     return $relaxed;
 }
 
+/**
+ * Диапазон ночей для Tourvisor API (лимит span ≤ 10).
+ * При nightsFrom ≥ 10 TV часто отдаёт только битые/проданные позиции (Шри-Ланка и др.) —
+ * расширяем вниз на 2 ночи, чтобы подтянуть живую выдачу (8–14 вместо 10–14).
+ *
+ * @return array{0:int,1:int,2:bool} [nightsFrom, nightsTo, expanded]
+ */
+function tvNightsForTourvisorApi(int $nightsFrom, int $nightsTo): array
+{
+    $from = max(1, min(28, $nightsFrom));
+    $to = max(1, min(28, $nightsTo));
+    if ($to < $from) {
+        $to = $from;
+    }
+    if ($to - $from > 10) {
+        $to = $from + 10;
+    }
+    $expanded = false;
+    if ($from >= 10) {
+        $relaxedFrom = max(7, $from - 2);
+        if ($relaxedFrom < $from) {
+            $from = $relaxedFrom;
+            $expanded = true;
+        }
+    }
+    if ($to - $from > 10) {
+        $to = $from + 10;
+    }
+
+    return [$from, $to, $expanded];
+}
+
 /** Фильтрация туров из общего кэша по параметрам поиска (как filterToursByParamsFromCache в TravelHubNew) */
 function tvFilterToursByParams(array $tours, array $params): array {
     $countryId = (int)($params['countryId'] ?? 0);
@@ -908,15 +973,25 @@ function tvOutboundThrottleWait(): void
 
 /**
  * Polling статуса поиска по доке: пауза 3с, затем каждые 2–3с, soft timeout.
+ * earlyProgress: можно забрать частичную выдачу раньше 100% (меньше TTFB).
  *
- * @return array{ok:bool,error?:string,polls:int}
+ * @param array{earlyProgress?:int} $opts
+ * @return array{ok:bool,error?:string,polls:int,softTimeout?:bool,earlyReady?:bool,progress?:int}
  */
-function tvPollSearchUntilReady(int $searchId, int $maxSeconds = 24): array
+function tvPollSearchUntilReady(int $searchId, int $maxSeconds = 24, array $opts = []): array
 {
     $started = time();
     $polls = 0;
+    $earlyProgress = isset($opts['earlyProgress']) ? (int) $opts['earlyProgress'] : 0;
+    if ($earlyProgress < 0) {
+        $earlyProgress = 0;
+    }
+    if ($earlyProgress > 95) {
+        $earlyProgress = 95;
+    }
     // Дока: результатов обычно нет раньше 3–5с
     sleep(3);
+    $lastProgress = 0;
     while ((time() - $started) < $maxSeconds) {
         $polls++;
         $st = tvRequest("/tours/search/{$searchId}/status", ['operatorStatus' => true]);
@@ -930,17 +1005,112 @@ function tvPollSearchUntilReady(int $searchId, int $maxSeconds = 24): array
         }
         $status = isset($st['data']['status']) ? strtolower((string) $st['data']['status']) : '';
         $progress = (int) ($st['data']['progress'] ?? 0);
+        $lastProgress = $progress;
         if ($status === 'completed' || $progress >= 100) {
-            return ['ok' => true, 'polls' => $polls];
+            return ['ok' => true, 'polls' => $polls, 'progress' => $progress];
         }
         if ($status === 'error') {
-            return ['ok' => false, 'error' => 'Search error', 'polls' => $polls];
+            return ['ok' => false, 'error' => 'Search error', 'polls' => $polls, 'progress' => $progress];
+        }
+        // Достаточно операторов ответили — можно забирать накопленные results
+        if ($earlyProgress > 0 && $progress >= $earlyProgress) {
+            return [
+                'ok' => true,
+                'polls' => $polls,
+                'progress' => $progress,
+                'earlyReady' => true,
+            ];
         }
         // Дока: опрашивать статус примерно каждые 2с
         sleep(2);
     }
     // Soft timeout — всё равно пробуем забрать накопленные results
-    return ['ok' => true, 'polls' => $polls, 'softTimeout' => true];
+    return [
+        'ok' => true,
+        'polls' => $polls,
+        'softTimeout' => true,
+        'progress' => $lastProgress,
+    ];
+}
+
+/**
+ * Отложенная запись кэша после ответа клиенту (не держит TTFB).
+ *
+ * @param array<string,mixed> $job
+ */
+function tvQueuePersistAfterResponse(array $job): void
+{
+    if (empty($job['ck']) || empty($job['liveData']) || !is_array($job['liveData'])) {
+        return;
+    }
+    $GLOBALS['tv_persist_after'] = $job;
+}
+
+/**
+ * Выполнить отложенный persist (вызывать после flush ответа).
+ */
+function tvRunPersistAfterResponse(): void
+{
+    $job = $GLOBALS['tv_persist_after'] ?? null;
+    $GLOBALS['tv_persist_after'] = null;
+    if (!is_array($job) || empty($job['ck']) || empty($job['liveData']) || !is_array($job['liveData'])) {
+        return;
+    }
+    $ck = (string) $job['ck'];
+    $liveData = $job['liveData'];
+    $sp = is_array($job['sp'] ?? null) ? $job['sp'] : [];
+    $ttlSearch = (int) ($job['ttlSearch'] ?? tvSearchCacheTtlSeconds(!empty($job['onlyPromo'])));
+    $onlyPromo = !empty($job['onlyPromo']);
+    $dataToReturn = is_array($job['dataToReturn'] ?? null) ? $job['dataToReturn'] : $liveData;
+    $sid = (int) ($job['searchId'] ?? 0);
+
+    try {
+        tvSaveSearchResultsCache($ck, $liveData);
+        tvMergeAllToursCache($liveData);
+        if (
+            !empty($GLOBALS['tv_search_cover_enabled'])
+            && !$onlyPromo
+            && empty($sp['regionIds'])
+            && empty($sp['meal'])
+            && empty($sp['hotelCategory'])
+        ) {
+            th_search_cover_upsert(
+                array_merge($sp, [
+                    'currency' => 'RUB',
+                    'departureId' => (int) ($sp['departureId'] ?: th_departure_default_id()),
+                ]),
+                $liveData,
+                $ttlSearch
+            );
+        }
+        if ($onlyPromo && !empty($dataToReturn)) {
+            tv_promo_country_cache_load();
+            $promoCacheCountryId = (int) ($job['promoCacheCountryId'] ?? 0);
+            $skipCountryWidePromoCache = !empty($job['skipCountryWidePromoCache']);
+            if ($promoCacheCountryId > 0 && !$skipCountryWidePromoCache) {
+                th_promo_cache_set($promoCacheCountryId, $dataToReturn, [
+                    'departureId' => (int) ($sp['departureId'] ?: th_departure_default_id()),
+                    'dateFrom' => (string) ($sp['dateFrom'] ?? ''),
+                    'dateTo' => (string) ($sp['dateTo'] ?? ''),
+                ]);
+            }
+        }
+        $projectId = $GLOBALS['tv_firestore_project_id'] ?? null;
+        if ($projectId !== null && $projectId !== '') {
+            tv_firestore_helper_load();
+            @firestoreSet($projectId, 'searchCache', $ck, $liveData, time() + $ttlSearch);
+        }
+        tvLog('search_persist_deferred', [
+            'searchId' => $sid,
+            'cache_key' => $ck,
+            'tours_count' => count($liveData),
+        ]);
+    } catch (Throwable $e) {
+        tvLog('search_persist_deferred_fail', [
+            'searchId' => $sid,
+            'error' => $e->getMessage(),
+        ]);
+    }
 }
 
 /**
@@ -1250,7 +1420,13 @@ function tourvisor_proxy_dispatch(): array
         $departureId = (int) $_GET['departure'];
     }
 
-    if (in_array($type, ['search', 'search-cached'], true) && security_rate_limit_exceeded('tourvisor_search', 100, 60)) {
+    $searchCacheOnly = isset($_GET['cacheOnly']) && $_GET['cacheOnly'] === '1';
+    $dictReadTypes = ['countries', 'dates', 'meals', 'regions', 'hotel-services', 'promo-cache-index', 'tour-hots'];
+    $isCacheProbe = $type === 'search-cached' && $searchCacheOnly;
+    $isDictRead = in_array($type, $dictReadTypes, true);
+    $isLightRead = $isCacheProbe || $isDictRead;
+
+    if (!$isLightRead && in_array($type, ['search', 'search-cached'], true) && security_rate_limit_exceeded('tourvisor_search', 150, 60)) {
         $ratePayload = ['success' => false, 'error' => 'Слишком много запросов. Подождите минуту.'];
         if (TH_TOURVISOR_PROXY_EMBED) {
             return $ratePayload;
@@ -1262,7 +1438,9 @@ function tourvisor_proxy_dispatch(): array
         exit;
     }
     $guardPayload = $_SERVER['REQUEST_METHOD'] === 'POST' ? (string)file_get_contents('php://input') : '';
-    $guard = security_guard_public_api('tourvisor_proxy_api', $guardPayload, 180, 65536);
+    $guardKey = $isLightRead ? 'tourvisor_proxy_read' : 'tourvisor_proxy_api';
+    $guardRpm = $isLightRead ? 600 : 300;
+    $guard = security_guard_public_api($guardKey, $guardPayload, $guardRpm, 65536);
     if (empty($guard['ok'])) {
         if (TH_TOURVISOR_PROXY_EMBED) {
             return ['success' => false, 'error' => (string)($guard['error'] ?? 'Bad request'), 'data' => []];
@@ -1645,19 +1823,26 @@ function tourvisor_proxy_dispatch(): array
         if (!$departureId || !$countryId) {
             $r = ['success' => false, 'error' => 'departureId and countryId required'];
         } else {
+            // onlyDirect на /tours/dates Tourvisor отклоняет (schema: invalid path) — не слать.
+            // Для подсветки прямых дат клиент дергает search-cached&onlyDirect и/или tour-flights.
             $params = ['departureId' => $departureId, 'countryId' => $countryId, 'onlyCharter' => (bool)$onlyCharter];
-            // onlyDirect в публичной доке у /tours/dates нет, но шлюз принимает — для подсветки прямых дат.
-            if ($onlyDirect) {
-                $params['onlyDirect'] = true;
-            }
             if ($arrivalId) $params['arrivalId'] = $arrivalId;
-            $r = tvCached('dates', $params, function() use ($params) {
-                $res = tvRequest('/tours/dates', $params);
-                if (!$res['success'] && $GLOBALS['tv_use_fallbacks']) {
-                    return ['success' => true, 'data' => [date('Y-m-d', strtotime('+7 days'))]];
-                }
-                return $res;
-            });
+            if ($onlyDirect) {
+                $r = [
+                    'success' => false,
+                    'error' => 'onlyDirect is not supported on /tours/dates',
+                    'data' => [],
+                    'directViaDatesUnsupported' => true,
+                ];
+            } else {
+                $r = tvCached('dates', $params, function() use ($params) {
+                    $res = tvRequest('/tours/dates', $params);
+                    if (!$res['success'] && $GLOBALS['tv_use_fallbacks']) {
+                        return ['success' => true, 'data' => [date('Y-m-d', strtotime('+7 days'))]];
+                    }
+                    return $res;
+                });
+            }
         }
         break;
     case 'tour-flights':
@@ -1668,7 +1853,7 @@ function tourvisor_proxy_dispatch(): array
         } else {
             $ttl = (int)(getenv('TOURVISOR_TOUR_LIVE_CACHE_TTL_SECONDS') ?: ($_ENV['TOURVISOR_TOUR_LIVE_CACHE_TTL_SECONDS'] ?? 300));
             $ttl = min(max($ttl, 60), 900);
-            $r = tvCachedShort('tour-flights', ['tourId' => $tourId, 'currency' => $currency], $ttl, function() use ($tourId, $currency) {
+            $r = tvCachedShort('tour-flights', ['tourId' => $tourId, 'currency' => $currency], $ttl, function () use ($tourId, $currency) {
                 $res = tvRequest('/tours/' . $tourId . '/flights', ['currency' => $currency]);
                 if ($res['success'] && isset($res['data'])) {
                     return [
@@ -1680,7 +1865,7 @@ function tourvisor_proxy_dispatch(): array
                     ];
                 }
                 return ['success' => false, 'error' => $res['error'] ?? 'Ошибка запроса авиарейсов', 'data' => null];
-            });
+            }, true);
         }
         break;
     case 'tour':
@@ -1915,6 +2100,19 @@ function tourvisor_proxy_dispatch(): array
         if ($hotelServices !== '') {
             $searchParams['hotelServices'] = array_map('intval', array_filter(explode(',', $hotelServices)));
         }
+        [$apiNFrom, $apiNTo, $nightsExpanded] = tvNightsForTourvisorApi(
+            (int) $searchParams['nightsFrom'],
+            (int) $searchParams['nightsTo']
+        );
+        if ($nightsExpanded) {
+            tvLog('search_nights_expanded', [
+                'user' => [(int) $searchParams['nightsFrom'], (int) $searchParams['nightsTo']],
+                'api' => [$apiNFrom, $apiNTo],
+            ]);
+            header('X-Tourvisor-Nights-Expanded: 1');
+        }
+        $searchParams['nightsFrom'] = $apiNFrom;
+        $searchParams['nightsTo'] = $apiNTo;
         tvLog('search_start', ['params' => $searchParams, 'GET' => array_intersect_key($_GET, array_flip(['departureId', 'countryId', 'dateFrom', 'dateTo', 'nightsFrom', 'nightsTo', 'adults', 'childs', 'meal', 'regionIds', 'hotelIds', 'hotelCategory', 'hotelServices']))]);
         $r = tvRequest('/tours/search', $searchParams);
         if ($r['success'] && is_array($r['data']) && isset($r['data']['error'])) {
@@ -1953,28 +2151,37 @@ function tourvisor_proxy_dispatch(): array
         $searchId = (int)($_GET['searchId'] ?? 0);
         // API поддерживает только limit (Default: 25), offset нет. Максимум не указан в доке — запрашиваем до 1000.
         $limit = min(max((int)($_GET['limit'] ?? 25), 1), 1000);
+        // persist=0 — частичная выдача для early paint, не затираем кэш неполными данными
+        $persistResults = !(isset($_GET['persist']) && $_GET['persist'] === '0');
         if (!$searchId) {
             $r = ['success' => false, 'error' => 'searchId required'];
             tvLog('results_error', ['reason' => 'searchId required']);
         } else {
             $r = tvRequest("/tours/search/{$searchId}", ['limit' => $limit]);
             $cnt = is_array($r['data'] ?? null) ? count($r['data']) : 0;
-            if ($r['success'] && is_array($r['data']) && $cnt > 0) {
+            if ($persistResults && $r['success'] && is_array($r['data']) && $cnt > 0) {
                 $params = tvLoadSearchParams($searchId);
                 if ($params !== null) {
                     $ck = tvSearchParamsKey($params);
-                    tvSaveSearchResultsCache($ck, $r['data']);
-                    tvMergeAllToursCache($r['data']);
-                    $projectId = $GLOBALS['tv_firestore_project_id'] ?? null;
-                    if ($projectId !== null && $projectId !== '') {
-                        tv_firestore_helper_load();
-                        $ttlSearch = (int)($GLOBALS['tv_search_cache_ttl'] ?? 172800);
-                        @firestoreSet($projectId, 'searchCache', $ck, $r['data'], time() + $ttlSearch);
-                    }
-                    tvLog('results_cached', ['searchId' => $searchId, 'cache_key' => $ck, 'tours_count' => $cnt, 'merged_to_all_tours' => true]);
+                    // Тяжёлый persist — после ответа клиенту
+                    tvQueuePersistAfterResponse([
+                        'ck' => $ck,
+                        'liveData' => $r['data'],
+                        'sp' => $params,
+                        'ttlSearch' => (int) ($GLOBALS['tv_search_cache_ttl'] ?? 172800),
+                        'onlyPromo' => false,
+                        'searchId' => $searchId,
+                    ]);
+                    tvLog('results_cached_queued', ['searchId' => $searchId, 'cache_key' => $ck, 'tours_count' => $cnt]);
                 }
             }
-            tvLog('results', ['searchId' => $searchId, 'limit' => $limit, 'success' => !empty($r['success']), 'tours_count' => $cnt]);
+            tvLog('results', [
+                'searchId' => $searchId,
+                'limit' => $limit,
+                'persist' => $persistResults,
+                'success' => !empty($r['success']),
+                'tours_count' => $cnt,
+            ]);
         }
         break;
     case 'search':
@@ -2180,10 +2387,17 @@ function tourvisor_proxy_dispatch(): array
         }
         tvLog('search_api_request', ['cache' => 'none', 'params' => array_intersect_key($sp, array_flip(['departureId', 'countryId', 'dateFrom', 'dateTo']))]);
         $GLOBALS['tv_cache_hit'] = false;
-        $nightsFrom = max(1, min(28, (int)$sp['nightsFrom']));
-        $nightsTo = max(1, min(28, (int)$sp['nightsTo']));
-        if ($nightsTo - $nightsFrom > 10) {
-            $nightsTo = $nightsFrom + 10; // API: диапазон ночей не более 10
+        [$nightsFrom, $nightsTo, $nightsExpanded] = tvNightsForTourvisorApi(
+            (int) ($sp['nightsFrom'] ?? 6),
+            (int) ($sp['nightsTo'] ?? 9)
+        );
+        if ($nightsExpanded) {
+            tvLog('search_nights_expanded', [
+                'user' => [(int) ($sp['nightsFrom'] ?? 0), (int) ($sp['nightsTo'] ?? 0)],
+                'api' => [$nightsFrom, $nightsTo],
+                'cache_key' => $ck,
+            ]);
+            header('X-Tourvisor-Nights-Expanded: 1');
         }
         $searchParamsApi = [
             'departureId' => $sp['departureId'] ?: th_departure_default_id(),
@@ -2236,19 +2450,25 @@ function tourvisor_proxy_dispatch(): array
         }
         $sid = (int)$resSearch['data']['searchId'];
         tvSaveSearchParams($sid, $searchParamsApi);
-        $poll = tvPollSearchUntilReady($sid, 24);
+        // Раньше отдаём накопленное: early ~55% или soft 16с (вместо жёстких 24с до 100%)
+        $earlyPct = (int) (getenv('TH_TV_EARLY_PROGRESS') ?: ($_ENV['TH_TV_EARLY_PROGRESS'] ?? 55));
+        $pollSec = (int) (getenv('TH_TV_POLL_MAX_SEC') ?: ($_ENV['TH_TV_POLL_MAX_SEC'] ?? 16));
+        $pollSec = max(10, min(28, $pollSec));
+        $poll = tvPollSearchUntilReady($sid, $pollSec, ['earlyProgress' => max(0, min(90, $earlyPct))]);
         if (empty($poll['ok'])) {
             tvLog('search_api_error', ['searchId' => $sid, 'error' => $poll['error'] ?? 'poll']);
             $r = ['success' => false, 'error' => $poll['error'] ?? 'Search error', 'fromCache' => false];
             break;
         }
-        // Результаты поискового запроса — выдача накопленных результатов.
-        $resResults = tvRequest("/tours/search/{$sid}", ['limit' => 1000]);
+        // Для списка достаточно 250 отелей; полный 1000 только по явному resultLimit
+        $resultLimit = isset($_GET['resultLimit']) ? (int) $_GET['resultLimit'] : 250;
+        $resultLimit = max(50, min(1000, $resultLimit));
+        $resResults = tvRequest("/tours/search/{$sid}", ['limit' => $resultLimit]);
         $liveData = (isset($resResults['data']) && is_array($resResults['data'])) ? $resResults['data'] : [];
         // continue только если мало выдачи и явно разрешено (жжёт суточный search-лимит TV)
         if (!empty($liveData) && tvContinueMax() > 0 && count($liveData) < 25) {
             tvMaybeContinueSearch($sid, count($liveData));
-            $resResults = tvRequest("/tours/search/{$sid}", ['limit' => 1000]);
+            $resResults = tvRequest("/tours/search/{$sid}", ['limit' => $resultLimit]);
             $liveData = (isset($resResults['data']) && is_array($resResults['data'])) ? $resResults['data'] : [];
         }
         if (!empty($liveData)) {
@@ -2322,57 +2542,36 @@ function tourvisor_proxy_dispatch(): array
                 }
                 tvLog('promo_filter', ['total_hotels' => count($liveData), 'promo_hotels' => count($dataToReturn), 'promo_tour_ids_count' => count($promoTourIds)]);
             }
-            // Сохраняем в кэш только при полном наборе параметров (в т.ч. даты), чтобы ключ был уникален под выбранные даты
+            // Сохраняем в кэш после ответа клиенту (не блокируем TTFB)
             $saveToCache = $sp['dateFrom'] !== '' && $sp['dateTo'] !== '';
             if ($saveToCache) {
-                tvSaveSearchResultsCache($ck, $liveData);
-                tvMergeAllToursCache($liveData);
-                // Cover upsert: расширяем покрытие дат для того же состава туристов / ночей
-                if (
-                    !empty($GLOBALS['tv_search_cover_enabled'])
-                    && !$onlyPromo
-                    && empty($sp['regionIds'])
-                    && empty($sp['meal'])
-                    && empty($sp['hotelCategory'])
-                ) {
-                    $coverSaved = th_search_cover_upsert(
-                        array_merge($sp, [
-                            'currency' => 'RUB',
-                            'departureId' => (int) ($sp['departureId'] ?: th_departure_default_id()),
-                        ]),
-                        $liveData,
-                        $ttlSearch
-                    );
-                    if (is_array($coverSaved)) {
-                        header('X-Tourvisor-Cache-Cover: ' . $coverSaved['from'] . '..' . $coverSaved['to']);
-                        tvLog('search_cover_upsert', $coverSaved);
-                    }
+                $promoCacheCountryId = (int) ($_GET['promoTileId'] ?? 0);
+                if ($promoCacheCountryId <= 0) {
+                    $promoCacheCountryId = (int) ($sp['countryId'] ?? 0);
                 }
-                if ($onlyPromo && !empty($dataToReturn)) {
-                    tv_promo_country_cache_load();
-                    // Виртуальные плитки (promoTileId=16104) пишем отдельно — не затираем кэш Вьетнама
-                    $promoCacheCountryId = (int) ($_GET['promoTileId'] ?? 0);
-                    if ($promoCacheCountryId <= 0) {
-                        $promoCacheCountryId = (int) ($sp['countryId'] ?? 0);
-                    }
-                    // Не кладём региональную выборку в кэш всей страны
-                    $skipCountryWidePromoCache = trim((string) ($_GET['regionIds'] ?? '')) !== ''
-                        && (int) ($_GET['promoTileId'] ?? 0) <= 0;
-                    if ($promoCacheCountryId > 0 && !$skipCountryWidePromoCache) {
-                        th_promo_cache_set($promoCacheCountryId, $dataToReturn, [
-                            'departureId' => (int) ($sp['departureId'] ?: th_departure_default_id()),
-                            'dateFrom' => $sp['dateFrom'],
-                            'dateTo' => $sp['dateTo'],
-                        ]);
-                    }
-                }
-                if ($projectId !== null && $projectId !== '') {
-                    tv_firestore_helper_load();
-                    if (@firestoreSet($projectId, 'searchCache', $ck, $liveData, time() + $ttlSearch)) {
-                        $GLOBALS['tv_firestore_used'] = 'miss';
-                    }
-                }
-                tvLog('search_api_ok', ['searchId' => $sid, 'tours_count' => count($liveData), 'saved_to_cache_and_firestore' => true, 'dateFrom' => $sp['dateFrom'], 'dateTo' => $sp['dateTo']]);
+                $skipCountryWidePromoCache = trim((string) ($_GET['regionIds'] ?? '')) !== ''
+                    && (int) ($_GET['promoTileId'] ?? 0) <= 0;
+                tvQueuePersistAfterResponse([
+                    'ck' => $ck,
+                    'liveData' => $liveData,
+                    'dataToReturn' => $dataToReturn,
+                    'sp' => $sp,
+                    'ttlSearch' => $ttlSearch,
+                    'onlyPromo' => $onlyPromo,
+                    'searchId' => $sid,
+                    'promoCacheCountryId' => $promoCacheCountryId,
+                    'skipCountryWidePromoCache' => $skipCountryWidePromoCache,
+                ]);
+                tvLog('search_api_ok', [
+                    'searchId' => $sid,
+                    'tours_count' => count($liveData),
+                    'saved_to_cache_and_firestore' => 'deferred',
+                    'earlyReady' => !empty($poll['earlyReady']),
+                    'softTimeout' => !empty($poll['softTimeout']),
+                    'progress' => $poll['progress'] ?? null,
+                    'dateFrom' => $sp['dateFrom'],
+                    'dateTo' => $sp['dateTo'],
+                ]);
             } else {
                 tvLog('search_api_ok', ['searchId' => $sid, 'tours_count' => count($liveData), 'saved_to_cache' => false, 'reason' => 'missing_dates']);
             }
@@ -2381,14 +2580,21 @@ function tourvisor_proxy_dispatch(): array
                 'data' => $dataToReturn,
                 'searchId' => $sid,
                 'fromCache' => false,
+                'partial' => !empty($poll['earlyReady']) || !empty($poll['softTimeout']),
+                'progress' => $poll['progress'] ?? null,
                 'promoSearchSource' => $onlyPromo ? 'live_api' : null,
             ];
+            if (!empty($nightsExpanded)) {
+                $r['nightsExpanded'] = true;
+                $r['nightsRequestedFrom'] = (int) ($sp['nightsFrom'] ?? 0);
+                $r['nightsRequestedTo'] = (int) ($sp['nightsTo'] ?? 0);
+            }
             if ($onlyPromo) {
                 tvLog('promo_search_live_ok', [
                     'searchId' => $sid,
                     'countryId' => (int) ($sp['countryId'] ?? 0),
                     'promo_hotels' => count($dataToReturn),
-                    'saved_to_cache' => $saveToCache,
+                    'saved_to_cache' => $saveToCache ? 'deferred' : false,
                 ]);
             }
             if ($onlyPromo && !empty($promoTourIds)) {
@@ -2663,6 +2869,7 @@ function tourvisor_proxy_emit(array $r): void
             require_once __DIR__ . '/../operator_filter.php';
             $ofCountryId = (int) ($_GET['countryId'] ?? 0);
             $ofCountryName = trim((string) ($_GET['countryName'] ?? ''));
+            $ofDepartureId = (int) ($_GET['departureId'] ?? 0);
             if ($type === 'results') {
                 // countryId в запросе результатов не передаётся — берём из сохранённых параметров поиска.
                 $ofSid = (int) ($_GET['searchId'] ?? 0);
@@ -2670,6 +2877,7 @@ function tourvisor_proxy_emit(array $r): void
                     $ofParams = tvLoadSearchParams($ofSid);
                     if (is_array($ofParams)) {
                         $ofCountryId = (int) ($ofParams['countryId'] ?? $ofCountryId);
+                        $ofDepartureId = (int) ($ofParams['departureId'] ?? $ofDepartureId);
                     }
                 }
             }
@@ -2678,6 +2886,29 @@ function tourvisor_proxy_emit(array $r): void
             }
             if (is_array($r['tours'] ?? null) && $r['tours'] !== []) {
                 $r['tours'] = th_operator_filter_hotels($r['tours'], $ofCountryId, $ofCountryName);
+            }
+            // Отсев мусорных цен пакетов (15к / 54к на Шри-Ланку и т.п.). Режим «только отель» (dep=99) не трогаем.
+            require_once __DIR__ . '/../th_tour_price.php';
+            $ofAdults = max(1, min(9, (int) ($_GET['adults'] ?? 0)));
+            if ($ofAdults <= 0 && $type === 'results') {
+                $ofSidAdults = (int) ($_GET['searchId'] ?? 0);
+                if ($ofSidAdults > 0) {
+                    $ofParamsAdults = tvLoadSearchParams($ofSidAdults);
+                    if (is_array($ofParamsAdults)) {
+                        $ofAdults = max(1, min(9, (int) ($ofParamsAdults['adults'] ?? 2)));
+                    }
+                }
+            }
+            if ($ofAdults <= 0) {
+                $ofAdults = 2;
+            }
+            if (!th_tour_price_is_hotel_only_departure($ofDepartureId > 0 ? $ofDepartureId : null)) {
+                if (is_array($r['data'] ?? null) && $r['data'] !== []) {
+                    $r['data'] = th_tour_price_filter_hotels($r['data'], $ofAdults);
+                }
+                if (is_array($r['tours'] ?? null) && $r['tours'] !== []) {
+                    $r['tours'] = th_tour_price_filter_hotels($r['tours'], $ofAdults);
+                }
             }
         }
     }
@@ -2717,7 +2948,7 @@ function tourvisor_proxy_emit(array $r): void
             $wantSlim = !$wantFull && (
                 (isset($_GET['slim']) && $_GET['slim'] === '1')
                 || (isset($_GET['cacheOnly']) && $_GET['cacheOnly'] === '1')
-                || in_array($type, ['search-cached', 'search'], true)
+                || in_array($type, ['search-cached', 'search', 'results'], true)
             );
             if ($wantSlim && function_exists('tv_slim_hotels_for_list')) {
                 $r['data'] = tv_slim_hotels_for_list($r['data']);
@@ -2763,6 +2994,22 @@ function tourvisor_proxy_emit(array $r): void
         ];
     }
     echo json_encode($r, JSON_UNESCAPED_UNICODE);
+    if (!empty($GLOBALS['tv_persist_after']) && is_array($GLOBALS['tv_persist_after'])) {
+        // Отдаём тело клиенту, затем пишем кэш/cover/Firestore — не держим TTFB
+        if (function_exists('fastcgi_finish_request')) {
+            @fastcgi_finish_request();
+        } elseif (function_exists('litespeed_finish_request')) {
+            @litespeed_finish_request();
+        } else {
+            if (function_exists('ob_get_level')) {
+                while (ob_get_level() > 0) {
+                    @ob_end_flush();
+                }
+            }
+            @flush();
+        }
+        tvRunPersistAfterResponse();
+    }
 }
 
 if (!TH_TOURVISOR_PROXY_EMBED) {

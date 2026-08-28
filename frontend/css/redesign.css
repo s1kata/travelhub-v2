@@ -1995,13 +1995,15 @@ select.flatpickr-monthDropdown-months {
 .tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-days,
 .tv-sc-date-popup--cal-only .tv-sc-cal-container .dayContainer {
     width: 100% !important;
-    min-width: 100% !important;
+    min-width: 0 !important;
     max-width: 100% !important;
 }
 .tv-sc-cal-container .dayContainer {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    justify-content: flex-start !important;
+    display: grid !important;
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    justify-content: stretch !important;
+    justify-items: stretch !important;
+    gap: 2px !important;
     box-sizing: border-box !important;
 }
 .tv-sc-cal-container .tv-cal-period-select {
@@ -2031,18 +2033,23 @@ select.flatpickr-monthDropdown-months {
     background: #fff;
 }
 .tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day {
-    flex: 1 0 14.2857% !important;
-    max-width: 14.2857% !important;
-    width: 14.2857% !important;
+    flex: none !important;
+    max-width: none !important;
+    width: 100% !important;
     height: 42px !important;
+    min-height: 42px !important;
     line-height: 42px !important;
-    margin: 2px 0 !important;
+    margin: 0 !important;
     border-radius: 10px !important;
     color: #1e293b !important;
     font-weight: 600;
     font-size: 0.9375rem;
     border: 1px solid transparent;
     box-sizing: border-box;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center;
 }
 .tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day.today {
     border-color: rgba(93, 169, 164, 0.55) !important;
@@ -2069,13 +2076,14 @@ select.flatpickr-monthDropdown-months {
     color: #fff !important;
     font-weight: 700 !important;
     z-index: 2;
+    box-shadow: none !important;
 }
 .tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day.inRange {
-    background: rgba(93, 169, 164, 0.16) !important;
+    background: rgba(93, 169, 164, 0.18) !important;
     border-color: transparent !important;
     color: #1e553f !important;
     border-radius: 0 !important;
-    box-shadow: -5px 0 0 rgba(93, 169, 164, 0.16), 5px 0 0 rgba(93, 169, 164, 0.16) !important;
+    box-shadow: none !important;
 }
 .tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-day.startRange {
     border-radius: 10px 0 0 10px !important;
@@ -2166,9 +2174,12 @@ select.flatpickr-monthDropdown-months {
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
-    padding: 4px 2px 6px !important;
+    padding: 4px 4px 8px !important;
     background: #fff !important;
     box-sizing: border-box !important;
+    display: grid !important;
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    gap: 2px !important;
 }
 
 .tv-sc-cal-container .tv-cal-month-column .flatpickr-day.prevMonthDay:not(.disabled),
@@ -3133,7 +3144,8 @@ select.flatpickr-monthDropdown-months {
 }
 .th-tour-card__badge--exclusive { background: #7C3AED; }
 .th-tour-card__badge--promo     { background: #FF6B6B; }
-.th-tour-card__badge--direct    { background: #5DA9A4; top: 44px; }
+.th-tour-card__badge--direct    { background: #FF6B6B; top: 44px; }
+.th-tour-card__badge--transfer  { background: #64748b; top: 44px; }
 .th-tour-card__badge--hot       { background: #E53E3E; }
 
 /* --- Тело --- */
@@ -3250,6 +3262,34 @@ select.flatpickr-monthDropdown-months {
     border-radius: 10px;
     min-width: 0;
     max-width: 100%;
+    box-sizing: border-box;
+}
+.th-tour-card__flight-pick {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 2px;
+    min-width: 0;
+}
+.th-tour-card__flight-pick-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+.th-tour-card__flight-select {
+    width: 100%;
+    max-width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    color: #0f172a;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 10px;
+    min-height: 36px;
     box-sizing: border-box;
 }
 .th-tour-card__flight-leg {

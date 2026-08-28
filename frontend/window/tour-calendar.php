@@ -47,7 +47,7 @@ if ($qCountryId > 0) {
 }
 $defaultDepartureId = ($qDepartureId === 1) ? 1 : 7;
 $imageProxy = get_tourvisor_image_proxy_base_url();
-$assetV = '9';
+$assetV = '11';
 
 ?>
 <!DOCTYPE html>

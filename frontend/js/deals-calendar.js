@@ -164,6 +164,13 @@
       from_calendar: '1',
       adults: '2'
     };
+    var opName = '';
+    if (t.operatorName) opName = String(t.operatorName).trim();
+    else if (typeof t.operator === 'string') opName = t.operator.trim();
+    else if (t.operator && typeof t.operator === 'object') {
+      opName = String(t.operator.russianName || t.operator.name || '').trim();
+    }
+    if (opName) params.tour_operator = opName;
     var q = [];
     Object.keys(params).forEach(function (k) {
       if (params[k] !== '' && params[k] != null) {

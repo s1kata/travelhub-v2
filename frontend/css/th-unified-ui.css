@@ -52,12 +52,20 @@
 }
 
 /* На акциях свой sticky — глобальный lead bar не дублируем */
-body.th-promo-page .th-site-lead-bar {
+body.th-promo-page .th-site-lead-bar,
+body.th-page-auth .th-site-lead-bar {
     display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+body.th-page-auth,
+body.th-page-auth.has-th-lead-bar {
+    padding-bottom: 0 !important;
 }
 
 /* Нижний отступ: lead bar и/или page sticky */
-body.has-th-lead-bar:not(.th-promo-page) {
+body.has-th-lead-bar:not(.th-promo-page):not(.th-page-auth) {
     padding-bottom: calc(
         max(var(--th-lead-bar-h, 48px), var(--th-sticky-bottom-h, 0px))
         + env(safe-area-inset-bottom, 0px)

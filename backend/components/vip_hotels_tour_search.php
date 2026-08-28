@@ -927,7 +927,8 @@ $_th_fp_vip_v = is_file($_th_fp_vip) ? (string) filemtime($_th_fp_vip) : '1';
             thLoadTourFlightsForHotels(hotels, {
                 apiBase: base,
                 departureCity: depCity,
-                maxTours: Math.min(hotels.length, 40),
+                maxTours: hotels.length,
+                maxConcurrent: 6,
                 getTourId: getVipTourId,
                 onDone: callback
             });

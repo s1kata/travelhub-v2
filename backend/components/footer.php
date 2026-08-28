@@ -49,15 +49,18 @@ $thc = th_contacts();
                 <div>
                     <h3 class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500">Туры и цены</h3>
                     <ul class="space-y-2.5 text-sm">
-                        <li><a href="/frontend/window/offices.php" class="text-slate-400 transition hover:text-white">Офисы</a></li>
-                        <li><a href="/frontend/window/countries-list.php" class="text-slate-400 transition hover:text-white">Страны</a></li>
                         <li><a href="/frontend/window/promotions.php" class="text-slate-400 transition hover:text-white">Акции</a></li>
+                        <li><a href="/frontend/window/countries-list.php" class="text-slate-400 transition hover:text-white">Страны</a></li>
+                        <li><a href="/frontend/window/popular-hotels.php" class="text-slate-400 transition hover:text-white">Отели</a></li>
+                        <li><a href="/frontend/window/offices.php" class="text-slate-400 transition hover:text-white">Офисы</a></li>
                     </ul>
                 </div>
                 <div>
                     <h3 class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500">Сервис</h3>
                     <ul class="space-y-2.5 text-sm">
                         <li><a href="/frontend/window/services.php" class="text-slate-400 transition hover:text-white">Услуги</a></li>
+                        <li><a href="/frontend/window/tour-calendar.php" class="text-slate-400 transition hover:text-white">Календарь дат</a></li>
+                        <li><a href="https://apps.apple.com/ru/app/travelhub/id6786282632" class="text-slate-400 transition hover:text-white" target="_blank" rel="noopener noreferrer" id="th-app-install-link">Приложение iOS</a></li>
                         <li><a href="/frontend/window/for-operators.php" class="text-slate-400 transition hover:text-white">Для менеджеров</a></li>
                     </ul>
                 </div>

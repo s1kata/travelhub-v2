@@ -5,7 +5,7 @@
     --th-lead-bar-h: 48px;
 }
 
-body.has-th-lead-bar:not(.th-promo-page) {
+body.has-th-lead-bar:not(.th-promo-page):not(.th-page-auth) {
     padding-bottom: calc(var(--th-lead-bar-h) + env(safe-area-inset-bottom, 0px));
 }
 
@@ -134,8 +134,19 @@ html.th-kb-open .th-site-lead-bar,
 body.th-sheet-open .th-site-lead-bar,
 body.th-coral-popup-open .th-site-lead-bar,
 body.th-modal-open .th-site-lead-bar,
-body.th-deals-cal-page .th-site-lead-bar {
+body.th-deals-cal-page .th-site-lead-bar,
+body.th-page-auth .th-site-lead-bar,
+body.th-page-auth .th-site-lead-bar[data-th-site-lead-bar] {
     display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}
+
+body.th-page-auth,
+body.th-page-auth.has-th-lead-bar {
+    padding-bottom: 0 !important;
 }
 
 body.th-support-chat-open,

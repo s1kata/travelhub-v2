@@ -2289,15 +2289,28 @@
                     apiBase: base,
                     departureCity: depCity,
                     departureId: depIdFl,
-                    maxTours: Math.min(hotels.length, 8),
-                    maxConcurrent: 2,
+                    maxTours: hotels.length,
+                    maxConcurrent: 6,
                     loadGen: loadGen,
                     getTourId: getTourId,
-                    patchContainer: resultsEl
+                    patchContainer: resultsEl,
+                    onDone: function () {
+                        if (typeof thLoadFlightsForVisibleCards === 'function') {
+                            thLoadFlightsForVisibleCards(resultsEl, {
+                                apiBase: base,
+                                departureCity: depCity,
+                                departureId: depIdFl,
+                                maxConcurrent: 6,
+                                patchContainer: resultsEl
+                            });
+                        }
+                    }
                 });
                 return;
             }
-            if (window.THTourCard && typeof window.THTourCard.patchFlightsInContainer === 'function') {
+            if (window.THTourCard && typeof window.THTourCard.mountInContainer === 'function') {
+                window.THTourCard.mountInContainer(resultsEl);
+            } else if (window.THTourCard && typeof window.THTourCard.patchFlightsInContainer === 'function') {
                 window.THTourCard.patchFlightsInContainer(resultsEl);
             }
         }, 300);
@@ -2933,7 +2946,9 @@
             resultsEl.innerHTML = renderPromoTourCards(prepared);
             patchPromoCardFlights(prepared);
             updatePromoHotelCardPrices(prepared);
-            if (window.THTourCard && typeof window.THTourCard.ensureCarouselsInContainer === 'function') {
+            if (window.THTourCard && typeof window.THTourCard.mountInContainer === 'function') {
+                window.THTourCard.mountInContainer(resultsEl);
+            } else if (window.THTourCard && typeof window.THTourCard.ensureCarouselsInContainer === 'function') {
                 window.THTourCard.ensureCarouselsInContainer(resultsEl);
             } else if (window.THTourCard && typeof window.THTourCard.kickImagesInContainer === 'function') {
                 window.THTourCard.kickImagesInContainer(resultsEl);
@@ -3471,7 +3486,9 @@
             resultsEl.innerHTML = renderPromoTourCards(prepared);
             patchPromoCardFlights(prepared);
             updatePromoHotelCardPrices(prepared);
-            if (window.THTourCard && typeof window.THTourCard.ensureCarouselsInContainer === 'function') {
+            if (window.THTourCard && typeof window.THTourCard.mountInContainer === 'function') {
+                window.THTourCard.mountInContainer(resultsEl);
+            } else if (window.THTourCard && typeof window.THTourCard.ensureCarouselsInContainer === 'function') {
                 window.THTourCard.ensureCarouselsInContainer(resultsEl);
             } else if (window.THTourCard && typeof window.THTourCard.kickImagesInContainer === 'function') {
                 window.THTourCard.kickImagesInContainer(resultsEl);

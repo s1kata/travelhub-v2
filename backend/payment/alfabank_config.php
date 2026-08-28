@@ -33,7 +33,23 @@ $alfaTestMode = filter_var(
 // Куда банк перенаправляет пользователя после оплаты (обработчик — payment_callback.php)
 // И куда мы редиректим пользователя после проверки статуса (страницы успеха/ошибки)
 
-$siteUrl = rtrim(getenv('SITE_URL') ?: ($_ENV['SITE_URL'] ?? 'https://travelhub63.ru'), '/');
+$siteUrlEnv = getenv('SITE_URL') ?: ($_ENV['SITE_URL'] ?? '');
+$host = $_SERVER['HTTP_HOST'] ?? 'travelhub63.ru';
+if (!function_exists('tourvisor_request_is_https')) {
+    require_once dirname(__DIR__) . DIRECTORY_SEPARATOR . 'components' . DIRECTORY_SEPARATOR . 'tourvisor_proxy_url.php';
+}
+$origin = (tourvisor_request_is_https() ? 'https' : 'http') . '://' . $host;
+
+if (is_string($siteUrlEnv) && $siteUrlEnv !== '') {
+    $siteUrl = rtrim($siteUrlEnv, '/');
+    $envHost = parse_url($siteUrl, PHP_URL_HOST);
+    // На тест-стенде не уводим fail/success URL на prod, даже если SITE_URL в .env боевой
+    if (is_string($envHost) && $envHost !== '' && strcasecmp($envHost, $host) !== 0) {
+        $siteUrl = $origin;
+    }
+} else {
+    $siteUrl = $origin;
+}
 
 // URL, который мы передаём банку в returnUrl (банк редиректит сюда после оплаты)
 define('ALFABANK_CALLBACK_URL', $siteUrl . '/backend/payment/payment_callback.php');

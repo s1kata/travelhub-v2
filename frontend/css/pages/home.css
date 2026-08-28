@@ -546,30 +546,38 @@ header {
         margin-top: 0 !important;
     }
 }
-/* ── UX: лоадер поиска — сообщение при долгом ожидании ── */
-.tv-search-loader-slow {
-    display: none;
-    margin-top: 14px;
-    text-align: center;
+/* ── UX: early paint — лёгкий баннер догрузки (без формы «2 минуты») ── */
+.tv-search-loader-slow,
+.tv-search-loader-slow.show {
+    display: none !important;
 }
-.tv-search-loader-slow.show { display: block; }
-.tv-search-loader-slow p {
-    font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.85);
-    margin: 0 0 10px;
-}
-.tv-search-loader-slow button {
-    display: inline-flex;
+.tv-live-refine {
+    display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 18px;
-    border: none;
+    gap: 0.55rem;
+    margin: 0 0 0.85rem;
+    padding: 0.65rem 0.9rem;
     border-radius: 12px;
-    background: linear-gradient(135deg, #FF6B6B, #F65252);
-    color: #fff;
-    font-size: 0.9375rem;
-    font-weight: 700;
-    cursor: pointer;
+    background: rgba(93, 169, 164, 0.12);
+    border: 1px solid rgba(93, 169, 164, 0.28);
+    color: #0f766e;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+.tv-live-refine.hidden {
+    display: none !important;
+}
+.tv-live-refine__spin {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(15, 118, 110, 0.25);
+    border-top-color: #0f766e;
+    border-radius: 50%;
+    animation: tvLiveRefineSpin 0.7s linear infinite;
+    flex-shrink: 0;
+}
+@keyframes tvLiveRefineSpin {
+    to { transform: rotate(360deg); }
 }
 /* ── UX: блок «Как это работает» ── */
 .how-it-works {
@@ -1023,22 +1031,24 @@ select.flatpickr-monthDropdown-months {
 /* Подсветка дат с вылетами / прямыми */
 .flatpickr-day.tv-cal-fly {
     font-weight: 700;
-    box-shadow: inset 0 -2px 0 #38bdf8;
+    box-shadow: inset 0 -2px 0 #5DA9A4;
 }
 .flatpickr-day.tv-cal-fly-direct {
-    box-shadow: inset 0 -2px 0 #0284c7;
-    background: rgba(14, 165, 233, 0.12) !important;
+    box-shadow: inset 0 -2px 0 #FF6B6B !important;
+    background: rgba(255, 107, 107, 0.16) !important;
 }
 .flatpickr-day.tv-cal-fly-off {
     opacity: 0.38;
 }
-#tv-nights-grid .tv-nights-cell.is-fly-available:not(.is-from):not(.is-to):not(.is-in-range) {
-    outline: 2px solid rgba(14, 165, 233, 0.45);
+#tv-nights-grid .tv-nights-cell.is-fly-available:not(.is-from):not(.is-to):not(.is-in-range):not(.is-range-hover) {
+    outline: 2px solid rgba(93, 169, 164, 0.55);
     outline-offset: -2px;
+    background: rgba(93, 169, 164, 0.1);
 }
-#tv-nights-grid .tv-nights-cell.is-fly-direct:not(.is-from):not(.is-to):not(.is-in-range) {
-    outline-color: #0284c7;
-    background: rgba(14, 165, 233, 0.12);
+#tv-nights-grid .tv-nights-cell.is-fly-direct:not(.is-from):not(.is-to):not(.is-in-range):not(.is-range-hover) {
+    outline: 2px solid #FF6B6B !important;
+    outline-offset: -2px;
+    background: rgba(255, 107, 107, 0.16) !important;
 }
 #tv-nights-grid .tv-nights-cell.is-fly-off {
     opacity: 0.35;
@@ -1122,7 +1132,9 @@ select.flatpickr-monthDropdown-months {
     max-width: min(28rem, calc(100% - 24px));
     margin-inline: auto;
     max-height: min(90vh, calc(100dvh - 2rem));
-    overflow-y: auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     -webkit-overflow-scrolling: touch;
 }
 #tv-nights-popup-card.th-coral-popup__panel {
@@ -1400,6 +1412,23 @@ select.flatpickr-monthDropdown-months {
     font-size: 0.78rem;
     font-weight: 600;
     white-space: nowrap;
+    cursor: pointer;
+}
+.tv-cal-quick-btn:disabled,
+.tv-cal-quick-btn.is-disabled,
+.tv-price-point:disabled,
+.tv-price-point.is-disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+    background: #f1f5f9;
+    color: #94a3b8;
+    box-shadow: none;
+    pointer-events: none;
+}
+.tv-price-point:disabled strong,
+.tv-price-point.is-disabled strong {
+    color: #94a3b8;
+    font-weight: 600;
 }
 #tv-sc-date-popup.th-coral-popup.hidden {
     display: none !important;
@@ -1447,6 +1476,20 @@ select.flatpickr-monthDropdown-months {
     border: 1px solid rgba(255, 255, 255, 0.18);
     gap: 4px;
 }
+.th-search-mode__hint {
+    display: none;
+    width: 100%;
+    max-width: 360px;
+    margin: -6px auto 12px;
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.82);
+    letter-spacing: 0.01em;
+}
+body.th-search-mode-hotels .th-search-mode__hint:not([hidden]) {
+    display: block;
+}
 .th-search-mode__btn {
     flex: 1 1 0;
     border: 0;
@@ -1474,11 +1517,135 @@ body.th-search-mode-hotels .th-hotel-find-btn {
 body.th-search-mode-hotels [data-panel="3"] [data-thw-next] {
     display: none !important;
 }
+/* Hotels step «Даты»: Назад + Найти отели — без обрезания */
+body.th-search-mode-hotels .th-wizard__nav--dates {
+    display: grid !important;
+    grid-template-columns: minmax(5.5rem, 30%) minmax(0, 1fr) !important;
+    gap: 0.65rem !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+}
+body.th-search-mode-hotels .th-wizard__nav--dates .th-wizard__back {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+}
+body.th-search-mode-hotels .th-wizard__nav--dates .th-hotel-find-btn,
+body.th-search-mode-hotels .th-wizard__nav--dates .th-wizard__cta {
+    grid-column: 2;
+    grid-row: 1;
+    display: inline-flex !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 48px !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 0.85rem !important;
+    border: none !important;
+    border-radius: 14px !important;
+    background: linear-gradient(135deg, #FF6B6B 0%, #F65252 100%) !important;
+    color: #fff !important;
+    font-weight: 750 !important;
+    font-size: 0.95rem !important;
+    box-shadow: 0 6px 18px rgba(255, 107, 107, 0.32) !important;
+    position: static !important;
+    flex: none !important;
+    box-sizing: border-box !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transform: none !important;
+}
+body.th-search-mode-hotels .th-coral-wizard__rail-item[data-thw-goto="1"],
 body.th-search-mode-hotels .th-coral-wizard__rail-item[data-thw-goto="4"],
 body.th-search-mode-hotels .th-coral-wizard__rail-item[data-thw-goto="5"],
+body.th-search-mode-hotels .th-wizard__dot[data-thw-goto="1"],
 body.th-search-mode-hotels .th-wizard__dot[data-thw-goto="4"],
-body.th-search-mode-hotels .th-wizard__dot[data-thw-goto="5"] {
+body.th-search-mode-hotels .th-wizard__dot[data-thw-goto="5"],
+body.th-search-mode-hotels [data-panel="1"],
+body.th-search-mode-hotels [data-panel="4"],
+body.th-search-mode-hotels [data-panel="5"],
+body.th-search-mode-hotels [data-th-search-open="departure"] {
     display: none !important;
+}
+body.th-search-mode-hotels .th-coral-wizard__rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+body.th-search-mode-hotels .th-coral-wizard__rail-item[data-thw-goto="3"] {
+    border-right: none;
+}
+/* Wizard default: mode tabs + step focus */
+.th-search-wizard .th-search-mode {
+    margin-bottom: 0.85rem;
+}
+.th-search-wizard .th-wizard__stepbar {
+    margin: 0 0 0.85rem;
+}
+.th-search-wizard .th-wizard__panel.is-active {
+    display: grid;
+    gap: 0.85rem;
+    overflow: visible;
+}
+.th-search-wizard .th-wizard__nav {
+    display: grid;
+    grid-template-columns: minmax(5.5rem, 30%) minmax(0, 1fr);
+    gap: 0.65rem;
+    align-items: stretch;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+.th-search-wizard .th-wizard__next,
+.th-search-wizard #tv-search-btn {
+    width: 100%;
+    min-width: 0;
+    min-height: 3rem;
+}
+.th-search-wizard .th-wizard__back {
+    min-width: 0;
+    width: 100%;
+}
+@media (max-width: 479px) {
+    body.th-search-mode-hotels .th-coral-wizard:not(.th-search-tv) .th-coral-wizard__rail-item {
+        max-width: none;
+        flex: 1 1 0;
+        min-width: 0;
+    }
+    body.th-search-mode-hotels .th-wizard__nav--dates {
+        grid-template-columns: 1fr !important;
+    }
+    body.th-search-mode-hotels .th-wizard__nav--dates .th-hotel-find-btn,
+    body.th-search-mode-hotels .th-wizard__nav--dates .th-wizard__cta {
+        grid-column: 1;
+        grid-row: 1;
+        order: -1;
+    }
+    body.th-search-mode-hotels .th-wizard__nav--dates .th-wizard__back {
+        grid-column: 1;
+        grid-row: 2;
+    }
+}
+.tv-results-hotel-note {
+    display: none;
+    margin: 2px 0 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+}
+body.th-search-mode-hotels .tv-results-hotel-note:not([hidden]) {
+    display: block;
+}
+.tv-results-toolbar__head {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
 }
 .tv-compare-modal {
     position: fixed;
@@ -1571,6 +1738,9 @@ body.th-search-mode-hotels .th-wizard__dot[data-thw-goto="5"] {
 .tv-price-point.is-current {
     border-color: rgba(26, 26, 64, 0.35);
     background: rgba(26, 26, 64, 0.06);
+}
+.tv-price-point.is-disabled.is-current {
+    background: #f1f5f9;
 }
 .tv-compare-panel {
     margin-top: 14px;
@@ -2327,4 +2497,62 @@ body.th-app-thanks-open {
     .th-app-banner-promo__text {
         font-size: 0.875rem;
     }
+}
+
+/* Лёгкая полоска доверия на главной */
+.th-home-trust__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+}
+@media (min-width: 768px) {
+    .th-home-trust__list {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+}
+.th-home-trust__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+.th-home-trust__icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #5DA9A4, #4a9691);
+    color: #fff;
+    font-size: 0.95rem;
+}
+.th-home-trust__item strong {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 2px;
+}
+.th-home-trust__item p {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    color: #64748b;
+}
+.th-home-trust__item a {
+    color: #5DA9A4;
+    font-weight: 600;
+    text-decoration: none;
+}
+.th-home-trust__item a:hover {
+    text-decoration: underline;
 }

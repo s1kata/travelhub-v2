@@ -516,9 +516,10 @@
     font-weight: 700;
     line-height: 1;
     white-space: nowrap;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    flex: 0 0 auto;
+    min-width: max-content;
+    overflow: visible;
+    text-overflow: clip;
 }
 
 #site-header .header__nav {

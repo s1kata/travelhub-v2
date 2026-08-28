@@ -46,7 +46,7 @@ $dateTo = date('Y-m-d', strtotime('+17 days'));
     <meta name="description" content="Отели с реальными турами и ценами. Удобный выбор с телефона.">
     <link rel="icon" type="image/svg+xml" href="/frontend/favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/frontend/css/pages/popular-hotels.css?v=7">
+    <link rel="stylesheet" href="/frontend/css/pages/popular-hotels.css?v=8">
     <?php include __DIR__ . '/../../backend/components/design_system_head.php'; ?>
 </head>
 <body class="ph antialiased">
@@ -103,7 +103,7 @@ include __DIR__ . '/../../backend/components/header.php';
     </div>
 
     <div id="ph-skel" class="ph-skel" aria-hidden="true">
-        <?php for ($i = 0; $i < 6; $i++): ?>
+        <?php for ($i = 0; $i < 3; $i++): ?>
             <div class="ph-skel__card">
                 <div class="ph-skel__media"></div>
                 <div class="ph-skel__lines">
@@ -114,6 +114,7 @@ include __DIR__ . '/../../backend/components/header.php';
             </div>
         <?php endfor; ?>
     </div>
+    <p id="ph-skel-hint" class="ph-skel-hint">Загружаем цены отелей…</p>
 
     <div id="ph-status" class="ph-status hidden"></div>
     <div id="ph-grid" class="ph-grid" aria-live="polite"></div>
@@ -163,6 +164,7 @@ include __DIR__ . '/../../backend/components/header.php';
     var el = {
         grid: document.getElementById('ph-grid'),
         skel: document.getElementById('ph-skel'),
+        skelHint: document.getElementById('ph-skel-hint'),
         status: document.getElementById('ph-status'),
         more: document.getElementById('ph-more'),
         moreBtn: document.getElementById('ph-more-btn'),
@@ -327,6 +329,7 @@ include __DIR__ . '/../../backend/components/header.php';
 
     function setLoading(on) {
         el.skel.classList.toggle('hidden', !on);
+        if (el.skelHint) el.skelHint.classList.toggle('is-hidden', !on);
         if (on) {
             el.status.classList.add('hidden');
             el.grid.innerHTML = '';

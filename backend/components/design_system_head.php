@@ -15,17 +15,17 @@ if (!defined('TRAVELHUB_DS_HEAD')) {
 <?php if (!defined('TH_RESPONSIVE_LOADED')): ?>
 <link rel="stylesheet" href="/frontend/css/responsive.css?v=17">
 <?php endif; ?>
-<link rel="stylesheet" href="/frontend/css/design-system.css?v=14">
-<link rel="stylesheet" href="/frontend/css/redesign.css?v=37">
+<link rel="stylesheet" href="/frontend/css/design-system.css?v=15">
+<link rel="stylesheet" href="/frontend/css/redesign.css?v=40">
 <link rel="stylesheet" href="/frontend/css/v2-theme.css?v=1">
 <link rel="stylesheet" href="/frontend/css/tour-search-wizard.css?v=2">
 <link rel="stylesheet" href="/frontend/css/th-hard-funnel.css?v=8">
-<link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=13">
-<link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=9">
-<link rel="stylesheet" href="/frontend/css/yandex-mobile.css?v=9">
+<link rel="stylesheet" href="/frontend/css/mobile-adult.css?v=15">
+<link rel="stylesheet" href="/frontend/css/th-site-lead.css?v=11">
+<link rel="stylesheet" href="/frontend/css/yandex-mobile.css?v=10">
 <link rel="stylesheet" href="/frontend/css/th-sheet.css?v=2">
 <?php include __DIR__ . '/mobile_site_head.php'; ?>
-<link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=9">
+<link rel="stylesheet" href="/frontend/css/th-unified-ui.css?v=11">
 <link rel="stylesheet" href="/frontend/css/support-chat.css?v=9">
 <script src="/frontend/js/v2-theme.js?v=1" defer></script>
 <?php

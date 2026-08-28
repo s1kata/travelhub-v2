@@ -5,9 +5,10 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $current_page = $current_page ?? '';
 $more_menu_active = in_array($current_page, [
-    'about', 'offices', 'services', 'tour-calendar', 'video-tutorials', 'contacts',
-    'privacy', 'terms', 'vip-hotels', 'popular-hotels', 'banks_rekvesit',
+    'about', 'services', 'tour-calendar', 'video-tutorials', 'contacts',
+    'privacy', 'terms', 'vip-hotels', 'banks_rekvesit',
 ], true);
+$hotels_nav_active = in_array($current_page, ['popular-hotels', 'vip-hotels'], true);
 $isLoggedIn = !empty($_SESSION['logged_in']) && !empty($_SESSION['user_id']);
 $normalizedRole = strtolower(trim((string)($_SESSION['user_role'] ?? '')));
 $isAdmin = ($normalizedRole === 'admin');
@@ -420,8 +421,9 @@ $th_csrf_token = security_csrf_token();
             order: 10;
         }
         #site-header .header__logo {
-            flex: 0 1 auto;
-            min-width: 0;
+            flex: 0 0 auto;
+            min-width: max-content;
+            overflow: visible;
         }
     }
 
@@ -471,9 +473,16 @@ $th_csrf_token = security_csrf_token();
         pointer-events: auto;
     }
     .site-header-mobile-panel__inner {
-        overflow-y: auto;
-        padding: 1rem 1rem 1.5rem;
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        height: auto !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        padding: 1rem 1rem max(1.5rem, env(safe-area-inset-bottom, 0px));
         -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
     }
     .site-header-mobile-close {
         position: absolute;
@@ -514,7 +523,7 @@ $th_csrf_token = security_csrf_token();
         font-size: 0.7rem;
         text-transform: uppercase;
         letter-spacing: 0.06em;
-        color: rgba(148, 163, 184, 0.95);
+        color: rgba(255, 255, 255, 0.78);
         padding: 0.75rem 0.75rem 0.35rem;
         margin-top: 0.5rem;
     }
@@ -558,9 +567,12 @@ $th_csrf_token = security_csrf_token();
 
     <nav class="header__nav" aria-label="Главная навигация">
         <a href="/index.php" class="<?php echo $current_page === 'home' ? 'is-active' : ''; ?>">Главная</a>
-        <a href="/frontend/window/countries-list.php" class="<?php echo $current_page === 'countries' ? 'is-active' : ''; ?>">Страны</a>
-        <a href="/frontend/window/offices.php" class="<?php echo $current_page === 'offices' ? 'is-active' : ''; ?>">Офисы</a>
         <a href="/frontend/window/promotions.php" class="<?php echo $current_page === 'promotions' ? 'is-active' : ''; ?>">Акции</a>
+        <a href="/frontend/window/countries-list.php" class="<?php echo $current_page === 'countries' ? 'is-active' : ''; ?>">Страны</a>
+        <?php /* Временно скрыто: раздел «Отели» (popular-hotels) — пока разбираем hotel-only цены
+        <a href="/frontend/window/popular-hotels.php" class="<?php echo !empty($hotels_nav_active) ? 'is-active' : ''; ?>">Отели</a>
+        */ ?>
+        <a href="/frontend/window/offices.php" class="<?php echo $current_page === 'offices' ? 'is-active' : ''; ?>">Офисы</a>
         <div class="header__more">
             <button type="button" class="header__more-toggle <?php echo $more_menu_active ? 'is-active' : ''; ?>" aria-label="Ещё разделы" aria-haspopup="true" aria-controls="site-header-more-menu">
                 Ещё <span aria-hidden="true">▾</span>
@@ -569,10 +581,8 @@ $th_csrf_token = security_csrf_token();
                 <a href="/frontend/window/about.php">О нас</a>
                 <a href="/frontend/window/services.php">Услуги</a>
                 <a href="/frontend/window/tour-calendar.php">Календарь выгодных дат</a>
-                <!-- <a href="/frontend/window/video-tutorials.php">Видео об отелях</a> -->
-                <a href="/frontend/window/contacts.php">Контакты</a>
-                <a href="/frontend/window/popular-hotels.php">Популярные отели</a>
                 <a href="/frontend/window/turkey-vip-hotels.php">VIP отели Турции</a>
+                <a href="/frontend/window/contacts.php">Контакты</a>
                 <a href="/frontend/window/banks_rekvesit.php">Реквизиты</a>
             </div>
         </div>
@@ -620,18 +630,19 @@ $th_csrf_token = security_csrf_token();
         <button type="button" class="site-header-mobile-close" id="site-header-mobile-close" aria-label="Закрыть меню">&times;</button>
         <nav class="site-header-mobile-nav" aria-label="Разделы">
             <a href="/index.php" class="<?php echo $current_page === 'home' ? 'is-active' : ''; ?>">Главная</a>
-            <a href="/frontend/window/countries-list.php" class="<?php echo $current_page === 'countries' ? 'is-active' : ''; ?>">Страны</a>
-            <a href="/frontend/window/offices.php" class="<?php echo $current_page === 'offices' ? 'is-active' : ''; ?>">Офисы</a>
             <a href="/frontend/window/promotions.php" class="<?php echo $current_page === 'promotions' ? 'is-active' : ''; ?>">Акции</a>
+            <a href="/frontend/window/countries-list.php" class="<?php echo $current_page === 'countries' ? 'is-active' : ''; ?>">Страны</a>
+            <?php /* Временно скрыто: раздел «Отели»
+            <a href="/frontend/window/popular-hotels.php" class="<?php echo !empty($hotels_nav_active) ? 'is-active' : ''; ?>">Отели</a>
+            */ ?>
+            <a href="/frontend/window/offices.php" class="<?php echo $current_page === 'offices' ? 'is-active' : ''; ?>">Офисы</a>
             <span class="site-header-mobile-muted">Ещё</span>
             <a href="/frontend/window/about.php" class="<?php echo $current_page === 'about' ? 'is-active' : ''; ?>">О нас</a>
             <a href="/frontend/window/services.php" class="<?php echo $current_page === 'services' ? 'is-active' : ''; ?>">Услуги</a>
             <a href="/frontend/window/tour-calendar.php" class="<?php echo $current_page === 'tour-calendar' ? 'is-active' : ''; ?>">Календарь выгодных дат</a>
-            <!-- <a href="/frontend/window/video-tutorials.php" class="<?php echo $current_page === 'video-tutorials' ? 'is-active' : ''; ?>">Видео об отелях</a> -->
-            <a href="/frontend/window/contacts.php" class="<?php echo $current_page === 'contacts' ? 'is-active' : ''; ?>">Контакты</a>
-            <span class="site-header-mobile-muted">Дополнительно</span>
-            <a href="/frontend/window/popular-hotels.php" class="<?php echo $current_page === 'popular-hotels' ? 'is-active' : ''; ?>">Популярные отели</a>
             <a href="/frontend/window/turkey-vip-hotels.php" class="<?php echo $current_page === 'vip-hotels' ? 'is-active' : ''; ?>">VIP отели Турции</a>
+            <a href="/frontend/window/contacts.php" class="<?php echo $current_page === 'contacts' ? 'is-active' : ''; ?>">Контакты</a>
+            <span class="site-header-mobile-muted">Документы</span>
             <a href="/frontend/window/banks_rekvesit.php" class="<?php echo $current_page === 'banks_rekvesit' ? 'is-active' : ''; ?>">Реквизиты</a>
             <a href="/frontend/window/consent.php" class="<?php echo ($current_page ?? '') === 'consent' ? 'is-active' : ''; ?>">Согласие на обработку ПД</a>
             <a href="/frontend/window/privacy.php" class="<?php echo $current_page === 'privacy' ? 'is-active' : ''; ?>">Политика конфиденциальности</a>
@@ -755,6 +766,8 @@ $_th_fp_hdr_v = is_file($_th_fp_hdr) ? (string) filemtime($_th_fp_hdr) : '1';
 ?>
 <script src="/frontend/js/tourvisor-flight-pick.js?v=<?php echo htmlspecialchars($_th_fp_hdr_v, ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <?php
+$_th_tps_hdr = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'frontend' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'th-tour-price-sanity.js';
+$_th_tps_hdr_v = is_file($_th_tps_hdr) ? (string) filemtime($_th_tps_hdr) : '1';
 $_th_tc_hdr = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'frontend' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'th-tour-card.js';
 $_th_tc_hdr_v = is_file($_th_tc_hdr) ? (string) filemtime($_th_tc_hdr) : '1';
 $_th_tpf_hdr = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'frontend' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'th-tour-post-filters.js';
@@ -764,6 +777,7 @@ $_th_tbm_hdr_v = is_file($_th_tbm_hdr) ? (string) filemtime($_th_tbm_hdr) : '1';
 $_th_sm_hdr = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'frontend' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'session-manager.js';
 $_th_sm_hdr_v = is_file($_th_sm_hdr) ? (string) filemtime($_th_sm_hdr) : '1';
 ?>
+<script src="/frontend/js/th-tour-price-sanity.js?v=<?php echo htmlspecialchars($_th_tps_hdr_v, ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <script src="/frontend/js/th-tour-card.js?v=<?php echo htmlspecialchars($_th_tc_hdr_v, ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <script src="/frontend/js/session-manager.js?v=<?php echo htmlspecialchars($_th_sm_hdr_v, ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <script src="/frontend/js/th-tour-post-filters.js?v=<?php echo htmlspecialchars($_th_tpf_hdr_v, ENT_QUOTES, 'UTF-8'); ?>" defer></script>

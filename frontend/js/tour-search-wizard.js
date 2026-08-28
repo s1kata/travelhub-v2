@@ -1,6 +1,7 @@
 /**
- * Tour Search Wizard — Coral-style поэтапный UX поверх #tv-*.
- * 5 шагов: Откуда → Куда → Когда → Ночи → Туристы.
+ * Tour Search Wizard — поэтапный UX поверх #tv-*.
+ * Туры: Откуда → Куда → Когда → Ночи → Туристы.
+ * Отели: Куда → Даты заезда (без вылета / ночей).
  */
 (function () {
     'use strict';
@@ -8,6 +9,7 @@
     var STEP_COUNT = 5;
     var STEP_LABELS = ['Откуда', 'Куда', 'Когда', 'Ночи', 'Туристы'];
     var STEP_OPEN = ['departure', 'country', 'dates', 'nights', 'tourists'];
+    var HOTEL_LABELS = { 2: 'Куда', 3: 'Даты заезда' };
 
     function qs(sel, root) {
         return (root || document).querySelector(sel);
@@ -28,7 +30,7 @@
         if (fp && fp.selectedDates && fp.selectedDates.length >= 2) return true;
         var disp = document.getElementById('tv-sc-dates-display');
         var d = (disp && disp.textContent || '').trim();
-        return !!(d && d !== 'Даты');
+        return !!(d && d !== 'Даты' && d !== 'Выберите даты');
     }
 
     function hasNightsRange() {
@@ -40,14 +42,17 @@
     function TourSearchWizard(root, options) {
         this.root = root;
         this.options = options || {};
-        this.step = Math.max(1, Math.min(STEP_COUNT, parseInt(root.getAttribute('data-start-step') || '1', 10) || 1));
+        var start = parseInt(root.getAttribute('data-start-step') || '1', 10) || 1;
+        this.step = Math.max(1, Math.min(STEP_COUNT, start));
         this.depSel = qs('#tv-departure', root) || qs('#tv-departure');
         this.countrySel = qs('#tv-country', root) || qs('#tv-country');
         this.datesDisplay = qs('#tv-sc-dates-display', root) || qs('#tv-sc-dates-display');
         this.nightsText = qs('#tv-nights-summary-text', root) || qs('#tv-nights-summary-text');
         this.touristsText = qs('#tv-tourists-summary-text', root) || qs('#tv-tourists-summary-text');
         this.bind();
+        if (this.isHotelMode() && this.step < this.minStep()) this.step = this.minStep();
         this.go(this.step, true);
+        this.syncModeChrome();
     }
 
     TourSearchWizard.prototype.isHotelMode = function () {
@@ -55,13 +60,53 @@
             || (this.root && this.root.getAttribute('data-search-mode') === 'hotels');
     };
 
+    TourSearchWizard.prototype.minStep = function () {
+        return this.isHotelMode() ? 2 : 1;
+    };
+
     TourSearchWizard.prototype.maxStep = function () {
         return this.isHotelMode() ? 3 : STEP_COUNT;
     };
 
     TourSearchWizard.prototype.triggerSearch = function () {
+        if (this.isHotelMode()) {
+            var hotelBtn = qs('[data-th-hotel-find]', this.root) || document.querySelector('[data-th-hotel-find]');
+            if (hotelBtn) {
+                hotelBtn.click();
+                return;
+            }
+        }
         var btn = document.getElementById('tv-search-btn');
         if (btn) btn.click();
+    };
+
+    TourSearchWizard.prototype.onSearchModeChange = function (mode) {
+        this.syncModeChrome();
+        if (mode === 'hotels') this.go(this.minStep(), true);
+        else this.go(1, true);
+    };
+
+    TourSearchWizard.prototype.syncModeChrome = function () {
+        if (!this.root) return;
+        this.root.classList.toggle('th-wizard--hotels', this.isHotelMode());
+        this.root.classList.toggle('th-wizard--tours', !this.isHotelMode());
+        var rail = qs('.th-coral-wizard__rail', this.root);
+        if (rail) {
+            rail.style.gridTemplateColumns = this.isHotelMode()
+                ? 'repeat(2, minmax(0, 1fr))'
+                : 'repeat(5, minmax(0, 1fr))';
+        }
+        qsa('[data-thw-goto]', this.root).forEach(function (btn) {
+            var n = parseInt(btn.getAttribute('data-thw-goto'), 10);
+            var hide = false;
+            if (document.body.classList.contains('th-search-mode-hotels')) {
+                hide = n !== 2 && n !== 3;
+            }
+            btn.hidden = hide;
+            if (hide) btn.setAttribute('aria-hidden', 'true');
+            else btn.removeAttribute('aria-hidden');
+        });
+        this.updateStepbar(this.step);
     };
 
     TourSearchWizard.prototype.bind = function () {
@@ -70,7 +115,7 @@
         qsa('[data-thw-goto]', this.root).forEach(function (btn) {
             btn.addEventListener('click', function () {
                 var n = parseInt(btn.getAttribute('data-thw-goto'), 10);
-                if (!n || n < 1 || n > self.maxStep()) return;
+                if (!n || n < self.minStep() || n > self.maxStep()) return;
                 self.go(n);
             });
         });
@@ -85,7 +130,7 @@
 
         qsa('[data-thw-back]', this.root).forEach(function (btn) {
             btn.addEventListener('click', function () {
-                if (self.step > 1) self.go(self.step - 1);
+                if (self.step > self.minStep()) self.go(self.step - 1);
             });
         });
 
@@ -110,6 +155,9 @@
         if (this.countrySel) {
             this.countrySel.addEventListener('change', function () {
                 self.refreshSummary();
+                if (self.step === 2 && self.validateCurrent()) {
+                    setTimeout(function () { self.go(3); }, 180);
+                }
             });
         }
 
@@ -149,6 +197,7 @@
         var ui = window.THSearchUI;
         if (!ui) return;
         var key = STEP_OPEN[step - 1];
+        if (key === 'departure' && this.isHotelMode()) return;
         if (key === 'country' || key === 'departure') {
             if (typeof ui.openChoice === 'function') ui.openChoice(key);
         } else if (key === 'dates' && typeof ui.openDates === 'function') {
@@ -162,6 +211,7 @@
 
     TourSearchWizard.prototype.validateCurrent = function () {
         if (this.step === 1) {
+            if (this.isHotelMode()) return true;
             var dep = this.depSel && String(this.depSel.value || '').trim();
             if (!dep) {
                 this.shake(qs('[data-th-search-open="departure"]', this.root));
@@ -195,8 +245,9 @@
     };
 
     TourSearchWizard.prototype.validateSearchReady = function () {
+        var first = this.minStep();
         var last = this.isHotelMode() ? 3 : 4;
-        for (var s = 1; s <= last; s++) {
+        for (var s = first; s <= last; s++) {
             var prev = this.step;
             this.step = s;
             if (!this.validateCurrent()) {
@@ -211,13 +262,13 @@
     TourSearchWizard.prototype.shake = function (el) {
         if (!el) return;
         el.focus && el.focus();
-        var target = el.closest ? (el.closest('.th-coral-search__field, .tv-sc-field') || el) : el;
+        var target = el.closest ? (el.closest('.th-coral-search__field, .tv-sc-field, .th-coral-wizard__rail-item') || el) : el;
         target.classList.add('th-wizard--shake');
         setTimeout(function () { target.classList.remove('th-wizard--shake'); }, 420);
     };
 
     TourSearchWizard.prototype.go = function (step, silent) {
-        step = Math.max(1, Math.min(this.maxStep(), step));
+        step = Math.max(this.minStep(), Math.min(this.maxStep(), step));
         this.step = step;
         this.root.setAttribute('data-step', String(step));
 
@@ -230,19 +281,21 @@
         qsa('[data-thw-goto]', this.root).forEach(function (btn) {
             var n = parseInt(btn.getAttribute('data-thw-goto'), 10);
             btn.classList.toggle('is-active', n === step);
-            btn.classList.toggle('is-done', n < step);
+            btn.classList.toggle('is-done', n < step && n >= (document.body.classList.contains('th-search-mode-hotels') ? 2 : 1));
             btn.setAttribute('aria-current', n === step ? 'step' : 'false');
         });
 
+        var min = this.minStep();
         qsa('[data-thw-back]', this.root).forEach(function (btn) {
-            if (step <= 1) btn.setAttribute('hidden', '');
+            if (step <= min) btn.setAttribute('hidden', '');
             else btn.removeAttribute('hidden');
         });
 
         this.updateStepbar(step);
         try {
             document.body.classList.toggle('th-wizard-active', step >= 1 && step <= STEP_COUNT);
-            document.dispatchEvent(new CustomEvent('th:wizard-step', { detail: { step: step, key: STEP_LABELS[step - 1] || '' } }));
+            var label = this.isHotelMode() ? (HOTEL_LABELS[step] || STEP_LABELS[step - 1]) : (STEP_LABELS[step - 1] || '');
+            document.dispatchEvent(new CustomEvent('th:wizard-step', { detail: { step: step, key: label || '' } }));
         } catch (eEv) {}
 
         if (!silent) {
@@ -254,10 +307,15 @@
     TourSearchWizard.prototype.updateStepbar = function (step) {
         var labelEl = document.getElementById('th-wizard-step-label');
         var fillEl = document.querySelector('[data-thw-progress]');
-        var name = STEP_LABELS[step - 1] || '';
-        var total = this.maxStep();
-        if (labelEl) labelEl.textContent = step + ' из ' + total + ' · ' + name;
-        if (fillEl) fillEl.style.width = String(Math.round((step / total) * 100)) + '%';
+        var min = this.minStep();
+        var max = this.maxStep();
+        var total = Math.max(1, max - min + 1);
+        var logical = Math.max(1, step - min + 1);
+        var name = this.isHotelMode()
+            ? (HOTEL_LABELS[step] || STEP_LABELS[step - 1] || '')
+            : (STEP_LABELS[step - 1] || '');
+        if (labelEl) labelEl.textContent = logical + ' из ' + total + ' · ' + name;
+        if (fillEl) fillEl.style.width = String(Math.round((logical / total) * 100)) + '%';
     };
 
     TourSearchWizard.prototype.refreshSummary = function () {
@@ -269,6 +327,8 @@
     function initHomeWizard() {
         var root = document.getElementById('tour-search-section');
         if (!root || !root.classList.contains('th-wizard')) return;
+        /* TV «все поля сразу» — не ведём по шагам */
+        if (root.classList.contains('th-search-tv') || (window.__TH_SEARCH_UI === 'tv')) return;
         window.THTourSearchWizard = new TourSearchWizard(root, { mode: 'home' });
     }
 

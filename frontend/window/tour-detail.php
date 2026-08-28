@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once __DIR__ . '/../../backend/config/config.php';
 require_once __DIR__ . '/../../backend/components/tourvisor_proxy_url.php';
 require_once __DIR__ . '/../../backend/components/security_helper.php';
@@ -261,7 +261,12 @@ if ($image !== '' && preg_match('#\Ahttps?://#i', $image)) {
 } else {
     $page_image = '/frontend/favicon.svg';
 }
-$canonical_url = 'https://travelhub63.ru/frontend/window/tour-detail.php';
+if (!function_exists('tourvisor_request_is_https')) {
+    require_once dirname(__DIR__, 2) . '/backend/components/tourvisor_proxy_url.php';
+}
+$_td_proto = tourvisor_request_is_https() ? 'https' : 'http';
+$_td_host = $_SERVER['HTTP_HOST'] ?? 'travelhub63.ru';
+$canonical_url = $_td_proto . '://' . $_td_host . '/frontend/window/tour-detail.php';
 $tour_id_q = isset($_GET['tour_id']) ? trim((string) $_GET['tour_id']) : '';
 if ($tour_id_q !== '') {
     $canonical_url .= '?tour_id=' . rawurlencode($tour_id_q);
@@ -1326,17 +1331,20 @@ if ($return_url !== '' && $return_url[0] === '/') {
                     if (!j.success || !j.data) return;
                     var t = j.data;
                     lastTourPlacement = t.placement ? String(t.placement).trim() : '';
-                    if (t.operator && (t.operator.russianName || t.operator.name)) {
-                        lastTourOperator = String(t.operator.russianName || t.operator.name).trim();
-                    } else {
-                        lastTourOperator = '';
+                    var opLabel = '';
+                    if (t.operatorName) {
+                        opLabel = String(t.operatorName).trim();
+                    } else if (typeof t.operator === 'string') {
+                        opLabel = t.operator.trim();
+                    } else if (t.operator && typeof t.operator === 'object') {
+                        opLabel = String(t.operator.russianName || t.operator.name || t.operator.fullName || '').trim();
                     }
-                    /* Обновляем chip туроператора */
-                    if (t.operator && (t.operator.russianName || t.operator.name)) {
+                    lastTourOperator = opLabel;
+                    if (opLabel) {
                         var opChip = document.getElementById('operator-chip');
                         var opVal = document.getElementById('operator-chip-value');
                         if (opChip && opVal) {
-                            opVal.textContent = String(t.operator.russianName || t.operator.name);
+                            opVal.textContent = opLabel;
                             opChip.classList.remove('hidden');
                         }
                     }

@@ -24,7 +24,7 @@ $current_page = "login";
         <link rel="stylesheet" href="/frontend/css/pages/login.css?v=1">
     <?php include __DIR__ . '/../../backend/components/design_system_head.php'; ?>
     </head>
-<body class="gradient-bg min-h-screen">
+<body class="gradient-bg min-h-screen th-page-auth">
     <?php require_once __DIR__ . '/../../backend/components/header.php'; ?>
     
     <!-- Main Content -->

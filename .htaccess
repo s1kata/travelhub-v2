@@ -13,7 +13,21 @@
     # Legacy auth / requisites → канонические PHP-страницы с mobile stack
     RewriteRule ^frontend/window/login\.html$ /frontend/window/login.php [R=301,L,QSA]
     RewriteRule ^frontend/window/registration\.html$ /frontend/window/registration-desktop.php [R=301,L,QSA]
+    RewriteRule ^frontend/login\.php$ /frontend/window/login.php [R=301,L,QSA]
+    RewriteRule ^frontend/window/hotels\.php$ /frontend/window/popular-hotels.php [R=301,L,QSA]
+    RewriteRule ^frontend/window/register\.php$ /frontend/window/registration-desktop.php [R=301,L,QSA]
+    RewriteRule ^frontend/window/cabinet\.php$ /frontend/window/profile.php [R=301,L,QSA]
+    RewriteRule ^frontend/window/passport\.php$ /frontend/window/passport-data.php [R=301,L,QSA]
     RewriteRule ^frontend/window/bank_rekvesit\.php$ /frontend/window/banks_rekvesit.php [R=301,L]
+    # /frontend без слэша → /frontend/ (относительный Location, схема от клиента)
+    RewriteRule ^frontend$ /frontend/ [R=301,L]
+
+    # Принудительный HTTPS (учёт reverse proxy: X-Forwarded-Proto)
+    RewriteCond %{HTTPS} off
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https [NC]
+    RewriteCond %{HTTP_HOST} !^localhost(:\d+)?$ [NC]
+    RewriteCond %{HTTP_HOST} !^127\.0\.0\.1(:\d+)?$ [NC]
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [L,R=301]
     # ТЦ «Гудок»: Anex → Fun&Sun
     RewriteRule ^frontend/window/offices/samara-anex\.php$ /frontend/window/offices/office.php?slug=samara-funsun-gudok [R=301,L,QSA]
     # Единая детальная страница офисов
@@ -53,12 +67,6 @@
     RewriteRule ^api/crm/?$ backend/api/crm-mobile.php [L,QSA]
     RewriteRule ^api/crm/(.+)$ backend/api/crm-mobile.php?path=$1 [L,QSA]
 
-    # Принудительный HTTPS (localhost без SSL не трогаем)
-    RewriteCond %{HTTPS} off
-    RewriteCond %{HTTP_HOST} !^localhost(:\d+)?$ [NC]
-    RewriteCond %{HTTP_HOST} !^127\.0\.0\.1(:\d+)?$ [NC]
-    RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [L,R=301]
-    
     # Удаление trailing slash
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$

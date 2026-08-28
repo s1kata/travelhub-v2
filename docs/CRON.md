@@ -19,8 +19,11 @@
 # Календарь: calendar_cache из cover + seed из promo (копия, без перезаписи promo_cache).
 20 1,9,15,21 * * * cd /path/to/travelhub-v2 && PHP_BIN=/usr/bin/php8.1 flock -n data/calendar_warm.lock bash backend/cron/warm_calendar_cache.sh >> data/calendar_warm.log 2>&1
 
-# YML по правилам — после ночного прогрева акций.
+# YML — после ночного прогрева акций (ротация или правила).
 20 0 * * * cd /path/to/travelhub-v2 && /usr/bin/php8.1 backend/scripts/yml_feed_rules_cron.php >> data/yandex_yml_rules_cron.log 2>&1
+
+# Ротация YML: прогрев стран текущего batch (пн 00:10), если в админке включена ротация.
+10 0 * * 1 cd /path/to/travelhub-v2 && PHP_BIN=/usr/bin/php8.1 flock -n data/yml_rotation_warm.lock bash backend/cron/warm_yml_rotation_countries.sh >> data/yml_rotation_warm.log 2>&1
 
 # Housekeeping.
 0 2 * * * cd /path/to/travelhub-v2 && /usr/bin/php8.1 backend/cron/cleanup_search_cover_cache.php >> data/cover_cleanup.log 2>&1
@@ -39,7 +42,8 @@
 - `warm_home_search_cache.sh` — обычный поиск на главной, страницах стран и VIP.
 - `warm_promotions_cache.sh` — страница акций и горячая витрина (`promo_cache_*` только).
 - `warm_calendar_cache.sh` — `calendar_cache` из search cover + seed из promo (read-only).
-- `yml_feed_rules_cron.php` — `/feed.yml`, если фид используется.
+- `yml_feed_rules_cron.php` — `/feed.yml` + `/feed-samara.yml` + `/feed-moscow.yml` (ротация из админки или старые правила).
+- `warm_yml_rotation_countries.sh` — прогрев стран текущего batch ротации (пн).
 - cleanup-задачи — размер диска и удаление устаревших cover-файлов.
 
 Календарный warm не обращается к live API и **не пишет** promo_cache (seed — только чтение).

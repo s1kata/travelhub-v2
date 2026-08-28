@@ -79,3 +79,6 @@ backend/config/db_remote.php
 # Firebase service account (секретный ключ)
 config/firebase-service-account.json
 backend/config/firebase-service-account.json
+
+
+.docs/

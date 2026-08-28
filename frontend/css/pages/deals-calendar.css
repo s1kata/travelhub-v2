@@ -454,7 +454,7 @@ body.th-deals-cal-page .th-deals-cal-hero .th-deals-cal-hero__lead {
     .th-deals-cal__cell { min-height: 96px; }
 }
 .th-deals-cal__cell--empty { background: transparent; border: 0; }
-.th-deals-cal__cell--muted { opacity: 0.38; }
+.th-deals-cal__cell--muted { opacity: 0.55; }
 .th-deals-cal__cell--has {
     cursor: pointer;
     background: #fff;
@@ -809,14 +809,20 @@ body.th-deals-cal-page .th-deals-cal-hero .th-deals-cal-hero__lead {
         min-height: 280px;
     }
     .th-deals-cal__cell {
-        min-height: 58px;
+        min-height: 64px;
         border-radius: 10px;
-        padding: 5px 2px 6px;
+        padding: 6px 3px 7px;
     }
-    .th-deals-cal__daynum { font-size: 0.78rem; }
+    .th-deals-cal__daynum { font-size: 0.9rem; font-weight: 700; }
     .th-deals-cal__price {
         margin-top: 4px;
-        font-size: 0.62rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+    .th-deals-cal__country {
+        font-size: 0.68rem;
+        color: #475569;
     }
     .th-deals-cal__list {
         max-height: min(52vh, 420px);

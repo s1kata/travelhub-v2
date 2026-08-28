@@ -13,8 +13,16 @@ $hotel = null;
 $error = null;
 $tvApiBase = get_tourvisor_proxy_base_url();
 $imgProxyBase = get_tourvisor_image_proxy_base_url();
-$departureId = th_departure_default_id();
+$departureId = th_departure_id_from_request();
 $departureName = th_departure_default_name();
+if ($departureId === 99) {
+    $departureName = 'Без перелёта';
+} elseif (!empty($_GET['departureName'])) {
+    $dn = trim((string) $_GET['departureName']);
+    if ($dn !== '' && !th_departure_is_blocked_name($dn)) {
+        $departureName = $dn;
+    }
+}
 
 function thh_proxy_image(?string $url, string $imgProxyBase): string
 {
@@ -24,6 +32,9 @@ function thh_proxy_image(?string $url, string $imgProxyBase): string
     }
     if (strpos($u, '//') === 0) {
         $u = 'https:' . $u;
+    }
+    if ($imgProxyBase !== '' && preg_match('#^hotel_pics/#i', $u)) {
+        $u = 'https://static.tourvisor.ru/' . ltrim($u, '/');
     }
     if ($imgProxyBase !== '' && stripos($u, 'static.tourvisor.ru') !== false) {
         return rtrim($imgProxyBase, '/') . '?url=' . rawurlencode($u);
@@ -93,8 +104,27 @@ $imagesAll = [];
 if (is_array($hotel)) {
     if (!empty($hotel['images']) && is_array($hotel['images'])) {
         foreach ($hotel['images'] as $img) {
-            if (is_string($img) && trim($img) !== '') {
-                $imagesAll[] = thh_proxy_image($img, $imgProxyBase);
+            $raw = '';
+            if (is_string($img)) {
+                $raw = trim($img);
+            } elseif (is_array($img)) {
+                $raw = trim((string) ($img['url'] ?? $img['src'] ?? $img['link'] ?? $img['picturelink'] ?? $img['pictureLink'] ?? $img['picture'] ?? ''));
+            }
+            if ($raw !== '') {
+                $imagesAll[] = thh_proxy_image($raw, $imgProxyBase);
+            }
+        }
+    }
+    if ($imagesAll === [] && !empty($hotel['pictures']) && is_array($hotel['pictures'])) {
+        foreach ($hotel['pictures'] as $img) {
+            $raw = '';
+            if (is_string($img)) {
+                $raw = trim($img);
+            } elseif (is_array($img)) {
+                $raw = trim((string) ($img['url'] ?? $img['src'] ?? $img['link'] ?? $img['picturelink'] ?? $img['pictureLink'] ?? ''));
+            }
+            if ($raw !== '') {
+                $imagesAll[] = thh_proxy_image($raw, $imgProxyBase);
             }
         }
     }
@@ -102,6 +132,15 @@ if (is_array($hotel)) {
         $pic = thh_proxy_image((string) $hotel['picturelink'], $imgProxyBase);
         if ($pic !== '') {
             $imagesAll[] = $pic;
+        }
+    }
+    if ($imagesAll === [] && $hotelId > 0) {
+        $fallbackPic = thh_proxy_image('hotel_pics/main400/' . $hotelId . '.jpg', $imgProxyBase);
+        if ($fallbackPic === '') {
+            $fallbackPic = thh_proxy_image('https://static.tourvisor.ru/hotel_pics/main400/' . $hotelId . '.jpg', $imgProxyBase);
+        }
+        if ($fallbackPic !== '') {
+            $imagesAll[] = $fallbackPic;
         }
     }
 }
@@ -154,8 +193,24 @@ if ($svcFree !== '') {
     $aboutSections['Услуги'] = thh_clip($svcFree, 280);
 }
 
-$windows = [
-    [date('Y-m-d', strtotime('+2 days')), date('Y-m-d', strtotime('+46 days'))],
+/* Tourvisor live: date span ≤14 days. Cover ~1 year ahead. */
+$windows = [];
+$winStart = strtotime('+2 days');
+$winEndLimit = strtotime('+365 days');
+while ($winStart < $winEndLimit) {
+    $from = date('Y-m-d', $winStart);
+    $toTs = min(strtotime('+13 days', $winStart), $winEndLimit);
+    $to = date('Y-m-d', $toTs);
+    $windows[] = [$from, $to];
+    $winStart = strtotime('+14 days', $winStart);
+}
+/* Night bands: span ≤10 (API). Cover 1–28 nights. */
+$nightBands = [
+    [1, 7],
+    [5, 14],
+    [8, 17],
+    [14, 21],
+    [18, 28],
 ];
 ?>
 <!DOCTYPE html>
@@ -169,7 +224,7 @@ $windows = [
         <link rel="preload" as="image" href="<?php echo htmlspecialchars($mosaic[0], ENT_QUOTES, 'UTF-8'); ?>" fetchpriority="high">
     <?php endif; ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/frontend/css/pages/tv-hotel-hub.css?v=6">
+    <link rel="stylesheet" href="/frontend/css/pages/tv-hotel-hub.css?v=12">
     <?php include __DIR__ . '/../../../backend/components/design_system_head.php'; ?>
 </head>
 <body class="thh antialiased">
@@ -220,7 +275,7 @@ include __DIR__ . '/../../../backend/components/header.php';
                 <?php if ($lead !== ''): ?>
                     <p class="thh-lead"><?php echo htmlspecialchars($lead, ENT_QUOTES, 'UTF-8'); ?></p>
                 <?php endif; ?>
-                <p class="thh-dep-line">Вылет из <?php echo htmlspecialchars($departureName, ENT_QUOTES, 'UTF-8'); ?> · 2 взрослых</p>
+                <p class="thh-dep-line">Вылет из <?php echo htmlspecialchars($departureName, ENT_QUOTES, 'UTF-8'); ?></p>
             </div>
         </section>
 
@@ -228,12 +283,13 @@ include __DIR__ . '/../../../backend/components/header.php';
             <div class="thh-offers__head">
                 <div>
                     <h2>Туры в этот отель</h2>
-                    <p class="thh-offers__sub">Готовые предложения на ближайшие даты — без поиска</p>
+                    <p class="thh-offers__sub">Все доступные предложения · вылет <?php echo htmlspecialchars($departureName, ENT_QUOTES, 'UTF-8'); ?></p>
                 </div>
                 <select id="thh-sort" class="thh-sort" aria-label="Сортировка">
                     <option value="price-asc">Дешевле</option>
                     <option value="price-desc">Дороже</option>
                     <option value="date">По дате</option>
+                    <option value="nights">По ночам</option>
                 </select>
             </div>
 
@@ -281,6 +337,14 @@ include __DIR__ . '/../../../backend/components/header.php';
 <?php endif; ?>
 
 <script src="/frontend/js/tour-link-utils.js?v=1"></script>
+<?php
+$_th_card = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'th-tour-card.js';
+$_th_card_v = is_file($_th_card) ? (string) filemtime($_th_card) : '1';
+$_th_fpick = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'tourvisor-flight-pick.js';
+$_th_fpick_v = is_file($_th_fpick) ? (string) filemtime($_th_fpick) : '1';
+?>
+<script src="/frontend/js/th-tour-card.js?v=<?php echo htmlspecialchars($_th_card_v, ENT_QUOTES, 'UTF-8'); ?>"></script>
+<script src="/frontend/js/tourvisor-flight-pick.js?v=<?php echo htmlspecialchars($_th_fpick_v, ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script>
 (function () {
     if (<?php echo $error ? 'true' : 'false'; ?>) return;
@@ -299,11 +363,20 @@ include __DIR__ . '/../../../backend/components/header.php';
         departureName: <?php echo json_encode($departureName, JSON_UNESCAPED_UNICODE); ?>,
         images: <?php echo json_encode(array_values($imagesLb), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
         windows: <?php echo json_encode($windows); ?>,
-        pageSize: 25,
+        nightBands: <?php echo json_encode($nightBands); ?>,
+        pageSize: 20,
         adults: 2
     };
 
-    var state = { tours: [], shown: 0, loading: false, minPrice: 0 };
+    var state = {
+        pool: [],
+        tours: [],
+        shown: 0,
+        loading: false,
+        minPrice: 0,
+        adults: CFG.adults,
+        flightsGen: 0
+    };
 
     var el = {
         list: document.getElementById('thh-list'),
@@ -313,8 +386,7 @@ include __DIR__ . '/../../../backend/components/header.php';
         sort: document.getElementById('thh-sort'),
         more: document.getElementById('thh-more'),
         moreBtn: document.getElementById('thh-more-btn'),
-        stickyFrom: document.getElementById('thh-sticky-from'),
-        countHint: null
+        stickyFrom: document.getElementById('thh-sticky-from')
     };
 
     function esc(s) {
@@ -378,9 +450,10 @@ include __DIR__ . '/../../../backend/components/header.php';
         try { return text ? JSON.parse(text) : { success: false }; } catch (e) { return { success: false }; }
     }
 
-    function flattenTours(rawHotels) {
+    function flattenTours(rawHotels, adultsUsed) {
         var out = [];
         var wantId = CFG.hotelId;
+        var adults = adultsUsed != null ? adultsUsed : state.adults;
         (rawHotels || []).forEach(function (h) {
             if (!h) return;
             var hid = parseInt(h.id, 10) || 0;
@@ -390,8 +463,20 @@ include __DIR__ . '/../../../backend/components/header.php';
                 if (!t) return;
                 var price = parseInt(t.totalPrice || t.price || t.priceRub || t.cost, 10) || 0;
                 if (price <= 0) return;
-                var key = String(t.id || '') + '|' + tourStartYmd(t) + '|' + String(t.nights || '') + '|' + price;
-                out.push({ hotel: h, tour: t, price: price, key: key });
+                var nights = parseInt(t.nights, 10) || 0;
+                var start = tourStartYmd(t);
+                var meal = (t.meal && (t.meal.russianName || t.meal.name)) || '';
+                var key = String(t.id || '') + '|' + start + '|' + nights + '|' + adults + '|' + price;
+                out.push({
+                    hotel: h,
+                    tour: t,
+                    price: price,
+                    nights: nights,
+                    start: start,
+                    meal: meal,
+                    adults: adults,
+                    key: key
+                });
             });
         });
         return out;
@@ -413,10 +498,29 @@ include __DIR__ . '/../../../backend/components/header.php';
         var arr = list.slice();
         arr.sort(function (a, b) {
             if (mode === 'price-desc') return b.price - a.price;
-            if (mode === 'date') return String(tourStartYmd(a.tour)).localeCompare(String(tourStartYmd(b.tour)));
+            if (mode === 'date') return String(a.start || '').localeCompare(String(b.start || ''));
+            if (mode === 'nights') return (a.nights || 0) - (b.nights || 0) || a.price - b.price;
             return a.price - b.price;
         });
         return arr;
+    }
+
+    function buildJobs(adults) {
+        var windows = CFG.windows || [];
+        var bands = CFG.nightBands || [[1, 7], [5, 14], [8, 17], [14, 21], [18, 28]];
+        var jobs = [];
+        windows.forEach(function (w) {
+            bands.forEach(function (b) {
+                jobs.push({
+                    dateFrom: w[0],
+                    dateTo: w[1],
+                    nightsFrom: b[0],
+                    nightsTo: b[1],
+                    adults: adults
+                });
+            });
+        });
+        return jobs;
     }
 
     function tourDetailUrl(item) {
@@ -446,7 +550,7 @@ include __DIR__ . '/../../../backend/components/header.php';
             date_from: start,
             date_to: start && nights ? ymdAdd(start, nights) : '',
             tour_id: String(t.id || ''),
-            adults: String(CFG.adults),
+            adults: String(item.adults || state.adults || CFG.adults),
             hotel_id: String(CFG.hotelId),
             departure_id: String(CFG.departureId),
             return_url: window.location.pathname + window.location.search
@@ -465,58 +569,129 @@ include __DIR__ . '/../../../backend/components/header.php';
         return u;
     }
 
-    function cardHtml(item) {
-        var h = item.hotel || {};
-        var t = item.tour || {};
-        var start = tourStartYmd(t);
-        var nights = parseInt(t.nights, 10) || 0;
-        var detailUrl = tourDetailUrl(item);
-        var hotelObj = Object.assign({}, h, {
-            name: CFG.hotelName || h.name,
-            category: CFG.category || h.category,
-            rating: CFG.rating || h.rating,
-            picturelink: (CFG.images && CFG.images[0]) || h.picturelink,
-            images: CFG.images && CFG.images.length ? CFG.images : h.images
-        });
-
-        if (window.THTourCard && typeof window.THTourCard.render === 'function') {
-            return window.THTourCard.render(hotelObj, {
-                tour: t,
-                price: item.price,
-                adults: CFG.adults,
-                dateFrom: start,
-                dateTo: start && nights ? ymdAdd(start, nights) : '',
-                detailUrl: detailUrl,
-                departureCity: CFG.departureName,
-                country: CFG.countryName,
-                region: CFG.regionName,
-                countryId: CFG.countryId,
-                imageProxy: CFG.imageProxy,
-                getImageUrl: mapImg,
-                carousel: true,
-                promo: false
-            });
+    function fmtTourDate(ymd) {
+        if (!ymd || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd || '';
+        var p = ymd.split('-');
+        var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+        if (isNaN(d.getTime())) return ymd;
+        try {
+            return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+        } catch (e) {
+            return ymd;
         }
+    }
 
-        var meal = (t.meal && (t.meal.russianName || t.meal.name)) || '';
-        var op = (t.operator && (t.operator.name || t.operator.russianName)) || '';
+    function nightsLabel(n) {
+        var num = parseInt(n, 10) || 0;
+        if (!num) return '';
+        var mod = num % 100;
+        var n1 = num % 10;
+        var word = (mod >= 11 && mod <= 14) ? 'ночей' : (n1 === 1 ? 'ночь' : (n1 >= 2 && n1 <= 4 ? 'ночи' : 'ночей'));
+        return num + ' ' + word;
+    }
+
+    /** Список туров в отель — компактные офферы, не карточки отелей. */
+    function cardHtml(item) {
+        var t = item.tour || {};
+        var start = tourStartYmd(t) || item.start || '';
+        var nights = parseInt(t.nights, 10) || item.nights || 0;
+        var detailUrl = tourDetailUrl(item);
+        var meal = (t.meal && (t.meal.russianName || t.meal.name)) || item.meal || '';
+        var room = String(t.roomType || t.room || t.roomName || '').trim();
+        var op = '';
+        if (t.operator && typeof t.operator === 'object') {
+            op = t.operator.russianName || t.operator.name || '';
+        } else if (typeof t.operator === 'string') {
+            op = t.operator;
+        }
+        if (!op) op = t.operatorName || '';
+        var tourId = t.id != null ? String(t.id) : '';
+        var adults = item.adults || state.adults || CFG.adults || 2;
+        var dateEnd = start && nights ? ymdAdd(start, nights) : '';
+        var dateLine = fmtTourDate(start);
+        if (dateEnd) dateLine += (dateLine ? ' — ' : '') + fmtTourDate(dateEnd);
+
         return (
-            '<a class="thh-tour" href="' + esc(detailUrl) + '">' +
+            '<a class="thh-tour" href="' + esc(detailUrl) + '"' +
+            (tourId ? ' data-th-tour-id="' + esc(tourId) + '"' : '') + '>' +
             '<div class="thh-tour__main">' +
-            '<span class="thh-tour__date">' + esc(start || t.date || '') + '</span>' +
-            (nights ? '<span class="thh-tour__chip">' + nights + ' н.</span>' : '') +
+            '<span class="thh-tour__date">' + esc(dateLine || start || 'Дата уточняется') + '</span>' +
+            '<div class="thh-tour__chips">' +
+            (nights ? '<span class="thh-tour__chip">' + esc(nightsLabel(nights)) + '</span>' : '') +
             (meal ? '<span class="thh-tour__chip">' + esc(meal) + '</span>' : '') +
-            (op ? '<span class="thh-tour__chip">' + esc(op) + '</span>' : '') +
+            (room ? '<span class="thh-tour__chip thh-tour__chip--room">' + esc(room) + '</span>' : '') +
+            (op ? '<span class="thh-tour__chip thh-tour__chip--op">' + esc(op) + '</span>' : '') +
+            '</div>' +
+            '<span class="thh-tour__flight" data-thh-flight aria-hidden="true"></span>' +
             '</div>' +
             '<div class="thh-tour__price-side">' +
-            '<div class="thh-tour__price"><span>за 2 взр.</span><strong>' + esc(fmtPrice(item.price)) + '</strong></div>' +
-            '<span class="thh-tour__go">Выбрать</span></div></a>'
+            '<div class="thh-tour__price"><span>за ' + esc(String(adults)) + ' взр.</span><strong>' + esc(fmtPrice(item.price)) + '</strong></div>' +
+            '<span class="thh-tour__go">К туру</span></div></a>'
         );
+    }
+
+    function patchThhFlights() {
+        if (!el.list || typeof window.thFlightsCacheGet !== 'function') return;
+        var cards = el.list.querySelectorAll('.thh-tour[data-th-tour-id]');
+        cards.forEach(function (card) {
+            var tid = card.getAttribute('data-th-tour-id');
+            var slot = card.querySelector('[data-thh-flight]');
+            if (!tid || !slot) return;
+            var meta = window.thFlightsCacheGet(tid, CFG.departureName);
+            if (!meta) return;
+            var bits = [];
+            if (meta.direct) bits.push('Прямой');
+            else if (meta.companies || meta.airline) bits.push('С пересадкой');
+            var line = meta.forwardLine || meta.subline || meta.summary || '';
+            if (meta.airline && meta.time) line = meta.airline + ' · ' + meta.time;
+            else if (meta.airline) line = meta.airline;
+            if (line) bits.push(String(line).slice(0, 48));
+            if (!bits.length) return;
+            slot.innerHTML = '<i class="fas fa-plane" aria-hidden="true"></i> ' + esc(bits.join(' · '));
+            slot.removeAttribute('aria-hidden');
+        });
+    }
+
+    function hydrateFlights(items) {
+        if (!window.thLoadTourFlightsForHotels || !items || !items.length) return;
+        state.flightsGen += 1;
+        var gen = state.flightsGen;
+        window.__thFlightsLoadGen = gen;
+        var hotels = items.map(function (it) {
+            return Object.assign({}, it.hotel || {}, { _tour: it.tour, tours: [it.tour] });
+        });
+        thLoadTourFlightsForHotels(hotels, {
+            apiBase: CFG.apiBase,
+            departureCity: CFG.departureName,
+            departureId: CFG.departureId,
+            maxTours: items.length,
+            maxConcurrent: 6,
+            patchEvery: 2,
+            loadGen: gen,
+            patchContainer: null,
+            onDone: patchThhFlights,
+            getTourId: function (h) {
+                var t = (h && h._tour) || (h && h.tours && h.tours[0]) || {};
+                return t.id != null ? String(t.id) : '';
+            }
+        }).then(function () {
+            patchThhFlights();
+        }).catch(function () {});
+        /* промежуточные патчи: thLoad не вызывает наш onDone до конца — дублируем таймером редко */
+        var ticks = 0;
+        var timer = setInterval(function () {
+            ticks += 1;
+            if (gen !== state.flightsGen || ticks > 40) {
+                clearInterval(timer);
+                return;
+            }
+            patchThhFlights();
+        }, 700);
     }
 
     function render(reset) {
         if (reset) state.shown = 0;
-        state.tours = sortTours(state.tours);
+        state.tours = sortTours(state.pool);
         var sorted = state.tours;
         var min = 0;
         sorted.forEach(function (it) {
@@ -526,8 +701,10 @@ include __DIR__ . '/../../../backend/components/header.php';
         if (el.stickyFrom) el.stickyFrom.textContent = min ? ('от ' + fmtPrice(min)) : '—';
 
         var headSub = document.querySelector('.thh-offers__sub');
-        if (headSub && sorted.length) {
-            headSub.textContent = sorted.length + ' предложений · вылет ' + CFG.departureName;
+        if (headSub) {
+            headSub.textContent = sorted.length
+                ? (sorted.length + ' предложений · вылет ' + CFG.departureName)
+                : ('Все доступные предложения · вылет ' + CFG.departureName);
         }
 
         if (!sorted.length) {
@@ -538,80 +715,84 @@ include __DIR__ . '/../../../backend/components/header.php';
         }
         el.empty.classList.add('hidden');
         var next = Math.min(sorted.length, state.shown + CFG.pageSize);
-        var html = sorted.slice(state.shown, next).map(cardHtml).join('');
+        var slice = sorted.slice(state.shown, next);
+        var html = slice.map(cardHtml).join('');
         if (state.shown === 0) el.list.innerHTML = html;
         else el.list.insertAdjacentHTML('beforeend', html);
         state.shown = next;
         el.more.classList.toggle('hidden', state.shown >= sorted.length);
-        if (window.THTourCard && typeof window.THTourCard.initCarouselsInContainer === 'function') {
-            window.THTourCard.initCarouselsInContainer(el.list);
+        if (reset || slice.length) {
+            hydrateFlights(sorted.slice(0, state.shown));
         }
     }
 
-    async function loadAllWindows() {
+    async function loadMatrix() {
         state.loading = true;
         el.loading.classList.remove('hidden');
         el.error.classList.add('hidden');
         el.empty.classList.add('hidden');
         el.list.innerHTML = '';
-        el.more.classList.add('hidden');
-        state.tours = [];
+        state.pool = [];
         state.shown = 0;
+        el.more.classList.add('hidden');
 
-        var baseParams = {
-            departureId: CFG.departureId,
-            countryId: CFG.countryId,
-            nightsFrom: 6,
-            nightsTo: 14,
-            adults: CFG.adults,
-            currency: 'RUB',
-            hotelIds: String(CFG.hotelId)
-        };
+        state.adults = CFG.adults;
+        var jobs = buildJobs(CFG.adults);
 
-        async function fetchWindow(w, opts) {
-            var params = Object.assign({}, baseParams, {
-                dateFrom: w[0],
-                dateTo: w[1]
-            });
-            return tvFetch('search-cached', Object.assign({}, params, opts || {}));
+        async function fetchJob(job, fetchOpts) {
+            return tvFetch('search-cached', Object.assign({
+                departureId: CFG.departureId,
+                countryId: CFG.countryId,
+                dateFrom: job.dateFrom,
+                dateTo: job.dateTo,
+                nightsFrom: job.nightsFrom,
+                nightsTo: job.nightsTo,
+                adults: job.adults,
+                currency: 'RUB',
+                hotelIds: String(CFG.hotelId)
+            }, fetchOpts || {}));
         }
 
         try {
             var collected = [];
-            var windows = CFG.windows || [];
-            if (!windows.length) {
-                el.empty.classList.remove('hidden');
-                return;
-            }
-
-            /* Сначала cache-only по всем окнам параллельно — быстрый первый экран */
-            var cacheJobs = windows.map(function (w) { return fetchWindow(w, { _cacheOnly: true }); });
-            var cacheResults = await Promise.all(cacheJobs);
-            cacheResults.forEach(function (j) {
-                if (j && j.success && Array.isArray(j.data)) collected = collected.concat(flattenTours(j.data));
-            });
-            collected = dedupe(collected);
-            if (collected.length) {
-                state.tours = collected;
-                render(true);
-            }
-
-            /* Если кэш пуст — один live-запрос на первое окно (не N live подряд) */
-            if (!collected.length) {
-                var liveJ = await fetchWindow(windows[0], { _forceLive: true });
-                if (liveJ && liveJ.success && Array.isArray(liveJ.data)) {
-                    collected = dedupe(flattenTours(liveJ.data));
+            var needLive = [];
+            var BATCH = 12;
+            for (var i = 0; i < jobs.length; i += BATCH) {
+                var chunk = jobs.slice(i, i + BATCH);
+                var results = await Promise.all(chunk.map(function (j) {
+                    return fetchJob(j, { _cacheOnly: true });
+                }));
+                results.forEach(function (j, idx) {
+                    var got = 0;
+                    if (j && j.success && Array.isArray(j.data)) {
+                        var flat = flattenTours(j.data, chunk[idx].adults);
+                        got = flat.length;
+                        collected = collected.concat(flat);
+                    }
+                    if (got === 0) needLive.push(chunk[idx]);
+                });
+                collected = dedupe(collected);
+                state.pool = collected;
+                if (collected.length) {
+                    el.loading.classList.add('hidden');
+                    render(true);
                 }
             }
 
-            state.tours = collected;
-            if (!state.tours.length) {
-                el.empty.classList.remove('hidden');
-            } else if (!state.shown) {
-                render(true);
-            } else {
-                render(true);
+            /* Добираем пустые окна live — без лимита «хватит 20». */
+            for (var li = 0; li < needLive.length; li++) {
+                var liveJ = await fetchJob(needLive[li], { _forceLive: true });
+                if (liveJ && liveJ.success && Array.isArray(liveJ.data)) {
+                    collected = dedupe(collected.concat(flattenTours(liveJ.data, needLive[li].adults)));
+                    state.pool = collected;
+                    render(true);
+                }
+                await new Promise(function (r) { setTimeout(r, 350); });
             }
+
+            state.pool = dedupe(collected);
+            render(true);
+            if (!state.tours.length) el.empty.classList.remove('hidden');
         } catch (e) {
             el.error.textContent = e.message || 'Не удалось загрузить туры';
             el.error.classList.remove('hidden');
@@ -658,7 +839,7 @@ include __DIR__ . '/../../../backend/components/header.php';
     if (lbNext) lbNext.addEventListener('click', function () { stepLb(1); });
     if (lb) lb.addEventListener('click', function (e) { if (e.target === lb) closeLb(); });
 
-    loadAllWindows();
+    loadMatrix();
 })();
 </script>
 

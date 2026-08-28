@@ -352,6 +352,19 @@ button.th-wizard__chip:focus-visible {
     cursor: pointer;
 }
 
+.th-wizard__flight-hint {
+    margin: -0.35rem 0 0.75rem;
+    padding: 0 0.15rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: #64748b;
+}
+
+.th-wizard__flight-hint[hidden] {
+    display: none !important;
+}
+
 .th-wizard__filter-field {
     display: flex;
     flex-direction: column;
@@ -737,3 +750,69 @@ body.countries-list-page-wrap .heading-font {
     25% { transform: translateX(-4px); }
     75% { transform: translateX(4px); }
 }
+
+/* Default stepwise wizard polish (Туры / Отели) */
+.th-search-wizard.th-coral-wizard {
+    max-width: min(40rem, 100%);
+}
+
+.th-search-wizard .th-coral-wizard__rail {
+    margin-bottom: 0.75rem;
+}
+
+.th-search-wizard .th-coral-wizard__rail-item.is-active {
+    background: rgba(93, 169, 164, 0.12);
+}
+
+.th-search-wizard .th-coral-wizard__rail-item.is-done .th-coral-wizard__rail-value {
+    color: #0f766e;
+}
+
+.th-search-wizard .th-wizard__stepbar-label {
+    letter-spacing: 0.02em;
+}
+
+.th-search-wizard .th-coral-search__field--step {
+    min-height: 84px;
+    border-radius: 16px;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.th-search-wizard .th-wizard__nav {
+    margin-top: 0.15rem;
+}
+
+.th-search-wizard.th-wizard--hotels .th-coral-wizard__rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.th-search-wizard .th-hotel-find-btn,
+.th-search-wizard #tv-search-btn,
+.th-search-wizard .th-wizard__next {
+    border-radius: 14px;
+    font-weight: 750;
+}
+
+.th-search-wizard .th-wizard__nav--dates .th-hotel-find-btn {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.th-search-wizard.th-coral-wizard,
+.th-search-wizard .th-wizard__panels,
+.th-search-wizard .th-wizard__panel {
+    overflow: visible;
+}
+
+@media (max-width: 479px) {
+    .th-search-wizard .th-coral-wizard__rail-item {
+        min-width: 4.8rem;
+        max-width: none;
+    }
+    body.th-search-mode-hotels .th-search-wizard .th-coral-wizard__rail-item {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+}
+

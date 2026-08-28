@@ -33,7 +33,9 @@
     function textOfSelect(sel) {
         if (!sel || !sel.options || sel.selectedIndex < 0) return '';
         var opt = sel.options[sel.selectedIndex];
-        return (opt && opt.textContent || '').replace(/^—\s*/, '').trim();
+        var t = (opt && opt.textContent || '').replace(/^—\s*/, '').trim();
+        if (/^загрузка/i.test(t)) return '';
+        return t;
     }
 
     function hasDateRange() {
@@ -352,6 +354,12 @@
     };
 
     THSearchUI.prototype.openChoice = function (type) {
+        if (type === 'departure' && (
+            document.body.classList.contains('th-search-mode-hotels')
+            || window.__thSearchMode === 'hotels'
+        )) {
+            return;
+        }
         var sheet = document.getElementById('th-search-' + type + '-sheet');
         var sel = type === 'country' ? this.countrySel : this.depSel;
         if (!sheet) return;
@@ -490,7 +498,10 @@
 
     THSearchUI.prototype.refreshLabels = function () {
         var country = textOfSelect(this.countrySel);
-        var dep = textOfSelect(this.depSel);
+        var hotelMode = document.body.classList.contains('th-search-mode-hotels')
+            || (this.root && this.root.getAttribute('data-search-mode') === 'hotels')
+            || window.__thSearchMode === 'hotels';
+        var dep = hotelMode ? 'Без перелёта' : textOfSelect(this.depSel);
         var dates = (this.datesDisplay && this.datesDisplay.textContent || '').trim();
         var who = (this.touristsText && this.touristsText.textContent || '').trim();
 
@@ -540,9 +551,15 @@
             this.clearFieldError('country');
         }
         if (!this.depSel || !String(this.depSel.value || '').trim()) {
-            this.markFieldError('departure');
-            if (ok) this.openChoice('departure');
-            ok = false;
+            var hotelMode = document.body.classList.contains('th-search-mode-hotels')
+                || window.__thSearchMode === 'hotels';
+            if (!hotelMode) {
+                this.markFieldError('departure');
+                if (ok) this.openChoice('departure');
+                ok = false;
+            } else {
+                this.clearFieldError('departure');
+            }
         } else {
             this.clearFieldError('departure');
         }
@@ -557,16 +574,19 @@
     };
 
     THSearchUI.prototype.collectSnapshot = function () {
+        var hotelMode = document.body.classList.contains('th-search-mode-hotels')
+            || window.__thSearchMode === 'hotels';
         return {
             countryId: this.countrySel && this.countrySel.value || '',
             countryName: textOfSelect(this.countrySel),
-            departureId: this.depSel && this.depSel.value || '',
-            departureName: textOfSelect(this.depSel),
+            departureId: hotelMode ? '99' : (this.depSel && this.depSel.value || ''),
+            departureName: hotelMode ? 'Без перелёта' : textOfSelect(this.depSel),
             dates: (this.datesDisplay && this.datesDisplay.textContent || '').trim(),
             tourists: (this.touristsText && this.touristsText.textContent || '').trim(),
             meal: (document.getElementById('tv-meal') || {}).value || '',
             region: (document.getElementById('tv-region') || {}).value || '',
             category: (document.getElementById('tv-category') || {}).value || '',
+            searchMode: hotelMode ? 'hotels' : 'tours',
             ts: Date.now()
         };
     };
@@ -620,7 +640,12 @@
         try { list = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch (e) {}
         var item = list[idx];
         if (!item) return;
-        if (this.depSel && item.departureId) {
+        if (item.searchMode === 'hotels' && typeof thApplySearchMode === 'function') {
+            thApplySearchMode('hotels');
+        } else if (item.searchMode === 'tours' && typeof thApplySearchMode === 'function') {
+            thApplySearchMode('tours');
+        }
+        if (this.depSel && item.departureId && String(item.departureId) !== '99') {
             this.depSel.value = String(item.departureId);
             try { this.depSel.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
         }

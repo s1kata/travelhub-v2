@@ -1019,13 +1019,23 @@ $_th_fpick_ver_ctv = is_file($_th_fpick_path_ctv) ? (string) filemtime($_th_fpic
         if (cacheEmpty) {
             rCache = await tvFetch('search-cached', Object.assign({}, cacheParams, { _forceLive: true }));
         }
-        if ((!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0) && origNFrom === 6 && origNTo === 9) {
-            const altParams = Object.assign({}, cacheParams, { nightsFrom: 5, nightsTo: 10 });
+        if ((!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0)) {
+            var altParams = null;
+            if (origNFrom === 6 && origNTo === 9) {
+                altParams = Object.assign({}, cacheParams, { nightsFrom: 5, nightsTo: 10 });
+            } else if (origNFrom >= 10) {
+                var relaxedFrom = Math.max(7, origNFrom - 2);
+                if (relaxedFrom < origNFrom) {
+                    altParams = Object.assign({}, cacheParams, { nightsFrom: relaxedFrom, nightsTo: origNTo });
+                }
+            }
+            if (altParams) {
             let rAlt = await tvFetch('search-cached', Object.assign({}, altParams, { _cacheOnly: true }));
             if (!rAlt.success || !Array.isArray(rAlt.data) || rAlt.data.length === 0) {
                 rAlt = await tvFetch('search-cached', Object.assign({}, altParams, { _forceLive: true }));
             }
             if (rAlt.success && Array.isArray(rAlt.data) && rAlt.data.length > 0) rCache = rAlt;
+            }
         }
         const loadedTours = Array.isArray(rCache.data) ? rCache.data : [];
         if (rCache.success && loadedTours.length > 0) {
@@ -1079,7 +1089,8 @@ $_th_fpick_ver_ctv = is_file($_th_fpick_path_ctv) ? (string) filemtime($_th_fpic
             thLoadTourFlightsForHotels(hotels, {
                 apiBase: base,
                 departureCity: depCityFl,
-                maxTours: Math.min(hotels.length, 40),
+                maxTours: hotels.length,
+                maxConcurrent: 6,
                 getTourId: getCountryTourId,
                 onDone: callback
             });
@@ -1117,6 +1128,13 @@ $_th_fpick_ver_ctv = is_file($_th_fpick_path_ctv) ? (string) filemtime($_th_fpic
     /** Единая логика с акциями (promoHotelListPrice): totalPrice и др. до поля price из обложки. */
     function countryTourListPrice(h) {
         if (!h) return 0;
+        if (window.THTourPriceSanity && typeof window.THTourPriceSanity.hotelMinPlausiblePrice === 'function') {
+            var sane = window.THTourPriceSanity.hotelMinPlausiblePrice(h, {
+                countryId: (typeof countryIdFallback !== 'undefined' ? countryIdFallback : 0)
+                    || (h.country && h.country.id) || 0
+            });
+            return sane > 0 ? sane : 0;
+        }
         const tour = (h.tours || [])[0] || {};
         if (h.tours && h.tours[0]) {
             let n = thPickFirstPositivePriceNumCountry(
@@ -1227,21 +1245,30 @@ $_th_fpick_ver_ctv = is_file($_th_fpick_path_ctv) ? (string) filemtime($_th_fpic
                     image: cardImg, detailUrl: cardHref,
                     adults: priceAdults, dateFrom: startYmd, dateTo: retYmd, price,
                     departureCity, departureId: departureIdVal, carousel: true,
-                    flightMeta: (window.__countryFlightsByTourId && tourId) ? window.__countryFlightsByTourId[tourId] : null
+                    flightMeta: (typeof thFlightsCacheGet === 'function' && tourId)
+                        ? thFlightsCacheGet(tourId, departureCity)
+                        : ((window.__countryFlightsByTourId && tourId) ? window.__countryFlightsByTourId[tourId] : null)
                 });
             }).join('');
             if (typeof thLoadTourFlightsForHotels === 'function' && TV_API_BASE) {
                 thLoadTourFlightsForHotels(hotels, {
                     apiBase: TV_API_BASE.replace(/\/$/, ''),
                     departureCity: departureCity,
-                    maxTours: Math.min(hotels.length, 40),
+                    maxTours: hotels.length,
+                    maxConcurrent: 6,
+                    patchEvery: 2,
                     getTourId: getCountryTourId,
-                    patchContainer: container
+                    patchContainer: container,
+                    onDone: function () {
+                        if (window.THTourCard && typeof window.THTourCard.mountInContainer === 'function') {
+                            window.THTourCard.mountInContainer(container);
+                        }
+                    }
                 });
-            } else if (window.THTourCard && typeof window.THTourCard.patchFlightsInContainer === 'function') {
-                window.THTourCard.patchFlightsInContainer(container);
             }
-            if (window.THTourCard && typeof window.THTourCard.ensureCarouselsInContainer === 'function') {
+            if (window.THTourCard && typeof window.THTourCard.mountInContainer === 'function') {
+                window.THTourCard.mountInContainer(container);
+            } else if (window.THTourCard && typeof window.THTourCard.ensureCarouselsInContainer === 'function') {
                 window.THTourCard.ensureCarouselsInContainer(container);
             } else if (window.THTourCard && typeof window.THTourCard.kickImagesInContainer === 'function') {
                 window.THTourCard.kickImagesInContainer(container);

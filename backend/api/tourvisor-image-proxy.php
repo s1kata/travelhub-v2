@@ -114,6 +114,25 @@ function tv_image_proxy_serve_bytes(string $bytes, string $contentType): void
     exit;
 }
 
+function tv_image_proxy_alt_paths(string $normalizedPath): array
+{
+    if (!preg_match('#^(hotel_pics/)(verybig|main400|main|big)/(.*)$#i', $normalizedPath, $m)) {
+        return [];
+    }
+    $prefix = $m[1];
+    $current = strtolower($m[2]);
+    $rest = $m[3];
+    $alts = [];
+    foreach (['verybig', 'main400', 'main', 'big'] as $size) {
+        if ($size === $current) {
+            continue;
+        }
+        $alts[] = $prefix . $size . '/' . $rest;
+    }
+
+    return $alts;
+}
+
 function tv_image_proxy_resolve_local(string $normalizedPath): ?string
 {
     $checkedDirs = [];
@@ -150,6 +169,25 @@ function tv_image_proxy_resolve_local(string $normalizedPath): ?string
     }
 
     return null;
+}
+
+/**
+ * @return array{0:?string,1:string} [localFile|null, pathUsed]
+ */
+function tv_image_proxy_resolve_local_with_alts(string $normalizedPath): array
+{
+    $local = tv_image_proxy_resolve_local($normalizedPath);
+    if ($local !== null) {
+        return [$local, $normalizedPath];
+    }
+    foreach (tv_image_proxy_alt_paths($normalizedPath) as $alt) {
+        $hit = tv_image_proxy_resolve_local($alt);
+        if ($hit !== null) {
+            return [$hit, $alt];
+        }
+    }
+
+    return [null, $normalizedPath];
 }
 
 function tv_image_proxy_serve_local(string $file, string $contentType): void
@@ -229,9 +267,9 @@ if ($pathParam !== '') {
 }
 
 if ($normalizedPath !== null) {
-    $localFile = tv_image_proxy_resolve_local($normalizedPath);
+    [$localFile, $pathUsed] = tv_image_proxy_resolve_local_with_alts($normalizedPath);
     if ($localFile !== null) {
-        tv_image_proxy_serve_local($localFile, tv_image_proxy_content_type($normalizedPath));
+        tv_image_proxy_serve_local($localFile, tv_image_proxy_content_type($pathUsed));
     }
 }
 
@@ -243,9 +281,9 @@ if ($url !== '' && $normalizedPath === null) {
     if (preg_match('#^https?://' . preg_quote($allowedHost, '#') . '/(.+)$#i', $url, $m)) {
         $normalizedPath = tv_image_proxy_normalize_path($m[1]);
         if ($normalizedPath !== null) {
-            $localFile = tv_image_proxy_resolve_local($normalizedPath);
+            [$localFile, $pathUsed] = tv_image_proxy_resolve_local_with_alts($normalizedPath);
             if ($localFile !== null) {
-                tv_image_proxy_serve_local($localFile, tv_image_proxy_content_type($normalizedPath));
+                tv_image_proxy_serve_local($localFile, tv_image_proxy_content_type($pathUsed));
             }
             $url = 'http://' . $allowedHost . '/' . $normalizedPath;
         }
@@ -291,6 +329,32 @@ if (is_file($cacheFile)) {
 }
 
 $image = @file_get_contents($fetchUrl, false, $ctx);
+
+if ($image === false || $image === '' || !tv_image_proxy_is_valid_image($image)) {
+    // Remote miss: попробовать соседние размеры (main400 ↔ verybig)
+    if ($normalizedPath !== null) {
+        foreach (tv_image_proxy_alt_paths($normalizedPath) as $altPath) {
+            [$altLocal] = tv_image_proxy_resolve_local_with_alts($altPath);
+            if ($altLocal !== null) {
+                tv_image_proxy_serve_local($altLocal, tv_image_proxy_content_type($altPath));
+            }
+            $altUrl = 'http://' . $allowedHost . '/' . $altPath;
+            $altFetch = preg_replace('#^https:#', 'http:', $altUrl);
+            $altImage = @file_get_contents($altFetch, false, $ctx);
+            if ($altImage !== false && $altImage !== '' && tv_image_proxy_is_valid_image($altImage)) {
+                $image = $altImage;
+                $fetchUrl = $altFetch;
+                $url = $altUrl;
+                $normalizedPath = $altPath;
+                $contentType = tv_image_proxy_content_type($altPath);
+                $ext = strtolower(pathinfo($altPath, PATHINFO_EXTENSION));
+                $cacheKey = sha1($fetchUrl) . ($ext ? ('.' . $ext) : '');
+                $cacheFile = $cacheDir . DIRECTORY_SEPARATOR . $cacheKey;
+                break;
+            }
+        }
+    }
+}
 
 if ($image === false || $image === '' || !tv_image_proxy_is_valid_image($image)) {
     $pathsChecked = array_map(

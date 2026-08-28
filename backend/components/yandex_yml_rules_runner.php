@@ -117,8 +117,9 @@ function yandex_yml_rules_feed_snapshot_path_for_slug(string $slug): string
 function yandex_yml_rules_departure_alias_map(): array
 {
     $raw = trim((string) (getenv('YML_FEED_DEPARTURE_ALIASES') ?: ($_ENV['YML_FEED_DEPARTURE_ALIASES'] ?? '')));
+    // По умолчанию: Самара и Москва (ротация пишет /feed-samara.yml и /feed-moscow.yml)
     if ($raw === '') {
-        return [];
+        $raw = 'samara:7,moscow:1';
     }
     $out = [];
     foreach (explode(',', $raw) as $part) {

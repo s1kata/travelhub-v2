@@ -15,25 +15,27 @@
  * - $already_has_title - если true, тег <title> не выводится (уже задан в шаблоне выше)
  */
 
-// Определяем базовые URL
-$seo_proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+// Базовый origin (HTTPS за reverse proxy: X-Forwarded-Proto / порт 443)
+if (!function_exists('tourvisor_request_is_https')) {
+    require_once __DIR__ . '/tourvisor_proxy_url.php';
+}
+$seo_proto = tourvisor_request_is_https() ? 'https' : 'http';
 $seo_host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 $seo_base = rtrim($seo_proto . '://' . $seo_host, '/');
 
-// Определяем путь к сайту (для поддиректорий)
-$scriptPath = dirname($_SERVER['SCRIPT_NAME'] ?? '');
-$pathPrefix = ($scriptPath !== '/' && $scriptPath !== '\\' && $scriptPath !== '') 
-    ? rtrim(str_replace('\\', '/', $scriptPath), '/') 
-    : '';
-
-$site_url = $seo_base . $pathPrefix;
-$current_url = $site_url . $_SERVER['REQUEST_URI'];
+// Корень публичного сайта (не dirname(SCRIPT_NAME) — иначе /frontend/frontend/…)
+$site_url = $seo_base . '/frontend';
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+if (!is_string($requestPath) || $requestPath === '') {
+    $requestPath = '/';
+}
+$current_url = $seo_base . $requestPath;
 
 // Значения по умолчанию
 $page_title = $page_title ?? 'Travel Hub - Путешествия вашей мечты';
 $page_description = $page_description ?? 'Travel Hub — туристическое агентство. Подбор туров, отелей, виз, страхования и трансферов. Путешествия по всему миру.';
 $page_keywords = $page_keywords ?? 'туры, путешествия, отели, визы, турагентство, Travel Hub, отдых, туризм';
-$page_image = $page_image ?? ($seo_proto . '://' . $seo_host . '/frontend/favicon.svg');
+$page_image = $page_image ?? ($site_url . '/favicon.svg');
 $page_type = $page_type ?? 'website';
 $canonical_url = $canonical_url ?? $current_url;
 $noindex = $noindex ?? false;
@@ -148,7 +150,7 @@ $page_lang = $page_lang ?? 'ru';
         "@type": "SearchAction",
         "target": {
           "@type": "EntryPoint",
-          "urlTemplate": "<?php echo $site_url; ?>/frontend/index.php?search={search_term_string}"
+          "urlTemplate": "<?php echo $site_url; ?>/index.php?search={search_term_string}"
         },
         "query-input": "required name=search_term_string"
       }
@@ -161,7 +163,7 @@ $page_lang = $page_lang ?? 'ru';
           "@type": "ListItem",
           "position": 1,
           "name": "Главная",
-          "item": "<?php echo $site_url; ?>/frontend/index.php"
+          "item": "<?php echo $site_url; ?>/index.php"
         }<?php 
         // Добавляем хлебные крошки, если они переданы
         if (isset($breadcrumbs) && is_array($breadcrumbs)) {

@@ -10,6 +10,7 @@ require_once __DIR__ . '/../../backend/config/config.php';
 
 if (!filter_var(getenv('DEBUG_PAGE_ENABLED') ?: '0', FILTER_VALIDATE_BOOLEAN)) {
     http_response_code(404);
+    require __DIR__ . '/404.php';
     exit;
 }
 

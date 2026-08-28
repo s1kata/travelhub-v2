@@ -584,7 +584,8 @@ $_th_fp_cp_v = is_file($_th_fp_cp) ? (string) filemtime($_th_fp_cp) : '1';
                 thLoadTourFlightsForHotels(filtered, {
                     apiBase: TV_BASE.replace(/\/$/, ''),
                     departureCity: PROMO_DEPARTURE_NAME,
-                    maxTours: Math.min(filtered.length, 40),
+                    maxTours: filtered.length,
+                    maxConcurrent: 6,
                     getTourId: function (h) {
                         var t = (h.tours && h.tours[0]) ? h.tours[0] : {};
                         return (t.id != null && t.id !== '') ? String(t.id) : '';

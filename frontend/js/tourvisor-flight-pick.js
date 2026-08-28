@@ -339,12 +339,69 @@
         global.__mainFlightsByTourId[key] = meta;
     }
 
+    function thFlightPackagePriceNum(pkg) {
+        if (!pkg || typeof pkg !== 'object') return 0;
+        var total = 0;
+        if (pkg.price != null) {
+            var pv = (pkg.price && pkg.price.value != null) ? pkg.price.value : pkg.price;
+            var pn = Math.round(Number(pv));
+            if (pn > 0) total += pn;
+        }
+        if (pkg.fuelCharge != null) {
+            var fv = (pkg.fuelCharge && pkg.fuelCharge.value != null) ? pkg.fuelCharge.value : pkg.fuelCharge;
+            var fn = Math.round(Number(fv));
+            if (fn > 0) total += fn;
+        }
+        return total > 0 ? total : 0;
+    }
+
+    function thFlightPackagesStore() {
+        global.__thFlightPackagesByTourId = global.__thFlightPackagesByTourId || {};
+        return global.__thFlightPackagesByTourId;
+    }
+
+    function thFlightPackagesGet(tourId) {
+        if (!tourId) return null;
+        return thFlightPackagesStore()[String(tourId)] || null;
+    }
+
+    function thFlightPackagesSet(tourId, payload) {
+        if (!tourId || !payload) return;
+        thFlightPackagesStore()[String(tourId)] = payload;
+    }
+
+    function thFlightPackageOptionLabel(pkg, depCity) {
+        var meta = thFlightMetaFromPackage(pkg, depCity) || {};
+        var airline = String(meta.airline || (meta.companies && meta.companies[0]) || '').trim();
+        var time = String(meta.time || '').trim();
+        var price = thFlightPackagePriceNum(pkg);
+        var bits = [];
+        if (airline && time) bits.push(airline + ' · ' + time);
+        else if (airline) bits.push(airline);
+        else if (time) bits.push(time);
+        else if (meta.forwardLine) bits.push(String(meta.forwardLine).slice(0, 42));
+        else bits.push('Вариант перелёта');
+        if (price > 0) bits.push(price.toLocaleString('ru-RU') + ' ₽');
+        return bits.join(' — ');
+    }
+
     function thFlightsCacheFromJson(tourId, json, depCity, departureIdHint) {
         if (!tourId || !json || json.success === false) return null;
         var flights = json.flights;
+        if (!Array.isArray(flights) && json.data && Array.isArray(json.data.flights)) {
+            flights = json.data.flights;
+        }
         if (!Array.isArray(flights) || !flights.length) return null;
         var pkg = pickTourvisorFlightPackage(flights, depCity, departureIdHint);
         if (!pkg) return null;
+        var selectedIdx = Math.max(0, flights.indexOf(pkg));
+        thFlightPackagesSet(tourId, {
+            flights: flights.slice(),
+            selectedIdx: selectedIdx,
+            depCity: depCity || '',
+            departureId: departureIdHint != null ? departureIdHint : null,
+            info: json.info || (json.data && json.data.info) || null
+        });
         var meta = thFlightMetaFromPackage(pkg, depCity);
         if (meta) thFlightsCacheSet(tourId, meta, depCity || meta.city);
         return meta;
@@ -387,15 +444,105 @@
             .replace(/"/g, '&quot;');
     }
 
-    function thTvFetch(url) {
-        return fetch(url, { cache: 'no-store' }).then(function (r) {
-            if (r.status !== 503 && r.status !== 429) return r;
-            return new Promise(function (resolve) {
-                setTimeout(resolve, 1200);
-            }).then(function () {
-                return fetch(url, { cache: 'no-store' });
+    var thTourFlightsInflight = Object.create(null);
+    var thTourFlightsFailMemo = Object.create(null);
+    var TH_TOUR_FLIGHTS_FAIL_TTL_MS = 90000;
+
+    function thTourFlightsFailKey(tourId) {
+        return String(tourId || '');
+    }
+
+    function thTourFlightsRecentFail(tourId) {
+        var key = thTourFlightsFailKey(tourId);
+        var row = thTourFlightsFailMemo[key];
+        if (!row) return null;
+        if ((Date.now() - row.ts) > TH_TOUR_FLIGHTS_FAIL_TTL_MS) {
+            delete thTourFlightsFailMemo[key];
+            return null;
+        }
+        return row;
+    }
+
+    function thMarkTourFlightsFail(tourId, err) {
+        thTourFlightsFailMemo[thTourFlightsFailKey(tourId)] = {
+            ts: Date.now(),
+            error: String(err || 'fail')
+        };
+    }
+
+    function thFetchTourFlightsJson(tourId, opts) {
+        opts = opts || {};
+        var tid = String(tourId || '');
+        if (!tid) return Promise.resolve({ success: false, error: 'tourId required' });
+        if (thFlightsCacheGet(tid, opts.departureCity || opts.depCity)) {
+            return Promise.resolve({ success: true, flights: [], _fromCache: true });
+        }
+        var recentFail = thTourFlightsRecentFail(tid);
+        if (recentFail) {
+            return Promise.resolve({ success: false, error: recentFail.error, _memoFail: true });
+        }
+        if (thTourFlightsInflight[tid]) {
+            return thTourFlightsInflight[tid];
+        }
+        var run;
+        if (typeof global.tvFetch === 'function') {
+            run = global.tvFetch('tour-flights', { tourId: tid, currency: 'RUB' }, { timeoutMs: 45000 });
+        } else {
+            var base = opts.apiBase || global.TH_TV_API_BASE || global.TV_API_BASE || '';
+            if (!base) {
+                return Promise.resolve({ success: false, error: 'API base missing' });
+            }
+            var sep = base.indexOf('?') >= 0 ? '&' : '?';
+            var url = base + sep + 'type=tour-flights&tourId=' + encodeURIComponent(tid) + '&currency=RUB';
+            run = thTvFetch(url).then(function (r) {
+                if (!r.ok) {
+                    var err = new Error('HTTP ' + r.status);
+                    err.status = r.status;
+                    throw err;
+                }
+                return r.json();
             });
+        }
+        run = run.then(function (j) {
+            if (!j || j.success === false) {
+                thMarkTourFlightsFail(tid, (j && j.error) || 'flight error');
+            }
+            return j || { success: false, error: 'empty response' };
+        }).catch(function (e) {
+            thMarkTourFlightsFail(tid, e && e.message ? e.message : e);
+            return { success: false, error: String(e && e.message ? e.message : e) };
         });
+        thTourFlightsInflight[tid] = run;
+        return run.finally(function () {
+            delete thTourFlightsInflight[tid];
+        });
+    }
+
+    function thTvFetch(url, attempt) {
+        attempt = attempt || 0;
+        var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        var timer = null;
+        if (ctrl) {
+            timer = setTimeout(function () {
+                try { ctrl.abort(); } catch (eA) {}
+            }, 45000);
+        }
+        return fetch(url, { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
+            .then(function (r) {
+                if (r.ok || attempt >= 2) return r;
+                if (r.status === 503 || r.status === 429 || r.status === 502 || r.status === 504) {
+                    var waitMs = 900 + attempt * 700;
+                    return new Promise(function (resolve) {
+                        setTimeout(resolve, waitMs);
+                    }).then(function () {
+                        return thTvFetch(url, attempt + 1);
+                    });
+                }
+                return r;
+            })
+            .finally(function () {
+                if (timer) clearTimeout(timer);
+            });
     }
 
     function thLoadTourFlightsForHotels(hotels, opts) {
@@ -403,9 +550,9 @@
         var base = opts.apiBase || global.TH_TV_API_BASE || global.TV_API_BASE || '';
         var depCity = opts.departureCity || (global.TH_DEPARTURE && global.TH_DEPARTURE.name) || 'Самара';
         var departureIdHint = opts.departureId != null ? opts.departureId : (global.TH_DEPARTURE && global.TH_DEPARTURE.id);
-        var maxTours = opts.maxTours != null ? opts.maxTours : 8;
-        var maxConcurrent = opts.maxConcurrent != null ? opts.maxConcurrent : 3;
-        var patchEvery = opts.patchEvery != null ? opts.patchEvery : 4;
+        var maxTours = opts.maxTours != null ? Math.max(0, parseInt(String(opts.maxTours), 10) || 0) : 0;
+        var maxConcurrent = opts.maxConcurrent != null ? opts.maxConcurrent : 2;
+        var patchEvery = opts.patchEvery != null ? opts.patchEvery : 2;
         var loadGen = opts.loadGen;
         var getTourId = opts.getTourId;
         var onDone = opts.onDone;
@@ -423,12 +570,14 @@
             }
             if (tid && tourIds.indexOf(tid) < 0) tourIds.push(tid);
         });
-        tourIds.splice(maxTours);
+        /* maxTours=0 → все туры в выдаче; иначе обрезка */
+        if (maxTours > 0 && tourIds.length > maxTours) {
+            tourIds = tourIds.slice(0, maxTours);
+        }
         if (!tourIds.length) {
             if (onDone) onDone();
             return Promise.resolve();
         }
-        var sep = base.indexOf('?') >= 0 ? '&' : '?';
         var queue = tourIds.slice();
         var active = 0;
         var loaded = 0;
@@ -459,10 +608,9 @@
             while (active < maxConcurrent && queue.length) {
                 (function (tourId) {
                     active++;
-                    var url = base + sep + 'type=tour-flights&tourId=' + encodeURIComponent(tourId) + '&currency=RUB';
-                    thTvFetch(url)
-                        .then(function (r) { return r.json(); })
+                    thFetchTourFlightsJson(tourId, { apiBase: base, departureCity: depCity })
                         .then(function (j) {
+                            if (!j || j._fromCache || j._memoFail) return;
                             if (!stale()) thFlightsCacheFromJson(tourId, j, depCity, departureIdHint);
                         })
                         .catch(function () {})
@@ -493,6 +641,43 @@
         });
     }
 
+    /** Догрузка перелётов для карточек на экране без кэша (после «ещё» / частичного ответа). */
+    function thLoadFlightsForVisibleCards(root, opts) {
+        opts = opts || {};
+        var scope = root && root.querySelectorAll ? root : document;
+        var cards = scope.querySelectorAll('.th-tour-card[data-th-tour-id]');
+        var hotels = [];
+        var seen = {};
+        cards.forEach(function (card) {
+            var tid = card.getAttribute('data-th-tour-id');
+            if (!tid || seen[tid]) return;
+            var depCity = card.getAttribute('data-th-departure-city') || opts.departureCity || '';
+            if (typeof thFlightsCacheGet === 'function' && thFlightsCacheGet(tid, depCity)) {
+                seen[tid] = true;
+                return;
+            }
+            /* Уже есть реальная строка вылета — не дёргаем API */
+            var realSub = card.querySelector('.th-tour-card__flight-sub:not(.th-tour-card__flight-sub--stub)');
+            if (realSub && String(realSub.textContent || '').trim()) {
+                seen[tid] = true;
+                return;
+            }
+            seen[tid] = true;
+            hotels.push({ tours: [{ id: tid }], _tour: { id: tid } });
+        });
+        if (!hotels.length) {
+            if (opts.onDone) opts.onDone();
+            return Promise.resolve();
+        }
+        return thLoadTourFlightsForHotels(hotels, Object.assign({}, opts, {
+            maxTours: hotels.length,
+            getTourId: function (h) {
+                return (h && h._tour && h._tour.id != null) ? String(h._tour.id) : '';
+            },
+            patchContainer: opts.patchContainer || scope
+        }));
+    }
+
     global.thPickTourvisorFlightPackage = pickTourvisorFlightPackage;
     global.thFlightMetaFromPackage = thFlightMetaFromPackage;
     global.thFlightMetaNormalize = thFlightMetaNormalize;
@@ -500,5 +685,11 @@
     global.thFlightsCacheGet = thFlightsCacheGet;
     global.thFlightsCacheSet = thFlightsCacheSet;
     global.thFlightsCacheFromJson = thFlightsCacheFromJson;
+    global.thFetchTourFlightsJson = thFetchTourFlightsJson;
     global.thLoadTourFlightsForHotels = thLoadTourFlightsForHotels;
+    global.thLoadFlightsForVisibleCards = thLoadFlightsForVisibleCards;
+    global.thFlightPackagesGet = thFlightPackagesGet;
+    global.thFlightPackagesSet = thFlightPackagesSet;
+    global.thFlightPackagePriceNum = thFlightPackagePriceNum;
+    global.thFlightPackageOptionLabel = thFlightPackageOptionLabel;
 })(typeof window !== 'undefined' ? window : this);

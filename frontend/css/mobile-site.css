@@ -844,7 +844,10 @@
     }
 
     .site-header-mobile-panel__inner {
-        max-height: var(--th-vvh, 100vh) !important;
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow-y: auto !important;
         padding-bottom: calc(24px + var(--th-sticky-bottom-h, 0px) + var(--th-safe-bottom, 0px)) !important;
     }
 

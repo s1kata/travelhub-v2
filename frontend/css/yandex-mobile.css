@@ -550,8 +550,21 @@ html.th-yandex-mobile #site-header .header__phone {
 }
 
 html.th-yandex-mobile .site-header-mobile-panel__inner {
-    max-height: var(--th-vvh) !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y;
     padding-bottom: calc(24px + var(--th-sticky-bottom-h, 0px) + var(--th-safe-bottom, 0px)) !important;
+}
+html.th-yandex-mobile .site-header-mobile-panel {
+    height: 100% !important;
+    max-height: 100dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
 }
 
 /* ——— Tour detail / promo / offices / countries ——— */
