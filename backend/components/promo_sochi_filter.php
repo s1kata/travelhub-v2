@@ -69,7 +69,8 @@ function th_promo_region_is_phuquoc_destination(string $region): bool
         return false;
     }
 
-    return preg_match('/\b(фук|phu\s*quoc|phuquoc|фу\s*куок)\b/ui', $region) === 1;
+    /* Tourvisor: Phu Quoc / Фукуок / PhuQuoc Island / Фу Куок */
+    return preg_match('/фу\s*к\s*уок|фукуок|phu\s*quoc|phuquoc|phú\s*quốc/ui', $region) === 1;
 }
 
 /**

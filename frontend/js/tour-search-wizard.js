@@ -116,21 +116,22 @@
             btn.addEventListener('click', function () {
                 var n = parseInt(btn.getAttribute('data-thw-goto'), 10);
                 if (!n || n < self.minStep() || n > self.maxStep()) return;
-                self.go(n);
+                /* silent: без автооткрытия sheet — только переход на шаг */
+                self.go(n, true);
             });
         });
 
         qsa('[data-thw-next]', this.root).forEach(function (btn) {
             btn.addEventListener('click', function () {
                 if (!self.validateCurrent()) return;
-                if (self.step < self.maxStep()) self.go(self.step + 1);
+                if (self.step < self.maxStep()) self.go(self.step + 1, true);
                 else if (self.isHotelMode()) self.triggerSearch();
             });
         });
 
         qsa('[data-thw-back]', this.root).forEach(function (btn) {
             btn.addEventListener('click', function () {
-                if (self.step > self.minStep()) self.go(self.step - 1);
+                if (self.step > self.minStep()) self.go(self.step - 1, true);
             });
         });
 
@@ -156,7 +157,7 @@
             this.countrySel.addEventListener('change', function () {
                 self.refreshSummary();
                 if (self.step === 2 && self.validateCurrent()) {
-                    setTimeout(function () { self.go(3); }, 180);
+                    setTimeout(function () { self.go(3, true); }, 180);
                 }
             });
         }
@@ -173,14 +174,15 @@
                     self.refreshSummary();
                     if (self.step === 3 && self.validateCurrent()) {
                         if (self.isHotelMode()) return;
-                        self.go(4);
+                        /* Только смена этапа — модалку ночей не открываем */
+                        self.go(4, true);
                     }
-                }, 50);
+                }, 80);
             }
             if (e.target && (e.target.id === 'tv-nights-apply' || (e.target.closest && e.target.closest('#tv-nights-apply')))) {
                 setTimeout(function () {
                     self.refreshSummary();
-                    if (self.step === 4 && self.validateCurrent()) self.go(5);
+                    if (self.step === 4 && self.validateCurrent()) self.go(5, true);
                 }, 50);
             }
         });
@@ -188,7 +190,7 @@
         document.addEventListener('th:wizard-nights-done', function () {
             setTimeout(function () {
                 self.refreshSummary();
-                if (self.step === 4 && self.validateCurrent()) self.go(5);
+                if (self.step === 4 && self.validateCurrent()) self.go(5, true);
             }, 50);
         });
     };
@@ -215,7 +217,6 @@
             var dep = this.depSel && String(this.depSel.value || '').trim();
             if (!dep) {
                 this.shake(qs('[data-th-search-open="departure"]', this.root));
-                this.openStepModal(1);
                 return false;
             }
         }
@@ -223,21 +224,18 @@
             var c = this.countrySel && String(this.countrySel.value || '').trim();
             if (!c) {
                 this.shake(qs('[data-th-search-open="country"]', this.root));
-                this.openStepModal(2);
                 return false;
             }
         }
         if (this.step === 3) {
             if (!hasDateRange()) {
                 this.shake(qs('[data-th-search-open="dates"]', this.root));
-                this.openStepModal(3);
                 return false;
             }
         }
         if (this.step === 4) {
             if (!hasNightsRange()) {
                 this.shake(qs('[data-th-search-open="nights"]', this.root));
-                this.openStepModal(4);
                 return false;
             }
         }
@@ -301,6 +299,7 @@
         if (!silent) {
             var activeField = qs('.th-wizard__panel.is-active [data-th-search-open]', this.root);
             if (activeField) activeField.focus && activeField.focus();
+            /* Модалки не автооткрываем: клик по полю / rail сам открывает sheet */
         }
     };
 

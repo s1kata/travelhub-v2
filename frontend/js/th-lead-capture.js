@@ -87,15 +87,25 @@
   }
 
   function isValidPersonName(name) {
-    var n = String(name || '').trim();
+    var n = String(name || '').trim().replace(/\s+/g, ' ');
     if (n.length < 2 || n.length > 100) return false;
-    if (!/^[\p{L}\s\-'.]+$/u.test(n)) return false;
+    // Только кириллица — латиница вперемешку («Lion Паша…») отклоняется
+    if (!/^[\p{Script=Cyrillic}\s\-'.]+$/u.test(n)) return false;
     var compact = n.replace(/[\s\-'.]/g, '');
     if (compact.length < 2) return false;
     if (/^(\p{L})\1+$/u.test(compact)) return false;
-    // Минимум 2 кириллические буквы — латиница/немецкий-only отклоняется
     var cyr = n.match(/\p{Script=Cyrillic}/gu);
     if (!cyr || cyr.length < 2) return false;
+    var parts = n.split(/[\s\-]+/).filter(Boolean);
+    if (parts.length >= 2) {
+      for (var i = 0; i < parts.length; i++) {
+        if (parts[i].length < 2) return false;
+      }
+    }
+    var lower = n.toLowerCase();
+    var bannedExact = ['тест', 'test', 'asdf', 'qwerty', 'admin', 'user', 'имя', 'фамилия', 'фио', 'xxx', 'null', 'none'];
+    if (bannedExact.indexOf(lower) >= 0) return false;
+    if (/тест | test|qwerty|asdf|admin|xxx/.test(lower)) return false;
     return true;
   }
 
@@ -103,7 +113,7 @@
     var n = String(name || '').trim();
     if (!n) return 'Укажите ФИО';
     if (isValidPersonName(n)) return '';
-    if (n.length >= 2 && /^[\p{L}\s\-'.]+$/u.test(n) && !/\p{Script=Cyrillic}/u.test(n)) {
+    if (/\p{Script=Latin}/u.test(n) || (n.length >= 2 && !/\p{Script=Cyrillic}/u.test(n))) {
       return 'Укажите ФИО русскими буквами';
     }
     return 'Укажите корректные ФИО (минимум 2 буквы)';

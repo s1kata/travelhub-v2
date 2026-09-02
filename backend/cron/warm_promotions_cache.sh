@@ -2,14 +2,21 @@
 # Прогрев кэша акций (data/promo_cache_{countryId}_{departureId}.json).
 # Нужен PHP >= 7.4 (на хостинге «php» часто = 5.2 — скрипт сам ищет php7.4).
 #
-# Запуск по SSH:
-#   cd ~/travel63test_ru/public_html && bash backend/cron/warm_promotions_cache.sh
+# Фоновый прогрев (не обрывается при disconnect SSH):
+#   cd ~/travel63test_ru/public_html && nohup env PHP_BIN=/usr/bin/php7.4 bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1 &
+#   tail -f data/promo_warm.log
 #
-# Явно указать PHP:
-#   PHP_BIN=/usr/bin/php7.4 bash backend/cron/warm_promotions_cache.sh
+# Дозапуск после обрыва (пропускает уже свежие файлы):
+#   cd ~/travel63test_ru/public_html && nohup env PHP_BIN=/usr/bin/php7.4 bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1 &
+#
+# Быстрый прогрев без рейсов (~15 мин вместо ~1 ч):
+#   PROMO_WARM_SKIP_FLIGHTS=1 nohup env PHP_BIN=/usr/bin/php7.4 bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1 &
+#
+# Полный перепрогрев:
+#   PROMO_WARM_FORCE=1 nohup env PHP_BIN=/usr/bin/php7.4 bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1 &
 #
 # Cron (2 раза в сутки):
-#   0 0,12 * * * cd /home/g/garant77li/travel63test_ru/public_html && bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1
+#   5 0,12 * * * cd /home/g/garant77li/travel63test_ru/public_html && flock -n data/promo_warm.lock env PHP_BIN=/usr/bin/php7.4 bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1
 
 set -euo pipefail
 
@@ -17,6 +24,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
 CRON_SCRIPT="$ROOT/backend/cron/update_promotions_cache.php"
+LOCK_FILE="$ROOT/data/promo_warm.lock"
 
 if [[ ! -f "$CRON_SCRIPT" ]]; then
   echo "Не найден: $CRON_SCRIPT" >&2
@@ -49,8 +57,26 @@ PHP_BIN="$(resolve_php_bin)" || {
   exit 1
 }
 
-PHP_VER=$("$PHP_BIN" -r 'echo PHP_VERSION;' 2>/dev/null || echo unknown)
-echo "[$(date '+%Y-%m-%dT%H:%M:%S%z')] promo warm start php=$PHP_BIN ($PHP_VER) cwd=$ROOT"
-"$PHP_BIN" "$CRON_SCRIPT"
-echo "[$(date '+%Y-%m-%dT%H:%M:%S%z')] promo warm done"
+run_warm() {
+  PHP_VER=$("$PHP_BIN" -r 'echo PHP_VERSION;' 2>/dev/null || echo unknown)
+  echo "[$(date '+%Y-%m-%dT%H:%M:%S%z')] promo warm start php=$PHP_BIN ($PHP_VER) cwd=$ROOT"
+  "$PHP_BIN" "$CRON_SCRIPT"
+  echo "[$(date '+%Y-%m-%dT%H:%M:%S%z')] promo warm done"
+}
+
+mkdir -p "$ROOT/data"
+
+if [[ "${PROMO_WARM_NO_FLOCK:-}" == "1" ]]; then
+  run_warm
+elif command -v flock >/dev/null 2>&1; then
+  exec 9>"$LOCK_FILE"
+  if ! flock -n 9; then
+    echo "[$(date '+%Y-%m-%dT%H:%M:%S%z')] promo warm already running (lock $LOCK_FILE)" >&2
+    exit 0
+  fi
+  run_warm
+else
+  run_warm
+fi
+
 # После прогрева акций пересоберите YML: php rebuild_feed.php (или yml_feed_rules_cron.php)

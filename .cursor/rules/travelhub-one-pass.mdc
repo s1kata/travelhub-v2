@@ -1,0 +1,33 @@
+---
+description: One-pass UI/JS fixes — syntax check, no half-finished CSS wars, verify before done
+globs: frontend/**/*.{php,js,css},backend/components/**/*.{php,css}
+alwaysApply: true
+---
+
+# One-pass quality (TravelHub web)
+
+User redeploys often. Broken half-fixes waste cycles. Finish in **one** pass.
+
+## Before editing UI/JS
+1. Name the bug + expected visual (1 sentence).
+2. Find **all** CSS/JS that touch the same selector (grep), not only the first hit.
+3. Prefer **one clear ownership**: either native flatpickr chrome OR custom chrome — never both visible.
+
+## When editing inline JS in PHP
+- After any brace/function change, extract the script and run `node --check` on it before claiming done.
+- Never leave a function without a closing `}`.
+- Open/close helpers must be **idempotent** (`open` does not toggle). Toggle only on explicit toggle handlers.
+- If a control has both `data-thw-goto` and `data-th-search-open`, assume **double handlers** fire.
+
+## CSS / header / popups
+- Do not paint `.header__nav a` white — use `.header__nav > a` so dropdown links stay dark.
+- Popup z-index under opaque cards = "does not open". Check stacking + `hidden`/`is-open` + body relocate.
+- Bump `?v=` on every CSS/JS you change that is linked with cache-bust.
+
+## Before "done"
+1. Syntax-check touched JS.
+2. Mentally walk: open → visible labels once → close → reopen (no duplicate rows / white-on-white).
+3. If TEST is reachable, smoke the exact Danik path; if not, list exact files to upload.
+4. Do not ship a "show everything" workaround that creates duplicates (e.g. shared + per-month weekdays).
+5. Calendar: keep **native** flatpickr weekdays visible; for 2 months hide only extra `.flatpickr-weekdaycontainer`. Never `display:none` the whole `.flatpickr-weekdays` in multi — flatpickr redraw on day click will drop custom rows and leave an empty header.
+6. After flatpickr `redraw()`, always run `tvCalendarRefreshUI` (never refresh-then-redraw).

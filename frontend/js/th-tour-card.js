@@ -8,7 +8,6 @@
 
   var FALLBACK_IMG = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80';
   var DETAIL_BTN_LABEL = '\u0417\u0430\u0431\u0440\u043e\u043d\u0438\u0440\u043e\u0432\u0430\u0442\u044c';
-  var FLIGHT_PICKER_BOUND = false;
 
   /** Ссылка на tour-detail без авто-открытия модалки (best practice: сначала детали тура). */
   function bookingHref(href) {
@@ -237,8 +236,10 @@
 
   /**
    * Блок перелёта: туда + обратно с авиакомпанией и временем, или заглушка.
+   * @param {boolean} pickable — показать подсказку «можно выбрать при нажатии»
    */
   function buildFlightBlockHtml(depCity, tourId, options) {
+    options = options || {};
     var city = String(depCity || departureName()).trim();
     if (!city) return '';
     var meta = resolveFlightMeta(tourId, city, options);
@@ -259,24 +260,28 @@
     }
     var hasForward = !!forwardLine;
     var hasBackward = !!backwardLine;
+    var inner = '';
     if (!hasForward && !hasBackward) {
-      return (
-        '<div class="th-tour-card__flight-chip">' +
-        buildFlightLegHtml('\u0412\u044b\u043b\u0435\u0442', city, FLIGHT_STUB_TEXT, false) +
-        '</div>'
+      inner = buildFlightLegHtml('\u0412\u044b\u043b\u0435\u0442', city, FLIGHT_STUB_TEXT, false);
+    } else {
+      inner = buildFlightLegHtml('\u0412\u044b\u043b\u0435\u0442', city, forwardLine || FLIGHT_STUB_TEXT, hasForward);
+      inner += buildFlightLegHtml(
+        '\u041e\u0431\u0440\u0430\u0442\u043d\u043e',
+        '',
+        backwardLine || FLIGHT_STUB_TEXT,
+        hasBackward,
+        ' th-tour-card__flight-leg--return'
       );
     }
-    var html = '<div class="th-tour-card__flight-chip">';
-    html += buildFlightLegHtml('\u0412\u044b\u043b\u0435\u0442', city, forwardLine || FLIGHT_STUB_TEXT, hasForward);
-    html += buildFlightLegHtml(
-      '\u041e\u0431\u0440\u0430\u0442\u043d\u043e',
-      '',
-      backwardLine || FLIGHT_STUB_TEXT,
-      hasBackward,
-      ' th-tour-card__flight-leg--return'
+    var chipHtml = '<div class="th-tour-card__flight-chip">' + inner + '</div>';
+    var pickable = options.pickable !== false && !!tourId;
+    if (!pickable) return chipHtml;
+    return (
+      '<button type="button" class="th-tour-card__flight-pick" data-th-flight-pick="1" aria-label="\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u043f\u0435\u0440\u0435\u043b\u0451\u0442">' +
+      chipHtml +
+      '<span class="th-tour-card__flight-pick-label">\u041c\u043e\u0436\u043d\u043e \u0432\u044b\u0431\u0440\u0430\u0442\u044c \u043f\u0440\u0438 \u043d\u0430\u0436\u0430\u0442\u0438\u0438</span>' +
+      '</button>'
     );
-    html += '</div>';
-    return html;
   }
 
   function patchFlightsInContainer(root) {
@@ -288,7 +293,6 @@
       var body = card.querySelector('.th-tour-card__body');
       if (!body) return;
       var meta = resolveFlightMeta(tourId, depCity, {});
-      var html = buildFlightBlockHtml(depCity, tourId, meta ? { flightMeta: meta } : {});
       if (meta && meta.city) card.setAttribute('data-th-departure-city', meta.city);
       var media = card.querySelector('.th-tour-card__media');
       if (media && meta && typeof meta.direct === 'boolean') {
@@ -301,11 +305,19 @@
         badge.textContent = meta.direct ? '\u041f\u0440\u044f\u043c\u043e\u0439 \u0440\u0435\u0439\u0441' : '\u0421 \u043f\u0435\u0440\u0435\u0441\u0430\u0434\u043a\u043e\u0439';
         media.appendChild(badge);
       }
-      var chip = body.querySelector('.th-tour-card__flight-chip');
+      var flightPickSlot = card.querySelector('.th-tour-card__flight-pick-slot');
+      var chip = card.querySelector('.th-tour-card__flight-pick') || card.querySelector('.th-tour-card__flight-chip');
       var dep = body.querySelector('.th-tour-card__dep-city');
       var anchor = body.querySelector('.th-tour-card__price-block');
+      var html = buildFlightBlockHtml(depCity, tourId, Object.assign({ pickable: true }, meta ? { flightMeta: meta } : {}));
+      if (flightPickSlot) {
+        flightPickSlot.innerHTML = html;
+        wireFlightPickInContainer(card);
+        return;
+      }
       if (chip) {
         chip.outerHTML = html;
+        wireFlightPickInContainer(card);
         return;
       }
       if (dep) {
@@ -1077,9 +1089,9 @@
 
     var depCity = options.departureCity || departureName();
     var tourIdStr = tourIdFromTour(tour);
-    var flightHtml = showFlight
-      ? buildFlightBlockHtml(depCity, tourIdStr, { flightMeta: options.flightMeta })
-      : '';
+    var flightHtml = showFlight && tourIdStr
+      ? ('<div class="th-tour-card__flight-pick-slot">' + buildFlightBlockHtml(depCity, tourIdStr, { flightMeta: options.flightMeta, pickable: true }) + '</div>')
+      : (showFlight ? buildFlightBlockHtml(depCity, tourIdStr, { flightMeta: options.flightMeta, pickable: false }) : '');
 
     var mediaHtml;
     if (options.carousel !== false) {
@@ -1134,15 +1146,17 @@
     return (
       '<article class="th-tour-card' + modClass + '"' + skipPatch + hotelIdAttr + tourIdAttr + depCityAttr + '>' +
       mediaHtml +
-      '<a href="' + esc(cardHref) + '"' + targetAttr + ' class="th-tour-card__link th-tour-card__link--main">' +
       '<div class="th-tour-card__body">' +
+      '<a href="' + esc(cardHref) + '"' + targetAttr + ' class="th-tour-card__link th-tour-card__link--main th-tour-card__link--head">' +
       '<p class="th-tour-card__geo">' + esc(country + (region ? ', ' + region : '')) + '</p>' +
       '<div class="th-tour-card__name-row">' +
       '<h3 class="th-tour-card__name">' + esc(h.name) + '</h3>' +
       (starsHtml ? '<span class="th-tour-card__stars">' + starsHtml + '</span>' : '') +
       '</div>' +
       (meal ? '<span class="th-tour-card__meal-badge">' + esc(meal) + '</span>' : '') +
+      '</a>' +
       flightHtml +
+      '<a href="' + esc(cardHref) + '"' + targetAttr + ' class="th-tour-card__link th-tour-card__link--main th-tour-card__link--tail">' +
       '<div class="th-tour-card__price-block">' +
       (oldPriceNum ? '<span class="th-tour-card__old-price">' + formatPrice(oldPriceNum) + '</span>' : '') +
       '<span class="th-tour-card__price-label">' + esc(pricePartyLabel) + '</span>' +
@@ -1151,8 +1165,8 @@
       (isPromo ? '<span class="th-tour-card__promo-label">\u0410\u043a\u0446\u0438\u043e\u043d\u043d\u0430\u044f \u0446\u0435\u043d\u0430</span>' : '') +
       '<span class="th-tour-card__dates">' + esc(datesMeta) + '</span>' +
       '</div>' +
-      '</div>' +
       '</a>' +
+      '</div>' +
       '<div class="th-tour-card__actions">' +
       '<a href="' + esc(bookingHref(cardHref)) + '"' + targetAttr + ' class="th-tour-card__btn">' + esc(DETAIL_BTN_LABEL) + '</a>' +
       compareBtn +
@@ -1160,6 +1174,116 @@
       '</div>' +
       '</article>'
     );
+  }
+
+  function formatPriceRub(n) {
+    return formatPrice(n);
+  }
+
+  function updateCardDetailLinks(card, patch) {
+    if (!card || !patch) return;
+    var links = card.querySelectorAll('a[href*="tour-detail"]');
+    links.forEach(function (a) {
+      try {
+        var u = new URL(a.getAttribute('href'), window.location.origin);
+        Object.keys(patch).forEach(function (k) {
+          if (patch[k] == null || patch[k] === '') u.searchParams.delete(k);
+          else u.searchParams.set(k, String(patch[k]));
+        });
+        a.setAttribute('href', u.pathname + u.search);
+      } catch (e) {}
+    });
+  }
+
+  /** Обновить карточку после выбора пакета перелёта в модалке. */
+  function applyFlightSelection(card, tourId, pkg, info) {
+    if (!card || !tourId || !pkg) return;
+    var depCity = card.getAttribute('data-th-departure-city') || departureName();
+    var meta = (typeof global.thFlightMetaFromPackage === 'function')
+      ? global.thFlightMetaFromPackage(pkg, depCity)
+      : null;
+    if (meta && meta.city) card.setAttribute('data-th-departure-city', meta.city);
+    var slot = card.querySelector('.th-tour-card__flight-pick-slot');
+    var html = buildFlightBlockHtml(depCity, tourId, { flightMeta: meta, pickable: true });
+    if (slot) slot.innerHTML = html;
+    else {
+      var btn = card.querySelector('.th-tour-card__flight-pick');
+      if (btn) btn.outerHTML = html;
+    }
+    var priceNum = (typeof global.thFlightPackagePriceNum === 'function')
+      ? global.thFlightPackagePriceNum(pkg, info)
+      : 0;
+    if (priceNum > 0) {
+      var priceEl = card.querySelector('.th-tour-card__price');
+      if (priceEl) priceEl.textContent = formatPriceRub(priceNum);
+      card.setAttribute('data-th-flight-price', String(priceNum));
+    }
+    var summary = (typeof global.thFlightPackageSummary === 'function')
+      ? global.thFlightPackageSummary(pkg)
+      : '';
+    if (summary) {
+      updateCardDetailLinks(card, { flight_info: summary, price: priceNum > 0 ? String(priceNum) : undefined });
+      card.setAttribute('data-th-flight-summary', summary);
+    }
+    wireFlightPickInContainer(card);
+  }
+
+  function openFlightPickFromBtn(btn) {
+    if (!btn) return;
+    var card = btn.closest('.th-tour-card');
+    if (!card) return;
+    var tourId = card.getAttribute('data-th-tour-id');
+    if (!tourId || typeof global.thFlightPickModalOpen !== 'function') return;
+    global.thFlightPickModalOpen({
+      cardEl: card,
+      tourId: tourId,
+      departureCity: card.getAttribute('data-th-departure-city') || departureName(),
+      departureId: departureId()
+    });
+  }
+
+  var thFlightPickLastTouchAt = 0;
+
+  function ensureFlightPickDelegation() {
+    if (global.__thFlightPickDelegation) return;
+    global.__thFlightPickDelegation = true;
+    document.addEventListener('touchend', function (e) {
+      var btn = e.target.closest('[data-th-flight-pick]');
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      thFlightPickLastTouchAt = Date.now();
+      openFlightPickFromBtn(btn);
+    }, { capture: true, passive: false });
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-th-flight-pick]');
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (Date.now() - thFlightPickLastTouchAt < 450) return;
+      openFlightPickFromBtn(btn);
+    }, true);
+  }
+
+  function wireFlightPickInContainer(root) {
+    ensureFlightPickDelegation();
+    var scope = root && root.querySelectorAll ? root : document;
+    scope.querySelectorAll('.th-tour-card[data-th-tour-id] .th-tour-card__flight-pick[data-th-flight-pick]').forEach(function (btn) {
+      if (btn.getAttribute('data-th-flight-pick-wired') === '1') return;
+      btn.setAttribute('data-th-flight-pick-wired', '1');
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (Date.now() - thFlightPickLastTouchAt < 450) return;
+        openFlightPickFromBtn(btn);
+      });
+    });
+  }
+
+  function mountInContainer(root) {
+    patchFlightsInContainer(root);
+    ensureCarouselsInContainer(root);
+    wireFlightPickInContainer(root);
   }
 
   function renderList(hotels, options) {
@@ -1189,6 +1313,9 @@
     mapTourvisorImageUrl: mapTourvisorImageUrl,
     buildFlightBlockHtml: buildFlightBlockHtml,
     patchFlightsInContainer: patchFlightsInContainer,
+    applyFlightSelection: applyFlightSelection,
+    wireFlightPickInContainer: wireFlightPickInContainer,
+    mountInContainer: mountInContainer,
     preloadCarouselImage: preloadCarouselImage,
     kickImagesInContainer: kickImagesInContainer,
     initCarouselsInContainer: initCarouselsInContainer,
@@ -1202,6 +1329,7 @@
   };
 
   if (typeof document !== 'undefined') {
+    ensureFlightPickDelegation();
     function thTourCardBootCarousels() {
       ensureCarouselsInContainer(document);
     }

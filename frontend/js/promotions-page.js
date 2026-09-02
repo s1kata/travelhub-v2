@@ -47,6 +47,7 @@
     /** Вьетнам (id 16): шире окно дат — иначе мало «горящих» вылетов. */
     var PROMO_COUNTRY_ID_VIETNAM = '16';
     var PROMO_COUNTRY_ID_THAILAND = '2';
+    var PROMO_COUNTRY_ID_SRI_LANKA = '12';
     /** Плитка «Сочи» = Tourvisor countryId 47 (Россия); в выдаче только курорты Сочи. */
     var PROMO_COUNTRY_ID_SOCHI = '47';
     /** Плитка «Фукуок» = виртуальный id 16104 (Вьетнам 16 + region 104). */
@@ -61,6 +62,8 @@
     var PROMO_NIGHT_WINDOWS = [[1, 11], [12, 22], [23, 28]];
     var PROMO_COUNTRY_IDS_TR = ['4'];
     var PROMO_COUNTRY_IDS_EG = ['1', '13'];
+    /** Меньше этого числа — добираем обычный поиск (акции = min price + бейдж). */
+    var PROMO_BLEND_MIN_HOTELS = 8;
 
     function isPromoTrOrEg(countryId) {
         var s = String(countryId != null ? countryId : (typeof COUNTRY_ID !== 'undefined' ? COUNTRY_ID : ''));
@@ -95,6 +98,7 @@
     function promoNightWindowsForCountry(countryId) {
         if (isPromoTrOrEg(countryId)) return [[6, 13]];
         if (String(countryId) === PROMO_COUNTRY_ID_SOCHI) return [[5, 14]];
+        if (isVietnamPromoCountry(countryId) || isPhuQuocPromoCountry(countryId)) return [[6, 14], [1, 11], [15, 21]];
         return PROMO_NIGHT_WINDOWS;
     }
 
@@ -158,11 +162,27 @@
         return (window.__promoFlightsByTourId && window.__promoFlightsByTourId[key]) || null;
     }
 
+    /** Прогретые рейсы из promo_cache_* (cron) → клиентский кэш карточек. */
+    function promoApplyFlightsFromSearchResponse(j) {
+        if (!j || !j.flightsByTourId || typeof j.flightsByTourId !== 'object') return;
+        var depNm = promoDepartureNameForFlights();
+        var depIdFl = promoDepartureIdForFlights();
+        Object.keys(j.flightsByTourId).forEach(function (tourId) {
+            var json = j.flightsByTourId[tourId];
+            if (!tourId || !json) return;
+            try {
+                if (typeof thFlightsCacheFromJson === 'function') {
+                    thFlightsCacheFromJson(tourId, json, depNm, depIdFl);
+                }
+            } catch (eFl) {}
+        });
+    }
+
     function isThailandPromoCountry(cid) {
         return String(cid != null ? cid : '') === PROMO_COUNTRY_ID_THAILAND;
     }
 
-    /** Карточки «Акция» для подставленных обычных туров (Таиланд, Мальдивы, Сочи, Вьетнам). */
+    /** Карточки «Акция» для подставленных обычных туров (Таиланд, Мальдивы, Сочи, Фукуок/VN). */
     function promoMarkHotelsForPromoDisplay(hotels) {
         return (hotels || []).map(function (h) {
             if (!h) return h;
@@ -186,26 +206,34 @@
     function promoShouldMarkPromoDisplayBadge(countryId) {
         return promoAlwaysBlendRegularWithPromo(countryId)
             || isThailandPromoCountry(countryId)
-            || (usesNearestPromoFallback(countryId) && isVietnamPromoCountry(countryId));
+            || isPhuQuocPromoCountry(countryId)
+            || isVietnamPromoCountry(countryId);
     }
 
-    /** Финальная обработка: Таиланд/Сочи/Мальдивы — подмешиваем обычный поиск + метка акции; затем прямой рейс (TH/VN). */
-    function promoFinalizeTourResults(data, countryId) {
+    /** Финальная обработка: метка «Акция»; regular-догрузка — если мало туров или promo-search пустой. */
+    function promoFinalizeTourResults(data, countryId, opts) {
+        opts = opts || {};
         var list = Array.isArray(data) ? data.slice() : [];
         var chain;
-        if (promoAlwaysBlendRegularWithPromo(countryId) || (usesNearestPromoFallback(countryId) && !list.length)) {
+        var needBlend = list.length < PROMO_BLEND_MIN_HOTELS
+            && (promoAlwaysBlendRegularWithPromo(countryId) || usesNearestPromoFallback(countryId));
+        if (list.length >= PROMO_BLEND_MIN_HOTELS) {
+            chain = Promise.resolve(list);
+        } else if (needBlend) {
             chain = applyNearestFallbackIfNeeded(list, countryId);
         } else if (list.length > 0) {
             chain = Promise.resolve(list);
-        } else {
+        } else if (usesNearestPromoFallback(countryId)) {
             chain = applyNearestFallbackIfNeeded(list, countryId);
+        } else {
+            chain = Promise.resolve(list);
         }
         return chain.then(function (out) {
             var prepared = promoPostProcessHotelList(Array.isArray(out) ? out : [], countryId);
             if (promoShouldMarkPromoDisplayBadge(countryId)) {
                 prepared = promoMarkHotelsForPromoDisplay(prepared);
             }
-            return filterDirectFlightsThVnIfNeeded(prepared, countryId);
+            return filterDirectFlightsPromoIfNeeded(prepared, countryId);
         });
     }
 
@@ -234,22 +262,76 @@
     function promoSkipsStarFilterForCountry(countryId) {
         return String(countryId != null ? countryId : '') === '46';
     }
-    /** Сочи, Мальдивы, Таиланд: ближайшие обычные туры; Вьетнам — по флагу. */
+    /** Сочи, Мальдивы, Таиланд, VN/Фукуок, Абхазия, Шри-Ланка, ОАЭ: подмешиваем обычный поиск. */
     function usesNearestPromoFallback(countryId) {
         if (isSochiPromoCountry(countryId)) return true;
         if (String(countryId) === PROMO_COUNTRY_ID_MALDIVES) return true;
         if (isThailandPromoCountry(countryId)) return true;
-        return !!(TH_FEATURE_VN_NEAREST && isVietnamPromoCountry(countryId));
+        if (isPhuQuocPromoCountry(countryId)) return true;
+        if (isVietnamPromoCountry(countryId)) return true; /* Самара→VN promo часто пуст */
+        if (String(countryId) === '46' || String(countryId) === '12' || String(countryId) === '9') return true;
+        return false;
     }
     function promoAlwaysBlendRegularWithPromo(countryId) {
         return isSochiPromoCountry(countryId)
             || String(countryId) === PROMO_COUNTRY_ID_MALDIVES
-            || isThailandPromoCountry(countryId);
+            || isThailandPromoCountry(countryId)
+            || isPhuQuocPromoCountry(countryId)
+            || isVietnamPromoCountry(countryId)
+            || String(countryId) === '46'
+            || String(countryId) === '12'
+            || String(countryId) === '9';
     }
-    /** Только Таиланд и Вьетнам: в выдаче оставляем прямые рейсы. Турция и остальные — с пересадками, без этого фильтра. */
-    function isThailandOrVietnamDirectFilterCountry(cid) {
+    /** Прямые рейсы в акциях: только Таиланд, Шри-Ланка, Фукуок. Остальные — любой перелёт. */
+    function isPromoDirectFlightFilterCountry(cid) {
         var s = String(cid != null ? cid : '');
-        return s === PROMO_COUNTRY_ID_THAILAND || isVietnamPromoCountry(s) || isPhuQuocPromoCountry(s);
+        return s === PROMO_COUNTRY_ID_THAILAND
+            || s === PROMO_COUNTRY_ID_SRI_LANKA
+            || isPhuQuocPromoCountry(s);
+    }
+    function isSriLankaPromoCountry(cid) {
+        return String(cid != null ? cid : '') === PROMO_COUNTRY_ID_SRI_LANKA;
+    }
+    function promoMinListPriceForCountry(countryId) {
+        if (isSriLankaPromoCountry(countryId)) {
+            return 55000;
+        }
+        return 0;
+    }
+    function promoFilterHotelsMinListPrice(list, countryId) {
+        var floor = promoMinListPriceForCountry(countryId);
+        if (!floor || !list || !list.length) return list || [];
+        var minAdults = thPromoAdultsCount();
+        var out = [];
+        list.forEach(function (h) {
+            if (!h || !Array.isArray(h.tours) || !h.tours.length) return;
+            var kept = h.tours.filter(function (t) {
+                if (!t) return false;
+                var tourAdults = (t.adults != null && t.adults !== '') ? parseInt(String(t.adults), 10) : minAdults;
+                if (isNaN(tourAdults) || tourAdults < minAdults) return false;
+                var p = promoHotelListPrice({ tours: [t], price: t.price, minPrice: t.totalPrice || t.price });
+                return p >= floor;
+            });
+            if (!kept.length) return;
+            var copy;
+            try {
+                copy = JSON.parse(JSON.stringify(h));
+            } catch (eCopy) {
+                copy = Object.assign({}, h);
+            }
+            copy.tours = kept;
+            var minP = 0;
+            kept.forEach(function (t) {
+                var p = promoHotelListPrice({ tours: [t], price: t.price, minPrice: t.totalPrice || t.price });
+                if (p > 0 && (minP === 0 || p < minP)) minP = p;
+            });
+            if (minP > 0) {
+                copy.price = minP;
+                copy.minPrice = minP;
+            }
+            out.push(copy);
+        });
+        return out;
     }
     function promoActiveCountryId() {
         if (typeof window !== 'undefined' && window.__promoActiveCountryId) {
@@ -291,13 +373,18 @@
         }
         return false;
     }
-    function promoRegularSearchUrlForCountry(countryId, nightsFrom, nightsTo) {
+    function promoRegularSearchUrlForCountry(countryId, nightsFrom, nightsTo, departureIdOverride, opts) {
+        opts = opts || {};
         var dFrom = new Date(); dFrom.setDate(dFrom.getDate() + PROMO_DATE_PLUS_FROM);
         var dTo = new Date(); dTo.setDate(dTo.getDate() + promoDatePlusTo(countryId));
+        var tvCountryId = promoExpectedHotelCountryId(countryId);
+        var depId = departureIdOverride != null && departureIdOverride !== ''
+            ? departureIdOverride
+            : (DEPARTURE_ID || DEFAULT_DEPARTURE_ID);
         var params = {
             type: 'search-cached',
-            departureId: String(DEPARTURE_ID || DEFAULT_DEPARTURE_ID),
-            countryId: String(countryId),
+            departureId: String(depId),
+            countryId: String(tvCountryId),
             dateFrom: formatLocalYMD(dFrom),
             dateTo: formatLocalYMD(dTo),
             nightsFrom: String(nightsFrom),
@@ -305,6 +392,20 @@
             adults: String(thPromoAdultsCount()),
             _t: String(Date.now())
         };
+        if (opts.preferCache) {
+            params.cacheOnly = '1';
+        }
+        var vd = promoVirtualDestinationConfig(countryId);
+        /* skipRegion: широкий поиск по стране, потом клиентский фильтр Фукуока */
+        if (!opts.skipRegion) {
+            if (vd && vd.regionId) params.regionIds = String(vd.regionId);
+            if (vd && Array.isArray(vd.regionIds) && vd.regionIds.length) {
+                params.regionIds = vd.regionIds.join(',');
+            }
+        }
+        if (String(countryId) !== String(tvCountryId)) {
+            params.promoTileId = String(countryId);
+        }
         var b = TV_API_BASE.replace(/\/$/, '');
         var s = b.indexOf('?') >= 0 ? '&' : '?';
         return b + s + new URLSearchParams(params).toString();
@@ -321,37 +422,66 @@
         } catch (eFbGate) {
             return Promise.resolve(mergedFlat);
         }
-        return Promise.all(promoNightWindowsForCountry(countryId).map(function (w) {
-            return fetch(promoRegularSearchUrlForCountry(countryId, w[0], w[1]), { method: 'GET', cache: 'no-store' })
-                .then(function (r) { return r.text().then(function (t) { return { ok: r.ok, text: t }; }); })
-                .then(parseTourvisorSearchJsonResponse)
-                .catch(function () { return { success: false, error: 'network', data: [] }; });
-        })).then(function (results) {
+        function mergeRegular(results) {
             try {
                 var anyOk = results.some(function (x) { return x && x.success; });
-                if (!anyOk) return mergedFlat;
+                if (!anyOk) return [];
                 var regularMerged = mergePromoHotelDataArrays(results.map(function (x) {
                     return (x && x.success && Array.isArray(x.data)) ? x.data : [];
                 }), String(countryId));
+                /* Фукуок: после широкого VN-поиска оставляем только курорт */
+                if (isPhuQuocPromoCountry(countryId)) {
+                    regularMerged = promoFilterPhuQuocDestinationHotels(regularMerged, countryId);
+                }
                 regularMerged.sort(function (a, b) {
                     var ta = (a && a.tours && a.tours[0]) ? promoTourStartYmd(a.tours[0]) : '';
                     var tb = (b && b.tours && b.tours[0]) ? promoTourStartYmd(b.tours[0]) : '';
                     if (ta && tb && ta !== tb) return ta < tb ? -1 : 1;
                     return promoHotelListPrice(a) - promoHotelListPrice(b);
                 });
-                if (mergedFlat && mergedFlat.length && regularMerged.length) {
-                    var combined = mergePromoHotelDataArrays([mergedFlat, regularMerged], String(countryId));
-                    combined.sort(function (a, b) {
-                        return promoHotelListPrice(a) - promoHotelListPrice(b);
-                    });
-                    if (!combined.length) return mergedFlat;
-                    return combined;
-                }
-                if (regularMerged.length) return regularMerged;
-                return mergedFlat;
+                return regularMerged;
             } catch (eFbMerge) {
+                return [];
+            }
+        }
+        function fetchRegularWindows(depId, searchOpts) {
+            return Promise.all(promoNightWindowsForCountry(countryId).map(function (w) {
+                return fetch(promoRegularSearchUrlForCountry(countryId, w[0], w[1], depId, searchOpts), { method: 'GET', cache: 'no-store' })
+                    .then(function (r) { return r.text().then(function (t) { return { ok: r.ok, text: t }; }); })
+                    .then(parseTourvisorSearchJsonResponse)
+                    .catch(function () { return { success: false, error: 'network', data: [] }; });
+            })).then(mergeRegular);
+        }
+        function combineWithPromo(regularMerged, resultDepId) {
+            if (resultDepId) {
+                try { window.__promoResultDepartureId = resultDepId; } catch (eDep) {}
+            }
+            if (mergedFlat && mergedFlat.length && regularMerged.length) {
+                var combined = mergePromoHotelDataArrays([mergedFlat, regularMerged], String(countryId));
+                combined.sort(function (a, b) {
+                    return promoHotelListPrice(a) - promoHotelListPrice(b);
+                });
+                if (!combined.length) return mergedFlat;
+                return combined;
+            }
+            if (regularMerged.length) return regularMerged;
+            return mergedFlat;
+        }
+        /* Только выбранный вылет (Самара и т.д.) — без подмены на Москву; search-cached без live (из файлового кэша). */
+        var primaryDep = String(DEPARTURE_ID || DEFAULT_DEPARTURE_ID || '7');
+        var blendSearchOpts = { preferCache: true };
+        return fetchRegularWindows(primaryDep, blendSearchOpts).then(function (regularMerged) {
+            if (regularMerged.length) {
+                return combineWithPromo(regularMerged, primaryDep);
+            }
+            /* Фукуок regionIds часто пуст из Самары — обычный VN, потом фильтр курорта */
+            if (!isPhuQuocPromoCountry(countryId)) {
                 return mergedFlat;
             }
+            return fetchRegularWindows(primaryDep, Object.assign({ skipRegion: true }, blendSearchOpts)).then(function (wideMerged) {
+                if (!wideMerged.length) return mergedFlat;
+                return combineWithPromo(wideMerged, primaryDep);
+            });
         }).catch(function () { return mergedFlat; });
     }
     function promoTourvisorPackageIsDirect(pkg) {
@@ -441,9 +571,9 @@
             runNext();
         });
     }
-    /** Список туров: прямой перелёт только TH/VN. Для Турции (4), Египта и др. — не вызывается. */
-    function filterDirectFlightsThVnIfNeeded(data, countryId) {
-        if (!TH_FEATURE_PROMO_DIRECT || !isThailandOrVietnamDirectFilterCountry(countryId) || !data || !data.length) {
+    /** Список туров: прямой перелёт — только TH / Шри-Ланка / Фукуок. */
+    function filterDirectFlightsPromoIfNeeded(data, countryId) {
+        if (!TH_FEATURE_PROMO_DIRECT || !isPromoDirectFlightFilterCountry(countryId) || !data || !data.length) {
             return Promise.resolve(data);
         }
         var seen = {};
@@ -469,7 +599,9 @@
             });
             if (filtered.length === 0 && ids.length > 0) {
                 var anyKnown = ids.some(function (id) { return map[id] === true || map[id] === false; });
+                /* Нет данных по рейсам или все «не прямые» — не обнуляем выдачу акций */
                 if (!anyKnown) return data;
+                if (filtered.length === 0) return data;
             }
             return filtered;
         });
@@ -524,12 +656,12 @@
         var name = String(tour.name || '');
         if (promoTourNameIsBlocked(name)) return false;
         var depKey = String(departureId != null ? departureId : DEPARTURE_ID || '');
+        /* Самара→дальние (Фукуок): в name часто MOW-PQC при departureId=7 — не вычищаем по IATA */
+        if (depKey === '7') return true;
         var allowed = PROMO_DEPARTURE_ROUTE_CODES[depKey];
         var re = /(?:^|[^A-Z])([A-Z]{3})-([A-Z]{3})(?:[^A-Z]|$)/g;
         var m;
-        var found = false;
         while ((m = re.exec(name.toUpperCase())) !== null) {
-            found = true;
             if (m[1] === 'KJA') return false;
             if (allowed && allowed.indexOf(m[1]) < 0) return false;
         }
@@ -702,24 +834,27 @@
         return promoInstantCountryIds().indexOf(String(countryId != null ? countryId : '')) >= 0;
     }
     function promoWarmDepartureFallbackKey() {
-        return String(DEFAULT_DEPARTURE_ID != null && DEFAULT_DEPARTURE_ID !== '' ? DEFAULT_DEPARTURE_ID : '7');
+        /* Без подмены города: только текущий вылет (Самара по умолчанию). */
+        return promoCurrentDepartureKey();
+    }
+    function promoClearFallbackDepartureNotice() {
+        try { window.__promoFallbackDepartureNotice = null; } catch (e0) {}
+        try { window.__promoResultDepartureId = null; } catch (e1) {}
+        var el = document.getElementById('promo-fallback-dep-notice');
+        if (el) el.remove();
+    }
+    function promoShowFallbackDepartureNoticeIfAny() {
+        /* Москва как запасной вылет отключена */
     }
     function promoCurrentDepartureKey() {
-        var key = String(DEPARTURE_ID != null && DEPARTURE_ID !== '' ? DEPARTURE_ID : (DEFAULT_DEPARTURE_ID || '0'));
-        return key === '0' ? promoWarmDepartureFallbackKey() : key;
+        var key = String(DEPARTURE_ID != null && DEPARTURE_ID !== '' ? DEPARTURE_ID : (DEFAULT_DEPARTURE_ID || '7'));
+        return key === '0' ? String(DEFAULT_DEPARTURE_ID || '7') : key;
     }
     function promoGetManifestBlock() {
         var key = promoCurrentDepartureKey();
         var block = PROMO_CACHE_INDEX_BY_DEP[key];
         if (block && typeof block === 'object' && Object.keys(block).length > 0) {
             return block;
-        }
-        var fbKey = promoWarmDepartureFallbackKey();
-        if (fbKey !== key) {
-            var fb = PROMO_CACHE_INDEX_BY_DEP[fbKey];
-            if (fb && typeof fb === 'object' && Object.keys(fb).length > 0) {
-                return fb;
-            }
         }
         return (block && typeof block === 'object') ? block : null;
     }
@@ -729,12 +864,6 @@
         var block = PROMO_CACHE_INDEX_BY_DEP[key];
         var ent = (block && block[id]) ? block[id] : null;
         if (ent && (ent.has || (ent.minPrice && ent.minPrice > 0))) return ent;
-        var fbKey = promoWarmDepartureFallbackKey();
-        if (fbKey !== key) {
-            var fbBlock = PROMO_CACHE_INDEX_BY_DEP[fbKey];
-            var fbEnt = (fbBlock && fbBlock[id]) ? fbBlock[id] : null;
-            if (fbEnt && (fbEnt.has || (fbEnt.minPrice && fbEnt.minPrice > 0))) return fbEnt;
-        }
         return ent || { has: false, minPrice: 0 };
     }
 
@@ -941,13 +1070,24 @@
             if (chk) chk.remove();
             if (!hasPromo) {
                 if (isPopular) {
-                    tile.classList.add('promo-cptile-nopromo');
-                } else {
-                    tile.remove();
+                    /* Популярные всегда кликабельны — иначе «нет туров» блокировал открытие
+                       и живой promo-search (баг: Абхазия…Шри-Ланка казались пустыми). */
+                    tile.classList.remove('promo-cptile-nopromo');
+                    tile.classList.add('opacity-60');
+                    var badge = tile.querySelector('.promo-cptile-price');
+                    if (!badge) {
+                        badge = document.createElement('div');
+                        badge.className = 'promo-cptile-price';
+                        tile.appendChild(badge);
+                    }
+                    if (!price) badge.textContent = 'уточняем…';
+                    return;
                 }
+                tile.remove();
                 return;
             }
             tile.classList.remove('promo-cptile-nopromo');
+            tile.classList.remove('opacity-60');
             if (price > 0) promoSetCptilePriceBadge(id, price);
             var cName = tile.getAttribute('data-uname') || tile.querySelector('.promo-cptile-name');
             cName = (typeof cName === 'string') ? cName : (cName ? cName.textContent : '');
@@ -1029,6 +1169,10 @@
         ['Интурист', 'Intourist'],
         ['Амботис', 'Ambotis']
     ];
+    /** Только Самара→Фукуок (не для остальных стран). */
+    var PROMO_OPERATOR_ALIASES_SPACE_TRAVEL = [
+        ['Space Travel', 'SpaceTravel', 'Спейс Тревел', 'СпейсТревел', 'Спейс трэвел']
+    ];
 
     var PROMO_OPERATOR_ALIASES_TR_EG = [
         ['Fun Sun', 'Fun&Sun', 'FunSun', 'Фансан'],
@@ -1067,7 +1211,12 @@
     function promoAllowedOperatorTokens(countryId, countryName) {
         var groups = promoIsTurkeyOrEgypt(countryId, countryName)
             ? PROMO_OPERATOR_ALIASES_TR_EG
-            : PROMO_OPERATOR_ALIASES_GENERAL;
+            : PROMO_OPERATOR_ALIASES_GENERAL.slice();
+        /* Space Travel — только Самара→Фукуок */
+        var depKey = String(DEPARTURE_ID || DEFAULT_DEPARTURE_ID || '7');
+        if (isPhuQuocPromoCountry(countryId) && depKey === '7') {
+            groups = groups.concat(PROMO_OPERATOR_ALIASES_SPACE_TRAVEL);
+        }
         var tokens = {};
         groups.forEach(function (aliases) {
             (aliases || []).forEach(function (a) {
@@ -1656,6 +1805,7 @@
         var t0 = Date.now();
         return safeFetchJsonWithTimeout(url, { success: false, data: [] }, timeoutMs || 120000).then(function (j) {
             promoDebugLog('promo-search RESPONSE timing', { countryId: countryId, departureId: departureId, ms: Date.now() - t0 });
+            promoApplyFlightsFromSearchResponse(j);
             return j;
         });
     }
@@ -1680,7 +1830,18 @@
     function fetchPromoSearchBundledPreferCache(countryId, timeoutMs) {
         var cacheTimeout = Math.min(20000, Math.max(8000, (timeoutMs || 120000) / 6));
         return fetchPromoSearchBundled(countryId, cacheTimeout, { cacheOnly: true }).then(function (j) {
-            if (j && j.success && Array.isArray(j.data) && j.data.length) {
+            var n = (j && Array.isArray(j.data)) ? j.data.length : 0;
+            if (j && j.success && n >= PROMO_BLEND_MIN_HOTELS) {
+                return j;
+            }
+            if (j && j.success && n > 0 && n < PROMO_BLEND_MIN_HOTELS) {
+                return fetchPromoSearchBundled(countryId, timeoutMs || 120000).then(function (j2) {
+                    var n2 = (j2 && Array.isArray(j2.data)) ? j2.data.length : 0;
+                    if (j2 && j2.success && n2 > n) return j2;
+                    return j;
+                });
+            }
+            if (j && j.success && n > 0) {
                 return j;
             }
             return fetchPromoSearchBundled(countryId, timeoutMs || 120000);
@@ -1769,7 +1930,7 @@
     function promoRegionIsPhuQuocDestination(region) {
         var r = (region || '').toString().trim();
         if (!r) return false;
-        return /\b(фук|phu\s*quoc|phuquoc|фу\s*куок)\b/i.test(r);
+        return /фу\s*к\s*уок|фукуок|phu\s*quoc|phuquoc|phú\s*quốc/i.test(r);
     }
 
     /** Для countryId 16104: только курорт Фукуок (остальной Вьетнам отсекается). */
@@ -1808,7 +1969,11 @@
         list = promoFilterTurkeyDestinationHotels(list, countryId);
         /* Для Сочи departureId уже в запросе API; фильтр по кодам в tour.name отрезал лишнее */
         if (String(countryId) !== PROMO_COUNTRY_ID_SOCHI) {
-            list = promoFilterHotelsForDeparture(list, DEPARTURE_ID);
+            var depForFilter = DEPARTURE_ID;
+            try {
+                if (window.__promoResultDepartureId) depForFilter = window.__promoResultDepartureId;
+            } catch (eDepF) {}
+            list = promoFilterHotelsForDeparture(list, depForFilter);
         }
         list = promoFilterHotelsMinNights(list, countryId);
         /* Турция: 4–5★; Египет: 3–5★; ночи 6–13; оператор-фильтр — сокращённый список. */
@@ -1816,6 +1981,7 @@
             list = promoFilterHotelsTrEgStars(list, countryId);
         }
         list = promoFilterHotelsByAllowedOperators(list, countryId, countryName);
+        list = promoFilterHotelsMinListPrice(list, countryId);
         return promoFilterHotelsWithTours(list);
     }
 
@@ -2021,54 +2187,63 @@
         dFrom.setDate(dFrom.getDate() + PROMO_DATE_PLUS_FROM);
         var searchOpts = prefetchOpts.cacheOnly ? { cacheOnly: true } : null;
         var timeoutMs = prefetchOpts.cacheOnly ? 15000 : 120000;
-        var chain = Promise.resolve();
-        ids.forEach(function (cid) {
-            chain = chain.then(function () {
-                var countryId = String(cid);
-                var storeKey = promoPrefetchStoreKey(depId, countryId);
-                var existing = window.__promoPrefetchStore[storeKey];
-                if (existing && (Date.now() - existing.t) < PROMO_TOURS_PREFETCH_MAX_MS) {
-                    if (existing.data && existing.data.length) {
-                        promoSyncCptileForTile(countryId, promoPostProcessHotelList(existing.data, countryId));
-                    }
-                    return Promise.resolve();
+
+        function prefetchOne(cid) {
+            var countryId = String(cid);
+            var storeKey = promoPrefetchStoreKey(depId, countryId);
+            var existing = window.__promoPrefetchStore[storeKey];
+            if (existing && (Date.now() - existing.t) < PROMO_TOURS_PREFETCH_MAX_MS) {
+                if (existing.data && existing.data.length) {
+                    promoSyncCptileForTile(countryId, promoPostProcessHotelList(existing.data, countryId));
                 }
-                var dTo = new Date();
-                dTo.setDate(dTo.getDate() + promoDatePlusTo(countryId));
-                var swrKey = promoToursSwrCacheKey(depId, countryId, thPromoAdultsCount(), formatLocalYMD(dFrom), formatLocalYMD(dTo));
-                var swrEnt = promoToursSwrReadForCountry(swrKey, countryId);
-                if (swrEnt && swrEnt.data && swrEnt.data.length) {
-                    var swrProcessed = promoPostProcessHotelList(swrEnt.data, countryId);
-                    window.__promoPrefetchStore[storeKey] = { t: swrEnt.t, data: swrProcessed };
-                    promoSyncCptileForTile(countryId, swrProcessed);
-                    return Promise.resolve();
-                }
-                return fetchPromoSearchBundled(countryId, timeoutMs, searchOpts).then(function (j) {
-                    var raw = (j && j.success && Array.isArray(j.data)) ? j.data : [];
-                    var data = promoPostProcessHotelList(raw, countryId);
-                    if (!data.length) {
-                        if (prefetchOpts.cacheOnly) return;
-                        if (usesNearestPromoFallback(countryId)) {
-                            return applyNearestFallbackIfNeeded([], countryId).then(function (fb) {
-                                if (fb && fb.length) {
-                                    window.__promoPrefetchStore[storeKey] = { t: Date.now(), data: fb };
-                                    promoToursSwrWrite(swrKey, fb);
-                                    promoSyncCptileForTile(countryId, fb);
-                                    return;
-                                }
-                                promoApplyCptilePromoState(countryId, false, 0, promoCptileIsPopularCountry(countryId), { fromTours: true, force: true });
-                            });
-                        } else if (!promoCptileIsPopularCountry(countryId)) {
-                            promoApplyCptilePromoState(countryId, false, 0, false, { fromTours: true, force: true });
-                        }
-                        return;
+                return Promise.resolve();
+            }
+            var dTo = new Date();
+            dTo.setDate(dTo.getDate() + promoDatePlusTo(countryId));
+            var swrKey = promoToursSwrCacheKey(depId, countryId, thPromoAdultsCount(), formatLocalYMD(dFrom), formatLocalYMD(dTo));
+            var swrEnt = promoToursSwrReadForCountry(swrKey, countryId);
+            if (swrEnt && swrEnt.data && swrEnt.data.length) {
+                var swrProcessed = promoPostProcessHotelList(swrEnt.data, countryId);
+                window.__promoPrefetchStore[storeKey] = { t: swrEnt.t, data: swrProcessed };
+                promoSyncCptileForTile(countryId, swrProcessed);
+                return Promise.resolve();
+            }
+            return fetchPromoSearchBundled(countryId, timeoutMs, searchOpts).then(function (j) {
+                promoApplyFlightsFromSearchResponse(j);
+                var raw = (j && Array.isArray(j.data)) ? j.data : [];
+                var data = promoPostProcessHotelList(raw, countryId);
+                if (!data.length) {
+                    if (prefetchOpts.cacheOnly) return;
+                    if (usesNearestPromoFallback(countryId)) {
+                        return applyNearestFallbackIfNeeded([], countryId).then(function (fb) {
+                            if (fb && fb.length) {
+                                window.__promoPrefetchStore[storeKey] = { t: Date.now(), data: fb };
+                                promoToursSwrWrite(swrKey, fb);
+                                promoSyncCptileForTile(countryId, fb);
+                                return;
+                            }
+                            /* Не блокируем популярные плитки при пустом prefetch */
+                            if (!promoCptileIsPopularCountry(countryId)) {
+                                promoApplyCptilePromoState(countryId, false, 0, false, { fromTours: true, force: true });
+                            }
+                        });
+                    } else if (!promoCptileIsPopularCountry(countryId)) {
+                        promoApplyCptilePromoState(countryId, false, 0, false, { fromTours: true, force: true });
                     }
-                    window.__promoPrefetchStore[storeKey] = { t: Date.now(), data: data };
-                    promoToursSwrWrite(swrKey, data);
-                    promoSyncCptileForTile(countryId, data);
-                }).catch(function () {});
-            });
-        });
+                    return;
+                }
+                window.__promoPrefetchStore[storeKey] = {
+                    t: Date.now(),
+                    data: data,
+                    flightsByTourId: (j && j.flightsByTourId) ? j.flightsByTourId : null
+                };
+                promoToursSwrWrite(swrKey, data);
+                promoSyncCptileForTile(countryId, data);
+            }).catch(function () {});
+        }
+
+        /* Параллельно (до 3), а не цепочкой — быстрее бейджи цен на плитках */
+        runLimitedConcurrency(ids, 3, function (cid) { return prefetchOne(cid); });
     }
 
     function promoTryInstantPrefetchPaint(opts) {
@@ -2079,6 +2254,7 @@
         var pref = window.__promoPrefetchStore[storeKey];
         if (!pref || !Array.isArray(pref.data) || !pref.data.length) return false;
         if ((Date.now() - pref.t) > PROMO_TOURS_PREFETCH_MAX_MS) return false;
+        promoApplyFlightsFromSearchResponse(pref.flightsByTourId ? { flightsByTourId: pref.flightsByTourId } : null);
         var seqOk = opts.seqOk;
         var onPaint = opts.onPaint;
         if (typeof seqOk !== 'function' || typeof onPaint !== 'function' || !seqOk()) return false;
@@ -2491,7 +2667,7 @@
         }
 
         var cardCountryId = promoActiveCountryId();
-        var showDirectBadgeForCountry = isThailandOrVietnamDirectFilterCountry(cardCountryId);
+        var showDirectBadgeForCountry = isPromoDirectFlightFilterCountry(cardCountryId);
 
         if (window.THTourCard && typeof window.THTourCard.render === 'function') {
             return data.map(function (h) {
@@ -2793,8 +2969,6 @@
             return '<div class="' + classes + '" data-promo-cid="' + escAttr(cid) + '" data-promo-popular="' + (isPopular ? '1' : '0') + '">' +
                 '<a href="' + escAttr(href) + '" class="block relative z-10" title="' + nameEsc + '" aria-label="' + nameEsc + '">' +
                 '<div class="promo-country-img aspect-[4/3] w-full bg-no-repeat relative" style="' + style + '">' +
-                '<span class="promo-country-check-badge absolute top-3 left-3 z-20 inline-flex items-center gap-1 rounded-full text-white text-xs font-semibold px-2 py-1 shadow-lg" style="background:rgba(15,23,42,0.82)" data-promo-checking="1">' +
-                '<i class="fas fa-circle-notch fa-spin" style="font-size:10px"></i><span>Проверяем акции…</span></span>' +
                 '<span class="promo-banner-chip"><i class="fas fa-bolt text-[10px]"></i><strong>' + nameEsc + '</strong><span>Акция</span></span>' +
                 '<div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>' +
                 '<span class="absolute bottom-4 left-4 right-16 text-white font-bold text-xl sm:text-2xl drop-shadow-lg">' + nameEsc + '</span>' +
@@ -3026,6 +3200,7 @@
             fetchPromoSearchBundledPreferCache(COUNTRY_ID, 120000)
                 .then(function (j) {
                     if (mySeq !== promoToursFetchSeq) return;
+                    promoClearFallbackDepartureNotice();
                     console.groupCollapsed('%c[Акции] Запрос туров (' + promoSearchRequestLogTitle(j) + ')', 'color: #f59e0b; font-weight: bold');
                     promoLogSearchResponse('promo-search', j || {}, { countryId: COUNTRY_ID });
                     var mergedData = (j && j.success && Array.isArray(j.data)) ? j.data : [];
@@ -3130,6 +3305,7 @@
                             window.__promoAllTours = display;
                             syncPromoStarButtons();
                             applyPromoFiltersAndRender();
+                            promoShowFallbackDepartureNoticeIfAny();
                             if (COUNTRY_ID) promoSyncCptileMinPrice(COUNTRY_ID, display);
                         });
                 })
@@ -3209,10 +3385,7 @@
             var priceHtml = (mHas && mPrice > 0)
                 ? '<div class="promo-cptile-price">от ' + formatPrice(mPrice) + '</div>'
                 : '';
-            var checkingHtml = priceHtml
-                ? ''
-                : ('<div class="promo-cptile-checking" data-uchecking="' + uEsc(id) + '">' +
-                    '<i class="fas fa-circle-notch fa-spin" style="font-size:9px"></i><span>акции…</span></div>');
+            /* Без спиннера «акции…» — плитки сразу кликабельны; цена дорисуется из prefetch/манифеста */
             return '<button type="button" class="promo-cptile" data-uid="' + uEsc(id) + '"' +
                 ' data-uname="' + uEsc(displayName || (c.name || c.russianName || '').toString()) + '"' +
                 ' data-unostar="' + (id === '46' ? '1' : '0') + '"' +
@@ -3221,7 +3394,6 @@
                 '<div class="promo-cptile-overlay"></div>' +
                 '<div class="promo-cptile-name">' + name + '</div>' +
                 priceHtml +
-                checkingHtml +
                 '</button>';
         }
 
@@ -3437,7 +3609,7 @@
                         .then(function (data) {
                             if (myTourSeq !== uTourFetchSeq) return;
                             promoDebugSummarizeHotels(data, 'после finalize (unified)');
-                            var display = promoPickDisplayHotels(data, data0u, COUNTRY_ID);
+                            var display = promoPickDisplayHotels(data, data0u, countryId);
                             if (!display.length) {
                                 window.__promoAllTours = [];
                                 if (resultsEl) { resultsEl.innerHTML = ''; resultsEl.classList.add('hidden'); }
@@ -3640,7 +3812,9 @@
                 section.__thUnifiedTilesBound = true;
                 section.addEventListener('click', function (e) {
                     var tile = e.target.closest('.promo-cptile');
-                    if (!tile || tile.classList.contains('promo-cptile-nopromo')) return;
+                    if (!tile) return;
+                    /* nopromo раньше блокировал клик по популярным — убираем жёсткий стоп */
+                    if (tile.classList.contains('promo-cptile-nopromo') && !tile.closest('#promo-popular-grid')) return;
                     var cId = tile.dataset.uid;
                     var cName = tile.dataset.uname;
                     var noS = tile.dataset.unostar === '1';

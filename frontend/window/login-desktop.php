@@ -12,7 +12,7 @@ $current_page = "login";
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?php echo htmlspecialchars($page_title); ?> - Travel Hub</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <link rel="stylesheet" href="/frontend/css/pages/login-desktop.css?v=1">
+        <link rel="stylesheet" href="/frontend/css/pages/login-desktop.css?v=2">
     <?php include __DIR__ . '/../../backend/components/design_system_head.php'; ?>
     </head>
 <body class="gradient-bg min-h-screen th-page-auth">

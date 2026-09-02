@@ -140,7 +140,10 @@ switch ($method) {
                 
                 $out = ['hotels' => $hotels, 'grouped' => $groupedHotels];
                 if (count($hotels) === 0) {
-                    $out['_debug'] = ['driver' => $pdo->getAttribute(PDO::ATTR_DRIVER_NAME), 'message' => 'Таблица vip_hotels пуста. Запустите: php backend/scripts/create_vip_hotels_table.php затем php backend/scripts/seed_vip_hotels.php'];
+                    // Пользовательское сообщение без путей/имён таблиц; техдетали — только в error_log
+                    error_log('[vip-hotels] empty list; seed may be required (create_vip_hotels_table / seed_vip_hotels)');
+                    $out['empty'] = true;
+                    $out['message'] = 'Сейчас список VIP-отелей пуст. Загляните позже или выберите туры в Турцию на главной.';
                 }
                 echo json_encode($out, JSON_UNESCAPED_UNICODE);
             } catch (PDOException $e) {

@@ -339,7 +339,7 @@
         global.__mainFlightsByTourId[key] = meta;
     }
 
-    function thFlightPackagePriceNum(pkg) {
+    function thFlightPackagePriceNum(pkg, info) {
         if (!pkg || typeof pkg !== 'object') return 0;
         var total = 0;
         if (pkg.price != null) {
@@ -352,7 +352,230 @@
             var fn = Math.round(Number(fv));
             if (fn > 0) total += fn;
         }
+        if (info && info.surcharges && info.surcharges.length) {
+            info.surcharges.forEach(function (s) {
+                var sn = Math.round(Number(s && s.amount));
+                if (!isNaN(sn) && sn > 0) total += sn;
+            });
+        }
         return total > 0 ? total : 0;
+    }
+
+    function thFlightDirectionLine(legs) {
+        if (!legs || !legs.length) return '';
+        var first = legs[0];
+        var last = legs[legs.length - 1];
+        function portLabel(leg, end) {
+            if (!leg || !leg[end]) return '';
+            var port = leg[end].port ? (leg[end].port.shortName || leg[end].port.name || leg[end].port.id || '') : '';
+            var time = String(leg[end].time || '').trim();
+            port = String(port || '').trim();
+            if (port && time) return port + ' ' + time;
+            return port || time || String(leg.number || '').trim();
+        }
+        var dep = portLabel(first, 'departure');
+        var arr = portLabel(last, 'arrival');
+        if (dep && arr) return dep + ' \u2192 ' + arr;
+        return dep || arr;
+    }
+
+    function thFlightPackageLines(pkg) {
+        var lines = [];
+        var fwd = thFlightDirectionLine(pkg && pkg.forward);
+        var bwd = thFlightDirectionLine(pkg && (pkg.backward || pkg.back));
+        if (fwd) lines.push(fwd);
+        if (bwd) lines.push(bwd);
+        return lines;
+    }
+
+    function thFlightPackageSummary(pkg) {
+        if (!pkg) return '';
+        var airlines = collectCompaniesFromPackage(pkg);
+        var airlineLabel = airlines.join(' \u00b7 ');
+        var lines = thFlightPackageLines(pkg);
+        return [airlineLabel].concat(lines).filter(Boolean).join(' | ');
+    }
+
+    function thFlightPkgIsDirect(pkg) {
+        if (!pkg) return false;
+        var fw = pkg.forward;
+        var bw = pkg.backward || pkg.back;
+        if (!Array.isArray(fw) || fw.length !== 1) return false;
+        if (Array.isArray(bw) && bw.length > 1) return false;
+        return true;
+    }
+
+    function thFlightPkgCardHtml(pkg, idx, selectedIdx, info) {
+        var lines = thFlightPackageLines(pkg);
+        var airlines = collectCompaniesFromPackage(pkg);
+        var priceNum = thFlightPackagePriceNum(pkg, info);
+        var priceTxt = priceNum > 0 ? priceNum.toLocaleString('ru-RU') + ' \u20bd' : '';
+        var badges = [];
+        if (thFlightPkgIsDirect(pkg)) badges.push('\u041f\u0440\u044f\u043c\u043e\u0439');
+        else if ((pkg.forward && pkg.forward.length > 1) || ((pkg.backward || pkg.back) && (pkg.backward || pkg.back).length > 1)) {
+            badges.push('\u0421 \u043f\u0435\u0440\u0435\u0441\u0430\u0434\u043a\u043e\u0439');
+        }
+        if (pkg.isDefault) badges.push('\u041f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e');
+        var badgeHtml = badges.map(function (b) {
+            return '<span class="th-flight-pkg__badge">' + escHtml(b) + '</span>';
+        }).join('');
+        var linesHtml = '';
+        if (lines.length) {
+            linesHtml = lines.map(function (ln, li) {
+                var label = li === 0 ? '\u0422\u0443\u0434\u0430' : '\u041e\u0431\u0440\u0430\u0442\u043d\u043e';
+                return '<div class="th-flight-pkg__leg"><span class="th-flight-pkg__leg-label">' + label + '</span><span>' + escHtml(ln) + '</span></div>';
+            }).join('');
+        } else {
+            linesHtml = '<div class="th-flight-pkg__leg"><span>\u0414\u0435\u0442\u0430\u043b\u0438 \u0443\u0442\u043e\u0447\u043d\u044f\u044e\u0442\u0441\u044f \u0443 \u0442\u0443\u0440\u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0430</span></div>';
+        }
+        return (
+            '<button type="button" class="th-flight-pkg' + (idx === selectedIdx ? ' is-selected' : '') + '" data-th-flight-idx="' + idx + '">' +
+            '<div class="th-flight-pkg__body">' +
+            '<div class="th-flight-pkg__air">' + escHtml(airlines.join(' \u00b7 ') || '\u0410\u0432\u0438\u0430\u043a\u043e\u043c\u043f\u0430\u043d\u0438\u044f \u0443\u0442\u043e\u0447\u043d\u044f\u0435\u0442\u0441\u044f') + '</div>' +
+            (badgeHtml ? '<div class="th-flight-pkg__badges">' + badgeHtml + '</div>' : '') +
+            '<div class="th-flight-pkg__legs">' + linesHtml + '</div>' +
+            '</div>' +
+            (priceTxt ? '<div class="th-flight-pkg__price">' + escHtml(priceTxt) + '</div>' : '') +
+            '</button>'
+        );
+    }
+
+    var thFlightPickModalEl = null;
+    var thFlightPickModalCard = null;
+    var thFlightPickModalOnSelect = null;
+
+    function thFlightPickModalEnsure() {
+        if (thFlightPickModalEl) return thFlightPickModalEl;
+        var root = document.createElement('div');
+        root.id = 'th-flight-pick-modal';
+        root.className = 'th-flight-pick-modal hidden';
+        root.setAttribute('role', 'dialog');
+        root.setAttribute('aria-modal', 'true');
+        root.setAttribute('aria-labelledby', 'th-flight-pick-modal-title');
+        root.innerHTML =
+            '<div class="th-flight-pick-modal__backdrop" data-th-flight-modal-close="1"></div>' +
+            '<div class="th-flight-pick-modal__panel">' +
+            '<button type="button" class="th-flight-pick-modal__close" data-th-flight-modal-close="1" aria-label="\u0417\u0430\u043a\u0440\u044b\u0442\u044c">&times;</button>' +
+            '<h2 id="th-flight-pick-modal-title" class="th-flight-pick-modal__title">\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043f\u0435\u0440\u0435\u043b\u0451\u0442</h2>' +
+            '<p class="th-flight-pick-modal__hint">\u0426\u0435\u043d\u0430 \u0442\u0443\u0440\u0430 \u0437\u0430\u0432\u0438\u0441\u0438\u0442 \u043e\u0442 \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u043e\u0433\u043e \u0440\u0435\u0439\u0441\u0430</p>' +
+            '<div class="th-flight-pick-modal__list th-flight-pkgs" id="th-flight-pick-modal-list"></div>' +
+            '<p class="th-flight-pick-modal__loading hidden" id="th-flight-pick-modal-loading">\u0417\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u043c \u0432\u0430\u0440\u0438\u0430\u043d\u0442\u044b\u2026</p>' +
+            '</div>';
+        document.body.appendChild(root);
+        root.addEventListener('click', function (e) {
+            if (e.target.closest('[data-th-flight-modal-close]')) thFlightPickModalClose();
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && thFlightPickModalEl && !thFlightPickModalEl.classList.contains('hidden')) {
+                thFlightPickModalClose();
+            }
+        });
+        thFlightPickModalEl = root;
+        return root;
+    }
+
+    function thFlightPickModalClose() {
+        if (!thFlightPickModalEl) return;
+        thFlightPickModalEl.classList.add('hidden');
+        thFlightPickModalCard = null;
+        thFlightPickModalOnSelect = null;
+        document.body.classList.remove('th-flight-pick-modal-open');
+    }
+
+    function thFlightPickModalRenderList(flights, selectedIdx, info) {
+        var listEl = document.getElementById('th-flight-pick-modal-list');
+        var loadingEl = document.getElementById('th-flight-pick-modal-loading');
+        if (!listEl) return;
+        var html = '';
+        flights.forEach(function (pkg, idx) {
+            html += thFlightPkgCardHtml(pkg, idx, selectedIdx, info);
+        });
+        listEl.innerHTML = html;
+        if (loadingEl) loadingEl.classList.add('hidden');
+        listEl.classList.toggle('hidden', !html);
+        listEl.querySelectorAll('[data-th-flight-idx]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var i = parseInt(btn.getAttribute('data-th-flight-idx'), 10);
+                if (isNaN(i)) return;
+                thFlightPickModalSelect(i);
+            });
+        });
+    }
+
+    function thFlightPickModalSelect(idx) {
+        var store = thFlightPickModalCard ? thFlightPackagesGet(thFlightPickModalCard.getAttribute('data-th-tour-id')) : null;
+        if (!store || !store.flights || !store.flights[idx]) return;
+        var tourId = String(thFlightPickModalCard.getAttribute('data-th-tour-id') || '');
+        var depCity = store.depCity || thFlightPickModalCard.getAttribute('data-th-departure-city') || '';
+        var pkg = store.flights[idx];
+        store.selectedIdx = idx;
+        thFlightPackagesSet(tourId, store);
+        var meta = thFlightMetaFromPackage(pkg, depCity);
+        if (meta) thFlightsCacheSet(tourId, meta, depCity || meta.city);
+        thFlightPickModalRenderList(store.flights, idx, store.info);
+        if (global.THTourCard && typeof global.THTourCard.applyFlightSelection === 'function') {
+            global.THTourCard.applyFlightSelection(thFlightPickModalCard, tourId, pkg, store.info);
+        }
+        if (typeof thFlightPickModalOnSelect === 'function') {
+            thFlightPickModalOnSelect({ tourId: tourId, pkg: pkg, idx: idx, meta: meta, info: store.info });
+        }
+        thFlightPickModalClose();
+    }
+
+    function thFlightPickModalOpen(opts) {
+        opts = opts || {};
+        var cardEl = opts.cardEl;
+        var tourId = String(opts.tourId || (cardEl && cardEl.getAttribute('data-th-tour-id')) || '');
+        if (!tourId) return Promise.resolve();
+        var modal = thFlightPickModalEnsure();
+        var listEl = document.getElementById('th-flight-pick-modal-list');
+        var loadingEl = document.getElementById('th-flight-pick-modal-loading');
+        thFlightPickModalCard = cardEl || null;
+        thFlightPickModalOnSelect = opts.onSelect || null;
+        modal.classList.remove('hidden');
+        document.body.classList.add('th-flight-pick-modal-open');
+        if (listEl) {
+            listEl.innerHTML = '';
+            listEl.classList.add('hidden');
+        }
+        if (loadingEl) loadingEl.classList.remove('hidden');
+
+        var depCity = opts.departureCity || (cardEl && cardEl.getAttribute('data-th-departure-city')) || '';
+        var departureId = opts.departureId != null ? opts.departureId : null;
+        var cached = thFlightPackagesGet(tourId);
+        if (cached && cached.flights && cached.flights.length) {
+            var sel = cached.selectedIdx != null ? cached.selectedIdx : 0;
+            thFlightPickModalRenderList(cached.flights, sel, cached.info);
+            return Promise.resolve(cached);
+        }
+
+        return thFetchTourFlightsJson(tourId, { departureCity: depCity, departureId: departureId, force: true })
+            .then(function (j) {
+                if (!j || j.success === false) {
+                    if (loadingEl) loadingEl.textContent = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0432\u0430\u0440\u0438\u0430\u043d\u0442\u044b \u043f\u0435\u0440\u0435\u043b\u0451\u0442\u0430';
+                    return null;
+                }
+                var flights = j.flights;
+                if (!Array.isArray(flights) && j.data && Array.isArray(j.data.flights)) flights = j.data.flights;
+                if (!Array.isArray(flights) || !flights.length) {
+                    if (loadingEl) loadingEl.textContent = '\u0412\u0430\u0440\u0438\u0430\u043d\u0442\u044b \u043f\u0435\u0440\u0435\u043b\u0451\u0442\u0430 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u044b';
+                    return null;
+                }
+                var pick = pickTourvisorFlightPackage(flights, depCity, departureId);
+                var selectedIdx = pick ? Math.max(0, flights.indexOf(pick)) : 0;
+                var info = j.info || (j.data && j.data.info) || null;
+                thFlightPackagesSet(tourId, {
+                    flights: flights.slice(),
+                    selectedIdx: selectedIdx,
+                    depCity: depCity,
+                    departureId: departureId,
+                    info: info
+                });
+                var meta = thFlightMetaFromPackage(flights[selectedIdx], depCity);
+                if (meta) thFlightsCacheSet(tourId, meta, depCity || meta.city);
+                thFlightPickModalRenderList(flights, selectedIdx, info);
+                return { flights: flights, selectedIdx: selectedIdx, info: info };
+            });
     }
 
     function thFlightPackagesStore() {
@@ -446,7 +669,7 @@
 
     var thTourFlightsInflight = Object.create(null);
     var thTourFlightsFailMemo = Object.create(null);
-    var TH_TOUR_FLIGHTS_FAIL_TTL_MS = 90000;
+    var TH_TOUR_FLIGHTS_FAIL_TTL_MS = 900000;
 
     function thTourFlightsFailKey(tourId) {
         return String(tourId || '');
@@ -474,11 +697,17 @@
         opts = opts || {};
         var tid = String(tourId || '');
         if (!tid) return Promise.resolve({ success: false, error: 'tourId required' });
-        if (thFlightsCacheGet(tid, opts.departureCity || opts.depCity)) {
-            return Promise.resolve({ success: true, flights: [], _fromCache: true });
+        var pkgStore = thFlightPackagesGet(tid);
+        if (!opts.force && pkgStore && Array.isArray(pkgStore.flights) && pkgStore.flights.length) {
+            return Promise.resolve({
+                success: true,
+                flights: pkgStore.flights.slice(),
+                info: pkgStore.info || null,
+                _fromPackagesCache: true
+            });
         }
         var recentFail = thTourFlightsRecentFail(tid);
-        if (recentFail) {
+        if (!opts.force && recentFail) {
             return Promise.resolve({ success: false, error: recentFail.error, _memoFail: true });
         }
         if (thTourFlightsInflight[tid]) {
@@ -486,7 +715,7 @@
         }
         var run;
         if (typeof global.tvFetch === 'function') {
-            run = global.tvFetch('tour-flights', { tourId: tid, currency: 'RUB' }, { timeoutMs: 45000 });
+            run = global.tvFetch('tour-flights', { tourId: tid, currency: 'RUB' }, { timeoutMs: 45000, quiet: true });
         } else {
             var base = opts.apiBase || global.TH_TV_API_BASE || global.TV_API_BASE || '';
             if (!base) {
@@ -505,7 +734,12 @@
         }
         run = run.then(function (j) {
             if (!j || j.success === false) {
-                thMarkTourFlightsFail(tid, (j && j.error) || 'flight error');
+                var errMsg = (j && j.error) || 'flight error';
+                if (j && j.tourGone) {
+                    thMarkTourFlightsFail(tid, errMsg);
+                    return j;
+                }
+                thMarkTourFlightsFail(tid, errMsg);
             }
             return j || { success: false, error: 'empty response' };
         }).catch(function (e) {
@@ -608,9 +842,10 @@
             while (active < maxConcurrent && queue.length) {
                 (function (tourId) {
                     active++;
-                    thFetchTourFlightsJson(tourId, { apiBase: base, departureCity: depCity })
+                    thFetchTourFlightsJson(tourId, { apiBase: base, departureCity: depCity, departureId: departureIdHint })
                         .then(function (j) {
-                            if (!j || j._fromCache || j._memoFail) return;
+                            if (!j || j._memoFail || j.tourGone) return;
+                            if (j._fromPackagesCache) return;
                             if (!stale()) thFlightsCacheFromJson(tourId, j, depCity, departureIdHint);
                         })
                         .catch(function () {})
@@ -651,14 +886,8 @@
         cards.forEach(function (card) {
             var tid = card.getAttribute('data-th-tour-id');
             if (!tid || seen[tid]) return;
-            var depCity = card.getAttribute('data-th-departure-city') || opts.departureCity || '';
-            if (typeof thFlightsCacheGet === 'function' && thFlightsCacheGet(tid, depCity)) {
-                seen[tid] = true;
-                return;
-            }
-            /* Уже есть реальная строка вылета — не дёргаем API */
-            var realSub = card.querySelector('.th-tour-card__flight-sub:not(.th-tour-card__flight-sub--stub)');
-            if (realSub && String(realSub.textContent || '').trim()) {
+            var pkgStore = (typeof thFlightPackagesGet === 'function') ? thFlightPackagesGet(tid) : null;
+            if (pkgStore && Array.isArray(pkgStore.flights) && pkgStore.flights.length) {
                 seen[tid] = true;
                 return;
             }
@@ -692,4 +921,7 @@
     global.thFlightPackagesSet = thFlightPackagesSet;
     global.thFlightPackagePriceNum = thFlightPackagePriceNum;
     global.thFlightPackageOptionLabel = thFlightPackageOptionLabel;
+    global.thFlightPackageSummary = thFlightPackageSummary;
+    global.thFlightPickModalOpen = thFlightPickModalOpen;
+    global.thFlightPickModalClose = thFlightPickModalClose;
 })(typeof window !== 'undefined' ? window : this);

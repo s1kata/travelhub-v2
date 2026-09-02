@@ -17,4 +17,8 @@ return [
         ['id' => 21, 'name' => 'Белек', 'countryId' => 4],
         ['id' => 22, 'name' => 'Кемер', 'countryId' => 4],
     ],
+    16 => [
+        ['id' => 104, 'name' => 'Фукуок', 'countryId' => 16],
+        ['id' => 87, 'name' => 'Нячанг', 'countryId' => 16],
+    ],
 ];

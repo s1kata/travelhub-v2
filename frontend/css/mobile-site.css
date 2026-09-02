@@ -12,6 +12,12 @@
         --th-tap: 50px;
         --th-tap-lg: 54px;
         --th-wizard-nav-h: 54px;
+        /* Fallback until JS measures; after measure = full header height + gap */
+        --th-header-clearance: calc(var(--th-header-h, 72px) + var(--th-safe-top, 0px) + 16px);
+    }
+
+    html {
+        scroll-padding-top: var(--th-header-clearance);
     }
 
     html,
@@ -51,7 +57,7 @@
     .th-promo-popup--collapsed .th-promo-popup__tab {
         pointer-events: auto !important;
         position: fixed !important;
-        top: calc(var(--th-header-h, 56px) + var(--th-safe-top, 0px) + 6px) !important;
+        top: calc(var(--th-header-clearance) - 10px) !important;
         bottom: auto !important;
         left: 12px !important;
         right: 12px !important;
@@ -70,11 +76,11 @@
     }
 
     body.th-promo-tab-visible .home-hero-section {
-        padding-top: calc(var(--th-header-h, 56px) + var(--th-safe-top, 0px) + 52px) !important;
+        padding-top: calc(var(--th-header-clearance) + 44px) !important;
     }
 
     body.has-th-lead-bar.th-promo-tab-bottom .th-promo-popup--collapsed .th-promo-popup__tab {
-        top: calc(var(--th-header-h, 56px) + var(--th-safe-top, 0px) + 6px) !important;
+        top: calc(var(--th-header-clearance) - 10px) !important;
         bottom: auto !important;
     }
 
@@ -115,7 +121,7 @@
     .home-hero-section {
         min-height: 0 !important;
         height: auto !important;
-        padding-top: calc(var(--th-header-h, 56px) + var(--th-safe-top, 0px) + 8px) !important;
+        padding-top: var(--th-header-clearance) !important;
         padding-bottom: 18px !important;
         justify-content: flex-start !important;
         overflow-x: hidden !important;
@@ -156,6 +162,7 @@
     body.th-deals-cal-page .th-site-lead-bar,
     body.th-support-chat-open .th-site-lead-bar,
     body.th-modal-open .th-site-lead-bar,
+    body.th-flight-pick-modal-open .th-site-lead-bar,
     body.th-abandon-open .th-site-lead-bar,
     body.th-sheet-open .th-site-lead-bar,
     body.th-coral-popup-open .th-site-lead-bar,
@@ -854,8 +861,20 @@
     /* ─── Promo / offices / countries pages ─── */
     .th-page-hero-v2,
     .promo-unified-hero,
+    .th-off-hero,
+    .th-country-hero,
+    .ds-page-hero,
+    .login-page-main,
+    .hero-section,
+    section.hero-background,
+    body > section:first-of-type,
+    body > main:first-of-type {
+        padding-top: var(--th-header-clearance) !important;
+    }
+
+    .th-page-hero-v2,
+    .promo-unified-hero,
     .th-off-hero {
-        padding-top: calc(4rem + var(--th-safe-top, 0px)) !important;
         padding-bottom: 1.75rem !important;
         min-height: unset !important;
     }
@@ -1424,12 +1443,14 @@ html.th-kb-open .th-results-sticky-lead {
     }
 
     /* Блокировка скрола при открытых модалках */
-    body.th-modal-open {
+    body.th-modal-open,
+    body.th-flight-pick-modal-open {
         overflow: hidden !important;
         touch-action: none;
     }
 
-    body.th-modal-open .th-site-lead-bar {
+    body.th-modal-open .th-site-lead-bar,
+    body.th-flight-pick-modal-open .th-site-lead-bar {
         display: none !important;
     }
 
@@ -1578,7 +1599,7 @@ html.th-kb-open .th-results-sticky-lead {
 
     /* Country hero — контраст белого текста на фото */
     .th-country-hero {
-        padding-top: calc(5.25rem + var(--th-safe-top, 0px)) !important;
+        padding-top: var(--th-header-clearance) !important;
     }
 
     .th-country-hero__iso {

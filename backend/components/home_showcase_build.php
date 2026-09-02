@@ -35,8 +35,13 @@ function th_home_showcase_pick_tour(array $hotel, array $meta, int $departureId,
     $tours = is_array($hotel['tours'] ?? null) ? $hotel['tours'] : [];
     $best = null;
     $bestPrice = 0;
+    $today = date('Y-m-d');
     foreach ($tours as $t) {
         if (!is_array($t)) {
+            continue;
+        }
+        $ymd = th_promo_tour_start_ymd($t);
+        if ($ymd !== '' && $ymd < $today) {
             continue;
         }
         $p = (int) ($t['totalPrice'] ?? $t['price'] ?? $t['priceRub'] ?? 0);
@@ -49,12 +54,8 @@ function th_home_showcase_pick_tour(array $hotel, array $meta, int $departureId,
         }
     }
     if ($best === null) {
-        $p = (int) ($hotel['price'] ?? 0);
-        if ($p <= 0) {
-            return null;
-        }
-        $best = ['price' => $p, 'nights' => 7];
-        $bestPrice = $p;
+        /* Нет актуальных вылетов — не подставляем «голую» цену отеля без даты */
+        return null;
     }
 
     $hotelName = trim((string) ($hotel['name'] ?? ''));
@@ -84,6 +85,11 @@ function th_home_showcase_pick_tour(array $hotel, array $meta, int $departureId,
         $meal = trim((string) ($best['meal']['russianName'] ?? $best['meal']['name'] ?? ''));
     }
     $dateFrom = th_promo_tour_start_ymd($best);
+    $today = date('Y-m-d');
+    /* Просроченные вылеты не показываем на витрине «Горящие» */
+    if ($dateFrom !== '' && $dateFrom < $today) {
+        return null;
+    }
     $dateTo = '';
     if ($dateFrom !== '' && $nights > 0) {
         try {
@@ -131,6 +137,23 @@ function th_home_showcase_pick_tour(array $hotel, array $meta, int $departureId,
         $params['hotel_id'] = (string) $hotel['id'];
     }
 
+    $hotelPayload = [
+        'id' => (int) ($hotel['id'] ?? 0),
+        'name' => $hotelName,
+        'category' => (int) ($hotel['category'] ?? 0),
+        'rating' => $hotel['rating'] ?? null,
+        'region' => $region !== '' ? ['name' => $region] : (is_array($hotel['region'] ?? null) ? $hotel['region'] : []),
+        'country' => [
+            'id' => (int) ($meta['countryId'] ?? 0),
+            'name' => $countryName,
+        ],
+        'picturelink' => $image,
+        'pictures' => is_array($hotel['pictures'] ?? null) ? $hotel['pictures'] : [],
+        'hotelDescriptionLink' => $link,
+        'link' => $link,
+        'tours' => [$best],
+    ];
+
     return [
         'hotelId' => (int) ($hotel['id'] ?? 0),
         'hotelName' => $hotelName,
@@ -152,6 +175,8 @@ function th_home_showcase_pick_tour(array $hotel, array $meta, int $departureId,
             . '&departureName=' . rawurlencode($departureName)
             . '&countryId=' . (int) ($meta['countryId'] ?? 0)
             . '&countryName=' . rawurlencode($countryName),
+        'hotel' => $hotelPayload,
+        'tour' => $best,
     ];
 }
 
@@ -236,6 +261,7 @@ function th_home_showcase_append_from_hotels(
 ): void {
     $countryId = (int) ($meta['countryId'] ?? 0);
     $hotels = th_promo_filter_hotels_for_promo_country($hotels, $countryId);
+    $hotels = th_promo_filter_hotels_future_tours($hotels, date('Y-m-d'));
     $hotels = th_promo_filter_hotels_min_nights($hotels, $countryId);
     $hotels = th_home_showcase_sort_hotels($hotels);
     $taken = 0;
@@ -389,6 +415,7 @@ function th_home_showcase_build(int $departureId, bool $allowLive = true): array
     $tours = [];
     $seenHotels = [];
     $gotFromCacheCountries = [];
+    $flightsByTourId = [];
 
     foreach ($cards as $row) {
         if (!is_array($row)) {
@@ -401,6 +428,14 @@ function th_home_showcase_build(int $departureId, bool $allowLive = true): array
         $payload = th_promo_speed_cache_get($countryId, $departureId, true, $departureId);
         if ($payload === null) {
             $payload = th_promo_speed_cache_get_best($countryId, $departureId, true);
+        }
+        if (is_array($payload)) {
+            $cachedFlights = th_promo_speed_flights_from_cache_payload($payload);
+            foreach ($cachedFlights as $tid => $flightJson) {
+                if ($tid !== '' && is_array($flightJson)) {
+                    $flightsByTourId[(string) $tid] = $flightJson;
+                }
+            }
         }
         $hotels = is_array($payload['results'] ?? null) ? $payload['results'] : [];
         if ($hotels === []) {
@@ -493,6 +528,7 @@ function th_home_showcase_build(int $departureId, bool $allowLive = true): array
         'updatedAt' => time(),
         'mode' => 'tours',
         'source' => $source,
+        'flightsByTourId' => $flightsByTourId,
         'moods' => $moods,
         'hot' => array_values(array_slice($tours, 0, 24)),
         'tours' => array_values($tours),

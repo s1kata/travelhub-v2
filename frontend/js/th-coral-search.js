@@ -446,9 +446,13 @@
         this.openModalId = null;
     };
 
-    THSearchUI.prototype.openDates = function () {
+THSearchUI.prototype.openDates = function () {
+        if (Date.now() < (window.__thDatePopupSuppressOpenUntil || 0)) {
+            return;
+        }
         var self = this;
         window.setTimeout(function () {
+            if (Date.now() < (window.__thDatePopupSuppressOpenUntil || 0)) return;
             if (typeof window.__thWizardOpenDatePopup === 'function') {
                 window.__thWizardOpenDatePopup();
                 return;
@@ -674,6 +678,10 @@
         qsa('[data-th-search-open]', this.root).forEach(function (btn) {
             btn.addEventListener('click', function (e) {
                 e.preventDefault();
+                /* Rail в wizard: только смена шага (data-thw-goto). Sheet — по клику на поле в панели. */
+                if (btn.hasAttribute('data-thw-goto') && window.THTourSearchWizard) {
+                    return;
+                }
                 var target = btn.getAttribute('data-th-search-open');
                 if (target === 'country' || target === 'departure') {
                     self.openChoice(target);

@@ -60,11 +60,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         $errors['email'] = 'Пожалуйста, введите корректный email.';
     }
 
-    // Валидация пароля
-    if ($passwordValue === '') {
-        $errors['password'] = 'Пожалуйста, введите пароль.';
-    } elseif (mb_strlen($passwordValue) < 6) {
-        $errors['password'] = 'Пароль должен содержать не менее 6 символов.';
+    // Валидация пароля (не короче 8, без очевидного мусора)
+    $passwordErr = th_lead_validate_password($passwordValue, 8);
+    if ($passwordErr !== null) {
+        $errors['password'] = $passwordErr;
     }
 
     // Валидация телефона (если указан)
@@ -75,6 +74,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit'])) {
         } else {
             $phone = $phoneCheck['phone'];
         }
+    }
+
+    // Валидация города (отсекаем «Луна» и прочий мусор)
+    $cityErr = th_lead_validate_city($city, false);
+    if ($cityErr !== null) {
+        $errors['city'] = $cityErr;
     }
 
     // Валидация возраста

@@ -52,10 +52,10 @@ function th_promo_speed_ttl_seconds(): int
     return (int) ($h * 3600);
 }
 
-/** ОАЭ, Шри-Ланка, Вьетнам, Абхазия: /tours/hots → 403, promo_cache устаревает — только search-cached + onlyPromo. */
+/** ОАЭ, Шри-Ланка, Вьетнам, Абхазия, Таиланд, Мальдивы, Сочи, Турция, Египет: promo_cache + hybrid. */
 function th_promo_speed_live_search_country_ids(): array
 {
-    return [9, 12, 16, 46, th_promo_phuquoc_virtual_country_id()];
+    return [1, 2, 4, 8, 9, 12, 13, 16, 46, 47, th_promo_phuquoc_virtual_country_id()];
 }
 
 function th_promo_speed_uses_live_search(int $countryId): bool
@@ -74,8 +74,8 @@ function th_promo_speed_night_windows(int $countryId = 0): array
         return [[5, 14]];
     }
     if (th_promo_speed_uses_live_search($countryId)) {
-        if ($countryId === 12) {
-            return [[7, 14], [1, 11]];
+        if ($countryId === 12 || $countryId === 16 || th_promo_is_vietnam_promo_country_id($countryId)) {
+            return [[6, 14], [1, 11], [15, 21]];
         }
         return [[7, 14]];
     }
@@ -95,7 +95,8 @@ function th_promo_speed_date_plus_to(int $countryId): int
 /** @return int[] countryId с fallback на обычные ближайшие туры */
 function th_promo_speed_nearest_fallback_country_ids(): array
 {
-    return [2, 47, 8];
+    /* 16=VN: из Самары /tours/hots часто пуст — нужен обычный search-cached */
+    return [2, 8, 9, 12, 16, 46, 47, th_promo_phuquoc_virtual_country_id()];
 }
 
 /** @return int[] Турция/Египет: добор 4★/5★ из search-cached при finalize */
@@ -116,7 +117,9 @@ function th_promo_speed_fetch_regular_window_arrays(
     array $promoDates,
     int $adults,
     ?string $childs,
-    callable $dispatch
+    callable $dispatch,
+    bool $skipVirtualRegion = false,
+    bool $forceLive = false
 ): array {
     $regularArrays = [];
     foreach (th_promo_speed_night_windows($countryId) as $promoWin) {
@@ -131,14 +134,22 @@ function th_promo_speed_fetch_regular_window_arrays(
             'nightsFrom' => (string) $nFrom,
             'nightsTo' => (string) $nTo,
             'adults' => (string) max(1, $adults),
-            'live' => '1',
+            'source' => 'promo',
+            'internal' => '1',
         ];
+        if ($forceLive) {
+            $winParams['live'] = '1';
+        }
         if ($childs !== null && $childs !== '') {
             $winParams['childs'] = $childs;
         }
         $winParams = th_promo_apply_virtual_search_params($countryId, $winParams);
+        /* Фукуок: широкий VN без regionIds, фильтр курорта — в prepare/finalize */
+        if ($skipVirtualRegion) {
+            unset($winParams['regionIds']);
+        }
         $winRes = $dispatch($winParams);
-        if (!empty($winRes['success']) && is_array($winRes['data'] ?? null)) {
+        if (!empty($winRes['success']) && is_array($winRes['data'] ?? null) && $winRes['data'] !== []) {
             $regularArrays[] = $winRes['data'];
         }
     }
@@ -235,6 +246,7 @@ function th_promo_speed_fetch_promo_only_search_arrays(
             'nightsTo' => (string) $nTo,
             'adults' => (string) max(1, $adults),
             'onlyPromo' => '1',
+            'source' => 'promo',
         ];
         if ($forceLive) {
             $winParams['live'] = '1';
@@ -289,6 +301,7 @@ function th_promo_speed_prepare_live_search_hotels(
     $hotels = th_departure_filter_hotels_for_departure($hotels, $departureId);
     $hotels = th_promo_filter_hotels_future_tours($hotels, $promoDates['dateFrom']);
     $hotels = th_promo_filter_hotels_min_nights($hotels, $countryId);
+    $hotels = th_promo_filter_hotels_min_list_price($hotels, $countryId);
     usort($hotels, static function (array $a, array $b): int {
         $pa = th_promo_speed_hotel_min_price($a);
         $pb = th_promo_speed_hotel_min_price($b);
@@ -320,7 +333,7 @@ function th_promo_speed_promo_search_live(
     ?string $childs,
     callable $dispatch
 ): array {
-    // Виртуальные плитки (Фукуок): сразу live + regionIds, без country-wide promo_cache
+    // Виртуальные плитки (Фукуок): live + regionIds; после прогрева читаем promo_cache_16104_{dep}.json
     $forceLiveFirst = th_promo_is_virtual_country_id($countryId);
     $arrays = th_promo_speed_fetch_promo_only_search_arrays(
         $countryId,
@@ -344,7 +357,12 @@ function th_promo_speed_promo_search_live(
         );
         $merged = th_promo_speed_merge_hotels($arrays, $countryId);
     }
-    if ($merged === []) {
+
+    $prepared = th_promo_speed_prepare_live_search_hotels($merged, $countryId, $departureId, $promoDates);
+    $needRegular = ($prepared === [])
+        || in_array($countryId, th_promo_speed_nearest_fallback_country_ids(), true);
+
+    if ($needRegular) {
         $regularArrays = th_promo_speed_fetch_regular_window_arrays(
             $countryId,
             $departureId,
@@ -353,17 +371,56 @@ function th_promo_speed_promo_search_live(
             $childs,
             $dispatch
         );
-        $merged = th_promo_speed_merge_hotels($regularArrays, $countryId);
-        if ($merged !== []) {
-            th_promo_speed_log('promo_search_live_regular_fallback', [
-                'countryId' => $countryId,
-                'departureId' => $departureId,
-                'hotels' => count($merged),
-            ]);
+        if ($regularArrays === [] && $countryId === th_promo_phuquoc_virtual_country_id()) {
+            $regularArrays = th_promo_speed_fetch_regular_window_arrays(
+                $countryId,
+                $departureId,
+                $promoDates,
+                $adults,
+                $childs,
+                $dispatch,
+                true
+            );
+        }
+        if ($regularArrays !== []) {
+            $regularMerged = th_promo_speed_merge_hotels($regularArrays, $countryId);
+            if ($prepared === []) {
+                $prepared = th_promo_speed_prepare_live_search_hotels(
+                    $regularMerged,
+                    $countryId,
+                    $departureId,
+                    $promoDates
+                );
+                if ($prepared !== []) {
+                    th_promo_speed_log('promo_search_live_regular_fallback', [
+                        'countryId' => $countryId,
+                        'departureId' => $departureId,
+                        'hotels' => count($prepared),
+                    ]);
+                }
+            } else {
+                /* Blend: акции + обычные (Самара→Фукуок и др.) */
+                $blended = th_promo_speed_merge_hotels([$merged, $regularMerged], $countryId);
+                $blendedPrepared = th_promo_speed_prepare_live_search_hotels(
+                    $blended,
+                    $countryId,
+                    $departureId,
+                    $promoDates
+                );
+                if (count($blendedPrepared) > count($prepared)) {
+                    th_promo_speed_log('promo_search_live_regular_blend', [
+                        'countryId' => $countryId,
+                        'departureId' => $departureId,
+                        'before' => count($prepared),
+                        'after' => count($blendedPrepared),
+                    ]);
+                    $prepared = $blendedPrepared;
+                }
+            }
         }
     }
 
-    return th_promo_speed_prepare_live_search_hotels($merged, $countryId, $departureId, $promoDates);
+    return $prepared;
 }
 
 /**
@@ -386,6 +443,8 @@ function th_promo_speed_promo_search_hybrid(
 ): array {
     if (!$bypassFile) {
         // allowStale=true: для мгновенной выдачи лучше отдать вчерашний файл, чем идти в live.
+        // Важно: пустой prepare (даты/фильтр вылета) — НЕ считать хитом, иначе Самара→VN вечно пустая.
+        // Виртуальные плитки (Фукуок 16104): свой promo_cache_16104_{dep}, не country-wide VN(16).
         $file = th_promo_speed_cache_get($countryId, $departureId, true, $departureId);
         if ($file !== null) {
             $fromFile = is_array($file['results'] ?? null) ? $file['results'] : [];
@@ -399,12 +458,71 @@ function th_promo_speed_promo_search_hybrid(
                     'fileDateFrom' => $file['dateFrom'] ?? '',
                     'cacheOnly' => $cacheOnly,
                     'fresh' => $fresh,
+                    'flights' => count(th_promo_speed_flights_from_cache_payload($file)),
                 ]);
+                if (!$cacheOnly) {
+                    $hotels = th_promo_speed_blend_regular_if_sparse(
+                        $hotels,
+                        $countryId,
+                        $departureId,
+                        $promoDates,
+                        $adults,
+                        $childs,
+                        $dispatch,
+                        8,
+                        false
+                    );
+                }
 
                 return [
                     'hotels' => $hotels,
                     'source' => $fresh ? 'promo_search_live_file' : 'promo_search_live_file_stale',
                     'fromCache' => true,
+                    'flightsByTourId' => th_promo_speed_flights_from_cache_payload($file),
+                ];
+            }
+            th_promo_speed_log('promo_search_hybrid_file_empty_after_prepare', [
+                'countryId' => $countryId,
+                'departureId' => $departureId,
+                'rawHotels' => count($fromFile),
+                'fileDateFrom' => $file['dateFrom'] ?? '',
+                'cacheOnly' => $cacheOnly,
+            ]);
+            $hotels = th_promo_speed_hotels_from_cache_payload(
+                $file,
+                $countryId,
+                $departureId,
+                $promoDates,
+                $dispatch
+            );
+            if ($hotels !== []) {
+                th_promo_speed_log('promo_search_hybrid_file_soft_hit', [
+                    'countryId' => $countryId,
+                    'departureId' => $departureId,
+                    'hotels' => count($hotels),
+                    'cacheOnly' => $cacheOnly,
+                ]);
+                $fresh = th_promo_speed_cache_is_fresh($file, $promoDates);
+                $hotels = array_slice($hotels, 0, 50);
+                if (!$cacheOnly) {
+                    $hotels = th_promo_speed_blend_regular_if_sparse(
+                        $hotels,
+                        $countryId,
+                        $departureId,
+                        $promoDates,
+                        $adults,
+                        $childs,
+                        $dispatch,
+                        8,
+                        false
+                    );
+                }
+
+                return [
+                    'hotels' => $hotels,
+                    'source' => $fresh ? 'promo_search_live_file_soft' : 'promo_search_live_file_stale_soft',
+                    'fromCache' => true,
+                    'flightsByTourId' => th_promo_speed_flights_from_cache_payload($file),
                 ];
             }
         }
@@ -419,6 +537,7 @@ function th_promo_speed_promo_search_hybrid(
             'hotels' => [],
             'source' => 'promo_search_live_cache_miss',
             'fromCache' => true,
+            'flightsByTourId' => [],
         ];
     }
     $hotels = th_promo_speed_promo_search_live(
@@ -443,6 +562,7 @@ function th_promo_speed_promo_search_hybrid(
         'hotels' => $hotels,
         'source' => 'promo_search_live',
         'fromCache' => false,
+        'flightsByTourId' => [],
     ];
 }
 
@@ -765,6 +885,24 @@ function th_promo_speed_finalize_merged(
         $childs,
         $dispatch
     );
+    /* Фукуок + regionIds из Самары часто пуст — обычный VN, фильтр курорта ниже */
+    if ($regularArrays === [] && $countryId === th_promo_phuquoc_virtual_country_id()) {
+        $regularArrays = th_promo_speed_fetch_regular_window_arrays(
+            $countryId,
+            $departureId,
+            $promoDates,
+            $adults,
+            $childs,
+            $dispatch,
+            true
+        );
+        if ($regularArrays !== []) {
+            th_promo_speed_log('promo_finalize_phuquoc_wide_regular', [
+                'countryId' => $countryId,
+                'departureId' => $departureId,
+            ]);
+        }
+    }
     if ($regularArrays === []) {
         return $out;
     }
@@ -801,6 +939,76 @@ function th_promo_speed_finalize_merged(
     );
 }
 
+/**
+ * Если в promo_cache мало отелей — подмешать обычный search-cached (без live, из tv-кэша).
+ *
+ * @param array<int, array<string, mixed>> $hotels
+ * @param callable(array<string, string>): array $dispatch
+ * @return array<int, array<string, mixed>>
+ */
+function th_promo_speed_blend_regular_if_sparse(
+    array $hotels,
+    int $countryId,
+    int $departureId,
+    array $promoDates,
+    int $adults,
+    ?string $childs,
+    callable $dispatch,
+    int $minHotels = 8,
+    bool $allowBlend = true
+): array {
+    if (
+        !$allowBlend
+        || count($hotels) >= $minHotels
+        || !in_array($countryId, th_promo_speed_nearest_fallback_country_ids(), true)
+    ) {
+        return $hotels;
+    }
+    $regularArrays = th_promo_speed_fetch_regular_window_arrays(
+        $countryId,
+        $departureId,
+        $promoDates,
+        $adults,
+        $childs,
+        $dispatch,
+        false,
+        false
+    );
+    if ($regularArrays === [] && $countryId === th_promo_phuquoc_virtual_country_id()) {
+        $regularArrays = th_promo_speed_fetch_regular_window_arrays(
+            $countryId,
+            $departureId,
+            $promoDates,
+            $adults,
+            $childs,
+            $dispatch,
+            true,
+            false
+        );
+    }
+    if ($regularArrays === []) {
+        return $hotels;
+    }
+    $regularMerged = th_promo_speed_merge_hotels($regularArrays, $countryId);
+    $regularMerged = th_promo_filter_hotels_for_promo_country($regularMerged, $countryId);
+    $regularMerged = th_departure_filter_hotels_for_departure($regularMerged, $departureId);
+    if ($regularMerged === []) {
+        return $hotels;
+    }
+    if ($hotels === []) {
+        return th_promo_speed_prepare_live_search_hotels($regularMerged, $countryId, $departureId, $promoDates);
+    }
+    $combined = th_promo_speed_merge_hotels([$hotels, $regularMerged], $countryId);
+    th_promo_speed_log('promo_sparse_regular_blend', [
+        'countryId' => $countryId,
+        'departureId' => $departureId,
+        'before' => count($hotels),
+        'after' => count($combined),
+    ]);
+
+    return th_promo_speed_prepare_live_search_hotels($combined, $countryId, $departureId, $promoDates);
+}
+
 /** @return array{dateFrom: string, dateTo: string} */
 function th_promo_speed_promo_dates(int $countryId): array
 {
@@ -823,6 +1031,62 @@ function th_promo_min_nights_for_country(int $countryId): int
     }
 
     return 0;
+}
+
+/** Мин. цена пакета на витрине акций (отсечь guest house ~40k на Шри-Ланке). */
+function th_promo_min_list_price_for_country(int $countryId): int
+{
+    if ($countryId === 12) {
+        return 55000;
+    }
+
+    return 0;
+}
+
+/**
+ * @param array<int, array<string, mixed>> $hotels
+ * @return array<int, array<string, mixed>>
+ */
+function th_promo_filter_hotels_min_list_price(array $hotels, int $countryId, int $minAdults = 2): array
+{
+    $floor = th_promo_min_list_price_for_country($countryId);
+    if ($floor <= 0 || $hotels === []) {
+        return $hotels;
+    }
+    $minAdults = max(1, min(9, $minAdults));
+    $out = [];
+    foreach ($hotels as $hotel) {
+        if (!is_array($hotel)) {
+            continue;
+        }
+        $kept = [];
+        foreach (($hotel['tours'] ?? []) as $t) {
+            if (!is_array($t)) {
+                continue;
+            }
+            $tourAdults = isset($t['adults']) ? max(1, min(9, (int) $t['adults'])) : $minAdults;
+            if ($tourAdults < $minAdults) {
+                continue;
+            }
+            $p = th_promo_speed_hotel_min_price(['tours' => [$t]]);
+            if ($p > 0 && $p < $floor) {
+                continue;
+            }
+            $kept[] = $t;
+        }
+        if ($kept === []) {
+            continue;
+        }
+        $hotel['tours'] = array_values($kept);
+        $min = th_promo_speed_hotel_min_price($hotel);
+        if ($min > 0) {
+            $hotel['price'] = $min;
+            $hotel['minPrice'] = $min;
+        }
+        $out[] = $hotel;
+    }
+
+    return $out;
 }
 
 function th_promo_max_nights_for_country(int $countryId): int
@@ -996,13 +1260,23 @@ function th_promo_tour_operator_label(array $tour): string
 /**
  * Оставляет только туры операторов из белого списка (как operator_filter.php).
  * Для Турции/Египта — сокращённый список.
+ * Space Travel — только Самара→Фукуок.
  *
  * @param array<int, array<string, mixed>> $hotels
+ * @param array{departureId?:int,regionIds?:string,promoTileId?:int} $opts
  * @return array<int, array<string, mixed>>
  */
-function th_promo_filter_hotels_by_allowed_operators(array $hotels, int $countryId = 0, string $countryName = ''): array
+function th_promo_filter_hotels_by_allowed_operators(array $hotels, int $countryId = 0, string $countryName = '', array $opts = []): array
 {
-    $allowedTokens = th_operator_allowed_tokens($countryId, $countryName);
+    $allowSpace = th_operator_allows_space_travel([
+        'departureId' => (int) ($opts['departureId'] ?? 0),
+        'countryId' => $countryId,
+        'regionIds' => (string) ($opts['regionIds'] ?? ''),
+        'promoTileId' => (int) ($opts['promoTileId'] ?? ($countryId === th_promo_phuquoc_virtual_country_id() ? $countryId : 0)),
+    ]);
+    $allowedTokens = th_operator_allowed_tokens($countryId, $countryName, [
+        'allowSpaceTravel' => $allowSpace,
+    ]);
     if ($allowedTokens === []) {
         return $hotels;
     }
@@ -1094,6 +1368,13 @@ function th_promo_speed_cache_get(
     if ($applyDepartureFilter) {
         $filterDep = ($filterDepartureId !== null && $filterDepartureId > 0) ? $filterDepartureId : $departureId;
         $d['results'] = th_departure_filter_hotels_for_departure($d['results'], $filterDep);
+        if ($d['results'] === [] && !$ignoreTtl) {
+            return null;
+        }
+    }
+    /* При ignoreTtl (hybrid/stale) даты режем в prepare — иначе файл с 50 отелями даёт cache miss. */
+    if (!$ignoreTtl) {
+        $d['results'] = th_promo_filter_hotels_future_tours($d['results'], date('Y-m-d'));
         if ($d['results'] === []) {
             return null;
         }
@@ -1153,13 +1434,159 @@ function th_promo_speed_hotels_from_cache_payload(
 ): array {
     unset($promoDates, $dispatch, $adults, $childs, $departureId);
 
-    return th_promo_filter_hotels_min_nights(
-        th_promo_filter_hotels_for_promo_country(
-            is_array($cachePayload['results'] ?? null) ? $cachePayload['results'] : [],
+    return th_promo_filter_hotels_min_list_price(
+        th_promo_filter_hotels_min_nights(
+            th_promo_filter_hotels_for_promo_country(
+                is_array($cachePayload['results'] ?? null) ? $cachePayload['results'] : [],
+                $countryId
+            ),
             $countryId
         ),
         $countryId
     );
+}
+
+/** @param array<string, array<string, mixed>>|null $file */
+function th_promo_speed_flights_from_cache_payload(?array $file): array
+{
+    if ($file === null) {
+        return [];
+    }
+    $flights = $file['flightsByTourId'] ?? null;
+
+    return is_array($flights) ? $flights : [];
+}
+
+/** @return array{results?: array, flightsByTourId?: array}|null */
+function th_promo_speed_cache_read_raw(int $countryId, int $departureId): ?array
+{
+    $file = th_promo_speed_cache_file($countryId, $departureId);
+    if (!is_file($file)) {
+        return null;
+    }
+    $raw = @file_get_contents($file);
+    if ($raw === false || $raw === '') {
+        return null;
+    }
+    $d = json_decode($raw, true);
+
+    return is_array($d) ? $d : null;
+}
+
+/**
+ * @param array<int, array<string, mixed>> $hotels
+ * @return string[]
+ */
+function th_promo_speed_collect_tour_ids_from_hotels(array $hotels, int $max = 25): array
+{
+    $max = max(1, min(50, $max));
+    $seen = [];
+    foreach ($hotels as $hotel) {
+        if (!is_array($hotel)) {
+            continue;
+        }
+        foreach (($hotel['tours'] ?? []) as $t) {
+            if (!is_array($t)) {
+                continue;
+            }
+            $id = isset($t['id']) ? trim((string) $t['id']) : '';
+            if ($id === '' || isset($seen[$id])) {
+                continue;
+            }
+            $seen[$id] = true;
+            if (count($seen) >= $max) {
+                return array_keys($seen);
+            }
+        }
+    }
+
+    return array_keys($seen);
+}
+
+function th_promo_speed_warm_skip_flights(): bool
+{
+    $raw = getenv('PROMO_WARM_SKIP_FLIGHTS') ?: ($_ENV['PROMO_WARM_SKIP_FLIGHTS'] ?? '');
+    return in_array(strtolower(trim((string) $raw)), ['1', 'true', 'yes', 'on'], true);
+}
+
+function th_promo_speed_warm_flights_max(): int
+{
+    $raw = getenv('PROMO_WARM_FLIGHTS_MAX') ?: ($_ENV['PROMO_WARM_FLIGHTS_MAX'] ?? '12');
+    $n = (int) $raw;
+
+    return max(0, min(25, $n));
+}
+
+/** Пропуск комбо при свежем promo_cache_* (для дозапуска после обрыва SSH). */
+function th_promo_speed_warm_combo_is_fresh(int $countryId, int $departureId): bool
+{
+    if ((getenv('PROMO_WARM_FORCE') ?: ($_ENV['PROMO_WARM_FORCE'] ?? '')) === '1') {
+        return false;
+    }
+    $file = th_promo_speed_cache_file($countryId, $departureId);
+    if (!is_file($file)) {
+        return false;
+    }
+    $age = time() - (int) filemtime($file);
+    if ($age >= th_promo_speed_ttl_seconds()) {
+        return false;
+    }
+    $raw = @file_get_contents($file);
+    if ($raw === false || $raw === '') {
+        return false;
+    }
+    $d = json_decode($raw, true);
+    if (!is_array($d) || !is_array($d['results'] ?? null)) {
+        return false;
+    }
+
+    return count($d['results']) > 0;
+}
+
+/**
+ * Прогрев tour-flights для карточек акций (cron).
+ *
+ * @param string[] $tourIds
+ * @param callable(array<string, string>): array $dispatch
+ * @return array<string, array<string, mixed>>
+ */
+function th_promo_speed_warm_flights_for_tour_ids(array $tourIds, callable $dispatch): array
+{
+    if (th_promo_speed_warm_skip_flights()) {
+        return [];
+    }
+    $max = th_promo_speed_warm_flights_max();
+    if (count($tourIds) > $max) {
+        $tourIds = array_slice($tourIds, 0, $max);
+    }
+    $out = [];
+    foreach ($tourIds as $tourId) {
+        $tourId = trim((string) $tourId);
+        if ($tourId === '') {
+            continue;
+        }
+        $res = $dispatch([
+            'type' => 'tour-flights',
+            'tourId' => $tourId,
+            'currency' => 'RUB',
+        ]);
+        $flights = null;
+        if (is_array($res['flights'] ?? null)) {
+            $flights = $res['flights'];
+        } elseif (is_array($res['data']['flights'] ?? null)) {
+            $flights = $res['data']['flights'];
+        }
+        if (!empty($res['success']) && is_array($flights) && $flights !== []) {
+            $out[$tourId] = [
+                'success' => true,
+                'flights' => $flights,
+                'info' => $res['info'] ?? ($res['data']['info'] ?? null),
+            ];
+        }
+        usleep(120000);
+    }
+
+    return $out;
 }
 
 /** @param array<int, array<string, mixed>> $hotels */
@@ -1177,6 +1604,15 @@ function th_promo_speed_cache_set(int $countryId, int $departureId, array $hotel
         'dateFrom' => (string) ($meta['dateFrom'] ?? $dates['dateFrom']),
         'dateTo' => (string) ($meta['dateTo'] ?? $dates['dateTo']),
     ];
+    if (!empty($meta['flightsByTourId']) && is_array($meta['flightsByTourId'])) {
+        $payload['flightsByTourId'] = $meta['flightsByTourId'];
+    } else {
+        $existing = th_promo_speed_cache_read_raw($countryId, $departureId);
+        $prevFlights = th_promo_speed_flights_from_cache_payload($existing);
+        if ($prevFlights !== []) {
+            $payload['flightsByTourId'] = $prevFlights;
+        }
+    }
     @file_put_contents(
         th_promo_speed_cache_file($countryId, $departureId),
         json_encode($payload, JSON_UNESCAPED_UNICODE),
@@ -1186,6 +1622,7 @@ function th_promo_speed_cache_set(int $countryId, int $departureId, array $hotel
         'countryId' => $countryId,
         'departureId' => $departureId,
         'hotels' => count($hotels),
+        'flights' => count($payload['flightsByTourId'] ?? []),
     ]);
 }
 

@@ -75,7 +75,7 @@ html.th-yandex-mobile .home-hero-section {
     /* Не растягивать на весь экран — wizard должен дышать */
     min-height: 0 !important;
     height: auto !important;
-    padding-top: calc(var(--th-header-h, 56px) + var(--th-safe-top, 0px) + 16px) !important;
+    padding-top: var(--th-header-clearance) !important;
     padding-bottom: 24px !important;
     justify-content: flex-start !important;
 }
@@ -359,7 +359,7 @@ html.th-yandex-mobile.th-kb-open #promo-sticky-cta {
 }
 
 html.th-yandex-mobile body.th-promo-tab-bottom .th-promo-popup--collapsed .th-promo-popup__tab {
-    top: calc(var(--th-header-h, 56px) + var(--th-safe-top, 0px) + 6px) !important;
+    top: calc(var(--th-header-clearance) - 10px) !important;
     bottom: auto !important;
     left: 12px !important;
     right: 12px !important;
@@ -518,7 +518,7 @@ html.th-yandex-mobile iframe[src*="yandex.ru/map-widget"] {
 
 /* ——— Header ——— */
 html.th-yandex-mobile #site-header.header {
-    min-height: calc(var(--th-header-h, 56px) + var(--th-safe-top, 0px));
+    min-height: calc(56px + var(--th-safe-top, 0px));
     padding-top: max(10px, var(--th-safe-top, 0px)) !important;
     padding-left: max(12px, var(--th-safe-left, 0px)) !important;
     padding-right: max(12px, var(--th-safe-right, 0px)) !important;
@@ -592,7 +592,7 @@ html.th-yandex-mobile main.th-detail {
 html.th-yandex-mobile .th-page-hero-v2,
 html.th-yandex-mobile .promo-unified-hero,
 html.th-yandex-mobile .th-off-hero {
-    padding-top: calc(4.25rem + var(--th-safe-top, 0px)) !important;
+    padding-top: var(--th-header-clearance) !important;
     padding-bottom: 1.75rem !important;
     min-height: unset !important;
 }

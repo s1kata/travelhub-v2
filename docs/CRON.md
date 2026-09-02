@@ -11,7 +11,11 @@
 
 ```cron
 # Акции: только promo_cache (страница акций / витрина). Календарь этот кэш не пишет.
+# Минимум 2×/сутки — даты «горящих» всегда от сегодня (иначе на главной висят августовские вылеты).
 5 0,12 * * * cd /path/to/travelhub-v2 && PHP_BIN=/usr/bin/php8.1 flock -n data/promo_warm.lock bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1
+
+# Доп. страховочный прогрев горящих (вс 03:15) — если дневной cron срывался.
+15 3 * * 0 cd /path/to/travelhub-v2 && PHP_BIN=/usr/bin/php8.1 flock -n data/promo_warm.lock bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1
 
 # Обычный поиск: exact/cover cache, Самара+Москва, популярные страны (~42 дня, near-first).
 30 0,8,14,20 * * * cd /path/to/travelhub-v2 && flock -n data/search_warm.lock bash backend/cron/warm_home_search_cache.sh >> data/home_search_warm.log 2>&1

@@ -224,7 +224,7 @@ $nightBands = [
         <link rel="preload" as="image" href="<?php echo htmlspecialchars($mosaic[0], ENT_QUOTES, 'UTF-8'); ?>" fetchpriority="high">
     <?php endif; ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/frontend/css/pages/tv-hotel-hub.css?v=12">
+    <link rel="stylesheet" href="/frontend/css/pages/tv-hotel-hub.css?v=13">
     <?php include __DIR__ . '/../../../backend/components/design_system_head.php'; ?>
 </head>
 <body class="thh antialiased">

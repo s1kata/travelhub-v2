@@ -38,6 +38,41 @@ const TH_OPERATOR_ALIASES_GENERAL = [
     ['Амботис', 'Ambotis'],
 ];
 
+/** Виртуальная плитка «Фукуок» + Tourvisor regionId курорта. */
+const TH_OPERATOR_PHUQUOC_VIRTUAL_COUNTRY_ID = 16104;
+const TH_OPERATOR_PHUQUOC_REGION_ID = 104;
+
+/**
+ * Space Travel только для Самара→Фукуок (не для остальных стран сайта).
+ *
+ * @param array{departureId?:int,countryId?:int,regionIds?:string,promoTileId?:int} $ctx
+ */
+function th_operator_allows_space_travel(array $ctx): bool
+{
+    $departureId = (int) ($ctx['departureId'] ?? 0);
+    if ($departureId !== 7) {
+        return false;
+    }
+    $countryId = (int) ($ctx['countryId'] ?? 0);
+    $promoTileId = (int) ($ctx['promoTileId'] ?? 0);
+    if ($countryId === TH_OPERATOR_PHUQUOC_VIRTUAL_COUNTRY_ID || $promoTileId === TH_OPERATOR_PHUQUOC_VIRTUAL_COUNTRY_ID) {
+        return true;
+    }
+    $regionRaw = trim((string) ($ctx['regionIds'] ?? ''));
+    if ($regionRaw === '') {
+        return false;
+    }
+    $regionIds = array_map('intval', array_filter(explode(',', $regionRaw)));
+
+    return in_array(TH_OPERATOR_PHUQUOC_REGION_ID, $regionIds, true);
+}
+
+/** @return list<string> */
+function th_operator_space_travel_aliases(): array
+{
+    return ['Space Travel', 'SpaceTravel', 'Спейс Тревел', 'СпейсТревел', 'Спейс трэвел'];
+}
+
 /**
  * Сокращённый список для Турции и Египта.
  *
@@ -99,9 +134,10 @@ function th_operator_is_turkey_or_egypt(int $countryId, string $countryName = ''
 /**
  * Нормализованные алиасы операторов для выбранной страны.
  *
+ * @param array{allowSpaceTravel?:bool} $opts
  * @return list<string>
  */
-function th_operator_allowed_tokens(int $countryId, string $countryName = ''): array
+function th_operator_allowed_tokens(int $countryId, string $countryName = '', array $opts = []): array
 {
     $groups = th_operator_is_turkey_or_egypt($countryId, $countryName)
         ? TH_OPERATOR_ALIASES_TURKEY_EGYPT
@@ -111,6 +147,14 @@ function th_operator_allowed_tokens(int $countryId, string $countryName = ''): a
     foreach ($groups as $aliases) {
         foreach ($aliases as $alias) {
             $norm = th_operator_normalize((string) $alias);
+            if ($norm !== '') {
+                $tokens[$norm] = true;
+            }
+        }
+    }
+    if (!empty($opts['allowSpaceTravel'])) {
+        foreach (th_operator_space_travel_aliases() as $alias) {
+            $norm = th_operator_normalize($alias);
             if ($norm !== '') {
                 $tokens[$norm] = true;
             }
@@ -171,11 +215,12 @@ function th_operator_label_allowed(string $label, array $allowedTokens): bool
  * Отель без подходящих туров исключается. Отели без массива tours не трогаются.
  *
  * @param array<int, mixed> $hotels
+ * @param array{allowSpaceTravel?:bool} $opts
  * @return list<mixed>
  */
-function th_operator_filter_hotels(array $hotels, int $countryId, string $countryName = ''): array
+function th_operator_filter_hotels(array $hotels, int $countryId, string $countryName = '', array $opts = []): array
 {
-    $allowedTokens = th_operator_allowed_tokens($countryId, $countryName);
+    $allowedTokens = th_operator_allowed_tokens($countryId, $countryName, $opts);
     if ($allowedTokens === []) {
         return array_values($hotels);
     }

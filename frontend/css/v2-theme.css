@@ -205,19 +205,19 @@ textarea:focus-visible {
     color: #fff !important;
 }
 
-#site-header.header[data-home="1"]:not(.scrolled) .header__nav a,
+#site-header.header[data-home="1"]:not(.scrolled) .header__nav > a,
 #site-header.header[data-home="1"]:not(.scrolled) .header__more-toggle {
     color: rgba(255, 255, 255, 0.92) !important;
     opacity: 1;
 }
 
-#site-header.header[data-home="1"]:not(.scrolled) .header__nav a.is-active,
+#site-header.header[data-home="1"]:not(.scrolled) .header__nav > a.is-active,
 #site-header.header[data-home="1"]:not(.scrolled) .header__more-toggle.is-active {
     color: #fff !important;
     font-weight: 600;
 }
 
-#site-header.header[data-home="1"]:not(.scrolled) .header__nav a:hover,
+#site-header.header[data-home="1"]:not(.scrolled) .header__nav > a:hover,
 #site-header.header[data-home="1"]:not(.scrolled) .header__more-toggle:hover {
     color: #fff !important;
 }
@@ -259,27 +259,37 @@ textarea:focus-visible {
     color: var(--v2-primary) !important;
 }
 
-#site-header.header:not([data-home="1"]) .header__nav a,
+#site-header.header:not([data-home="1"]) .header__nav > a,
 #site-header.header:not([data-home="1"]) .header__more-toggle,
-#site-header.header[data-home="1"].scrolled .header__nav a,
+#site-header.header[data-home="1"].scrolled .header__nav > a,
 #site-header.header[data-home="1"].scrolled .header__more-toggle {
     color: #475569 !important;
     opacity: 1;
 }
 
-#site-header.header:not([data-home="1"]) .header__nav a.is-active,
+#site-header.header:not([data-home="1"]) .header__nav > a.is-active,
 #site-header.header:not([data-home="1"]) .header__more-toggle.is-active,
-#site-header.header[data-home="1"].scrolled .header__nav a.is-active,
+#site-header.header[data-home="1"].scrolled .header__nav > a.is-active,
 #site-header.header[data-home="1"].scrolled .header__more-toggle.is-active {
     color: var(--v2-primary) !important;
     font-weight: 600;
 }
 
-#site-header.header:not([data-home="1"]) .header__nav a:hover,
+#site-header.header:not([data-home="1"]) .header__nav > a:hover,
 #site-header.header:not([data-home="1"]) .header__more-toggle:hover,
-#site-header.header[data-home="1"].scrolled .header__nav a:hover,
+#site-header.header[data-home="1"].scrolled .header__nav > a:hover,
 #site-header.header[data-home="1"].scrolled .header__more-toggle:hover {
     color: var(--v2-primary) !important;
+}
+
+/* Меню «Ещё»: всегда тёмный текст на белом — не наследовать цвет nav */
+#site-header.header .header__more-menu a {
+    color: #1A1A40 !important;
+    opacity: 1 !important;
+}
+#site-header.header .header__more-menu a:hover {
+    color: #1A1A40 !important;
+    background: rgba(93, 169, 164, 0.18) !important;
 }
 
 #site-header.header:not([data-home="1"]) .header__actions .button-secondary,

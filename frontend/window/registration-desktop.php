@@ -27,7 +27,7 @@ $city = $formData['city'] ?? '';
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?php echo htmlspecialchars($page_title); ?> - Travel Hub</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <link rel="stylesheet" href="/frontend/css/pages/registration-desktop.css?v=1">
+        <link rel="stylesheet" href="/frontend/css/pages/registration-desktop.css?v=2">
     <?php include __DIR__ . '/../../backend/components/design_system_head.php'; ?>
     </head>
 <body class="gradient-bg min-h-screen th-page-auth">
@@ -76,7 +76,8 @@ $city = $formData['city'] ?? '';
                                required
                                minlength="2"
                                maxlength="60"
-                               pattern="[\p{L}\s\-]+"
+                               pattern="[А-Яа-яЁё\s\-]+"
+                               title="Только русские буквы, пробелы и дефис"
                                value="<?php echo htmlspecialchars($name); ?>"
                                class="w-full px-4 py-3 rounded-xl border <?php echo isset($errors['name']) ? 'border-red-300' : 'border-slate-200'; ?> bg-slate-50 text-slate-700 focus:border-sky-400 focus:ring-2 focus:ring-sky-200 transition"
                                placeholder="Иванов Иван Иванович">
@@ -112,9 +113,9 @@ $city = $formData['city'] ?? '';
                                    id="password"
                                    name="password"
                                    required
-                                   minlength="6"
+                                   minlength="8"
                                    class="px-4 py-3.5 text-slate-700 placeholder-slate-400"
-                                   placeholder="Минимум 6 символов"
+                                   placeholder="Минимум 8 символов"
                                    autocomplete="new-password">
                             <button type="button"
                                     onclick="togglePassword('password')"
@@ -126,7 +127,7 @@ $city = $formData['city'] ?? '';
                         <?php if (isset($errors['password'])): ?>
                             <p class="mt-1 text-sm text-red-600"><?php echo htmlspecialchars($errors['password']); ?></p>
                         <?php else: ?>
-                            <p class="mt-1 text-xs text-slate-500">Пароль должен содержать не менее 6 символов</p>
+                            <p class="mt-1 text-xs text-slate-500">Пароль должен содержать не менее 8 символов</p>
                         <?php endif; ?>
                     </div>
 
@@ -155,8 +156,11 @@ $city = $formData['city'] ?? '';
                                id="city"
                                name="city"
                                value="<?php echo htmlspecialchars($city); ?>"
-                               class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:border-sky-400 focus:ring-2 focus:ring-sky-200 transition"
+                               class="w-full px-4 py-3 rounded-xl border <?php echo isset($errors['city']) ? 'border-red-300' : 'border-slate-200'; ?> bg-slate-50 text-slate-700 focus:border-sky-400 focus:ring-2 focus:ring-sky-200 transition"
                                placeholder="Ваш город">
+                        <?php if (isset($errors['city'])): ?>
+                            <p class="mt-1 text-sm text-red-600"><?php echo htmlspecialchars($errors['city']); ?></p>
+                        <?php endif; ?>
                     </div>
 
                     <div class="mb-6">
@@ -252,7 +256,7 @@ $city = $formData['city'] ?? '';
                 wrap.appendChild(p);
             }
 
-            ['name', 'email', 'password', 'phone', 'agree'].forEach(clearFieldError);
+            ['name', 'email', 'password', 'phone', 'city', 'agree'].forEach(clearFieldError);
             const pwWrap = document.querySelector('.login-password-wrap');
             if (pwWrap) pwWrap.classList.remove('is-error');
 
@@ -260,13 +264,20 @@ $city = $formData['city'] ?? '';
                 fieldErrors.name = 'ФИО должно содержать минимум 2 символа.';
             } else if (name.length > 60) {
                 fieldErrors.name = 'ФИО не должно превышать 60 символов.';
-            } else if (!/^[\p{L}\s\-]+$/u.test(name)) {
-                fieldErrors.name = 'ФИО может содержать только буквы, пробелы и дефисы.';
-            } else if (!/\p{Script=Cyrillic}/u.test(name) || ((name.match(/\p{Script=Cyrillic}/gu) || []).length < 2)) {
+            } else if (!/^[\p{Script=Cyrillic}\s\-]+$/u.test(name)) {
+                fieldErrors.name = /\p{Script=Latin}/u.test(name)
+                    ? 'Укажите ФИО русскими буквами.'
+                    : 'ФИО может содержать только русские буквы, пробелы и дефисы.';
+            } else if ((name.match(/\p{Script=Cyrillic}/gu) || []).length < 2) {
                 fieldErrors.name = 'Укажите ФИО русскими буквами.';
             } else {
                 const compact = name.replace(/[\s\-]+/g, '');
-                if (compact.length < 2 || /^(.)\1+$/u.test(compact)) {
+                const parts = name.split(/[\s\-]+/).filter(Boolean);
+                const lower = name.toLowerCase();
+                const banned = ['тест', 'test', 'asdf', 'qwerty', 'admin', 'user', 'имя', 'фамилия', 'фио', 'xxx'];
+                if (compact.length < 2 || /^(.)\1+$/u.test(compact) || banned.indexOf(lower) >= 0) {
+                    fieldErrors.name = 'Укажите корректные ФИО.';
+                } else if (parts.some(function (p) { return p.length < 2; })) {
                     fieldErrors.name = 'Укажите корректные ФИО.';
                 }
             }
@@ -276,16 +287,29 @@ $city = $formData['city'] ?? '';
                 fieldErrors.email = 'Пожалуйста, введите корректный email.';
             }
 
-            if (password.length < 6) {
-                fieldErrors.password = 'Пароль должен содержать не менее 6 символов.';
+            const weakPasswords = ['qwerty', 'qwerty1', 'qwerty12', 'qwerty123', '123456', '1234567', '12345678', 'password', 'password1', '11111111', '00000000', 'abcdef', 'admin', 'admin123', 'йцукен', 'пароль', 'пароль123', 'travelhub'];
+            if (password.length < 8) {
+                fieldErrors.password = 'Пароль должен содержать не менее 8 символов.';
+            } else if (weakPasswords.indexOf(password.toLowerCase()) >= 0 || /^(.)\1+$/u.test(password)) {
+                fieldErrors.password = 'Пароль слишком простой. Придумайте более надёжный.';
             }
 
             if (phone) {
                 let d = phone.replace(/\D/g, '');
                 if (d.length === 11 && d[0] === '8') d = '7' + d.slice(1);
                 const rest = d.slice(1);
-                if (d.length !== 11 || d[0] !== '7' || !rest || rest[0] !== '9' || /^(\d)\1{9}$/.test(rest)) {
+                if (d.length !== 11 || d[0] !== '7' || !rest || rest[0] !== '9' || /^(\d)\1{9}$/.test(rest) || /^9(\d)\1{8}$/.test(rest)) {
                     fieldErrors.phone = 'Укажите корректный мобильный телефон РФ (+7 9XX…).';
+                }
+            }
+
+            const cityInput = document.getElementById('city');
+            const city = cityInput ? String(cityInput.value || '').trim() : '';
+            if (city) {
+                const cityLower = city.toLowerCase();
+                const fakeCities = ['луна', 'марс', 'юпитер', 'солнце', 'земля', 'небо', 'море', 'океан', 'тест', 'test', 'asdf', 'qwerty', 'xxx', 'нигде', 'город', 'венера', 'плутон', 'сатурн', 'нептун', 'меркурий'];
+                if (!/^[\p{Script=Cyrillic}\s\-'.]+$/u.test(city) || fakeCities.indexOf(cityLower) >= 0 || city.length < 2) {
+                    fieldErrors.city = 'Укажите реальный город.';
                 }
             }
 

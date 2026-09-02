@@ -346,7 +346,10 @@ function th_tour_price_garbage_reasons(array $tour, array $hotel, array $ctx, ?i
         $weakRatio = (float) ($ctx['weak_ratio'] ?? 0);
         $spread = (float) ($ctx['price_spread'] ?? 0);
         $sample = count($ctx['prices'] ?? []);
-        if ($meta['weak'] && $sample >= 3 && $weakRatio >= 0.55 && $spread < 0.22) {
+        $batchMedian = (int) ($ctx['median'] ?? 0);
+        // Только для подозрительно дешёвых пакетов (15k/54k): не трогать SL/VN ~200k+ с полем price без totalPrice.
+        if ($meta['weak'] && $sample >= 3 && $weakRatio >= 0.55 && $spread < 0.22
+            && $batchMedian > 0 && $batchMedian < 75000) {
             $reasons[] = 'weak_uniform_cluster';
         }
     }

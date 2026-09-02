@@ -47,26 +47,47 @@ body {
 #site-header[data-home="1"]:not(.scrolled) .site-header-brand {
     color: #fff !important;
 }
-#site-header[data-home="1"]:not(.scrolled) .header__nav a,
+#site-header[data-home="1"]:not(.scrolled) .header__nav > a,
 #site-header[data-home="1"]:not(.scrolled) .header__more-toggle,
 #site-header[data-home="1"]:not(.scrolled) .site-header-link,
 #site-header[data-home="1"]:not(.scrolled) .site-header-dd-btn {
     color: rgba(255, 255, 255, 0.92) !important;
 }
-#site-header[data-home="1"]:not(.scrolled) .header__nav a:hover,
+#site-header[data-home="1"]:not(.scrolled) .header__nav > a:hover,
 #site-header[data-home="1"]:not(.scrolled) .header__more-toggle:hover,
 #site-header[data-home="1"]:not(.scrolled) .site-header-link:hover,
 #site-header[data-home="1"]:not(.scrolled) .site-header-dd-btn:hover {
     color: #fff !important;
     background: rgba(255, 255, 255, 0.12) !important;
 }
-#site-header[data-home="1"]:not(.scrolled) .header__nav a.is-active,
+#site-header[data-home="1"]:not(.scrolled) .header__nav > a.is-active,
 #site-header[data-home="1"]:not(.scrolled) .header__more-toggle.is-active,
 #site-header[data-home="1"]:not(.scrolled) .site-header-link.font-semibold,
 #site-header[data-home="1"]:not(.scrolled) .site-header-dd-btn.font-semibold {
     color: #fff !important;
     background: rgba(255, 255, 255, 0.2) !important;
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+/* Меню «Ещё»: не наследовать белый текст nav (иначе белый на белом) */
+#site-header[data-home="1"] .header__more-menu,
+#site-header[data-home="1"]:not(.scrolled) .header__more-menu {
+    background: #ffffff !important;
+    border: 1px solid rgba(26, 26, 64, 0.12) !important;
+}
+#site-header[data-home="1"] .header__more-menu a,
+#site-header[data-home="1"]:not(.scrolled) .header__more-menu a,
+#site-header[data-home="1"].scrolled .header__more-menu a,
+#site-header[data-home="1"] .header__nav .header__more-menu a {
+    color: #1A1A40 !important;
+    opacity: 1 !important;
+    background: transparent !important;
+    text-decoration: none !important;
+    box-shadow: none !important;
+}
+#site-header[data-home="1"] .header__more-menu a:hover,
+#site-header[data-home="1"]:not(.scrolled) .header__more-menu a:hover {
+    color: #1A1A40 !important;
+    background: rgba(93, 169, 164, 0.18) !important;
 }
 #site-header[data-home="1"]:not(.scrolled) a.text-indigo-600 {
     color: #fff !important;
@@ -94,13 +115,13 @@ body {
 #site-header[data-home="1"].scrolled .site-header-brand {
     color: var(--accent-primary) !important;
 }
-#site-header[data-home="1"].scrolled .header__nav a,
+#site-header[data-home="1"].scrolled .header__nav > a,
 #site-header[data-home="1"].scrolled .header__more-toggle,
 #site-header[data-home="1"].scrolled .site-header-link,
 #site-header[data-home="1"].scrolled .site-header-dd-btn {
     color: #374151 !important;
 }
-#site-header[data-home="1"].scrolled .header__nav a:hover,
+#site-header[data-home="1"].scrolled .header__nav > a:hover,
 #site-header[data-home="1"].scrolled .header__more-toggle:hover,
 #site-header[data-home="1"].scrolled .site-header-link:hover,
 #site-header[data-home="1"].scrolled .site-header-dd-btn:hover {
@@ -487,7 +508,7 @@ header {
 @media (max-width: 767px) {
     .home-hero-section {
         min-height: auto;
-        padding-top: 88px !important;
+        padding-top: var(--th-header-clearance, calc(72px + env(safe-area-inset-top, 0px) + 16px)) !important;
         padding-bottom: 28px !important;
     }
     .home-hero-section .hero-content {
@@ -1284,13 +1305,13 @@ select.flatpickr-monthDropdown-months {
 }
 .th-tour-offer-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    grid-template-columns: 1fr;
+    gap: 14px;
 }
 @media (min-width: 560px) {
     .th-tour-offer-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
     }
 }
 @media (min-width: 768px) {
@@ -1300,25 +1321,29 @@ select.flatpickr-monthDropdown-months {
         justify-content: space-between;
     }
     .th-tour-offer-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 14px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
     }
     .th-tour-offer__image {
-        height: 140px;
+        height: 200px;
     }
 }
 @media (min-width: 1100px) {
     .th-tour-offer-grid {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 16px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 20px;
     }
     .th-tour-offer__image {
-        height: 150px;
+        height: 220px;
     }
 }
 @media (min-width: 1400px) {
     .th-tour-offer-grid {
-        grid-template-columns: repeat(6, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 22px;
+    }
+    .th-tour-offer__image {
+        height: 240px;
     }
 }
 @media (max-width: 767px) {
@@ -1327,14 +1352,14 @@ select.flatpickr-monthDropdown-months {
         flex-direction: column;
     }
     .th-tour-offer-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
+        grid-template-columns: 1fr;
+        gap: 14px;
     }
     .th-tour-offer__image {
-        height: 110px;
+        height: 180px;
     }
     .th-tour-offer__title {
-        font-size: 0.88rem;
+        font-size: 1rem;
     }
 }
 .th-tour-offer--skeleton {
@@ -1355,20 +1380,20 @@ select.flatpickr-monthDropdown-months {
     flex-direction: column;
     background: #fff;
     border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 14px;
+    border-radius: 16px;
     overflow: hidden;
     text-decoration: none;
     color: inherit;
     min-height: 100%;
-    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
     transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 .th-tour-offer:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+    transform: translateY(-3px);
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
 }
 .th-tour-offer__image {
-    height: 110px;
+    height: 180px;
     background-size: cover;
     background-position: center;
     background-color: #e2e8f0;
@@ -1376,28 +1401,28 @@ select.flatpickr-monthDropdown-months {
 .th-tour-offer__body {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding: 12px;
+    gap: 8px;
+    padding: 16px 16px 18px;
 }
 .th-tour-offer__badge {
     align-self: flex-start;
     display: inline-flex;
-    padding: 4px 8px;
+    padding: 6px 12px;
     border-radius: 999px;
     background: #fff1f2;
     color: #9f1239;
-    font-size: 0.72rem;
-    font-weight: 700;
+    font-size: 0.9rem;
+    font-weight: 800;
 }
 .th-tour-offer__title {
-    font-size: 0.95rem;
-    line-height: 1.25;
+    font-size: 1.05rem;
+    line-height: 1.3;
     color: #0f172a;
 }
 .th-tour-offer__meta {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     color: #64748b;
-    line-height: 1.3;
+    line-height: 1.4;
 }
 .tv-results-calendar-quick {
     display: inline-flex;

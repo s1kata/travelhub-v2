@@ -196,7 +196,9 @@
         else if (meta.weak && ppnaVal < absurdFloor * 1.15) reasons.push('weak_ppna');
       }
       var sampleWeak = (ctx.prices && ctx.prices.length) || 0;
-      if (meta.weak && sampleWeak >= 3 && (ctx.weak_ratio || 0) >= 0.55 && (ctx.price_spread || 0) < 0.22) {
+      var batchMedian = (ctx.median || 0);
+      if (meta.weak && sampleWeak >= 3 && (ctx.weak_ratio || 0) >= 0.55 && (ctx.price_spread || 0) < 0.22
+        && batchMedian > 0 && batchMedian < 75000) {
         reasons.push('weak_uniform_cluster');
       }
     }

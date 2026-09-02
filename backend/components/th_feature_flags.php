@@ -44,7 +44,7 @@ function th_feature_yml_rule_hotel_stars_filter(): bool
     return th_feature_enabled('TH_FEATURE_YML_RULE_HOTEL_STARS_FILTER', true);
 }
 
-/** Прямой рейс в акциях: только countryId Таиланд (2) и Вьетнам (16/18). Не Турция и не остальные. */
+/** Прямой рейс в акциях: Таиланд (2), Шри-Ланка (12), Фукуок (16104). Остальные — без фильтра. */
 function th_feature_promo_direct_flights_thailand_vietnam(): bool
 {
     return th_feature_enabled('TH_FEATURE_PROMO_DIRECT_FLIGHTS_TH_VN', true);

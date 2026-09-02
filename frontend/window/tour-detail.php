@@ -468,15 +468,7 @@ if ($return_url !== '' && $return_url[0] === '/') {
                     </section>
                     <?php endif; ?>
 
-                    <?php if ($tour_id): ?>
-                    <section id="th-flight-packages" class="th-detail__section th-detail__flight-pkgs-section hidden" aria-label="Варианты перелёта">
-                        <h2 class="th-detail__section-title">Варианты перелёта</h2>
-                        <p class="th-detail__flight-pkgs-hint">Цена тура зависит от выбранного рейса</p>
-                        <div id="th-flight-packages-list" class="th-flight-pkgs" role="radiogroup" aria-label="Пакет перелёта"></div>
-                    </section>
-                    <?php endif; ?>
-
-                    <!-- 6. Информация об отеле из API (галерея, описание, инфраструктура) — ниже блока рейса -->
+                    <!-- 6. Информация об отеле из API (галерея, описание, инфраструктура) -->
                     <div id="tour-hotel-info-block" class="th-detail__section hidden">
                         <h2 class="th-detail__section-title">Информация об отеле</h2>
                         <div id="tour-hotel-info-content"></div>
@@ -1370,10 +1362,7 @@ if ($return_url !== '' && $return_url[0] === '/') {
         function thTdFlightEsc(s) {
             return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
-        var thTdFlightsList = [];
-        var thTdFlightsInfo = null;
-        var thTdSelectedFlightIdx = -1;
-        var thTdSelectedFlightSummary = '';
+        var thTdSelectedFlightSummary = flightInfo || '';
 
         function thTdFlightDirectionLine(legs) {
             if (!legs || !legs.length) return '';
@@ -1387,8 +1376,7 @@ if ($return_url !== '' && $return_url[0] === '/') {
                 if (port && time) return port + ' ' + time;
                 if (port) return port;
                 if (time) return time;
-                var num = String(leg.number || '').trim();
-                return num;
+                return String(leg.number || '').trim();
             }
             var dep = portLabel(first, 'departure');
             var arr = portLabel(last, 'arrival');
@@ -1408,14 +1396,6 @@ if ($return_url !== '' && $return_url[0] === '/') {
             addFromLegs(pkg && (pkg.backward || pkg.back));
             return out;
         }
-        function thTdFlightIsDirect(pkg) {
-            if (!pkg) return false;
-            var fw = pkg.forward;
-            var bw = pkg.backward || pkg.back;
-            if (!Array.isArray(fw) || fw.length !== 1) return false;
-            if (Array.isArray(bw) && bw.length > 1) return false;
-            return true;
-        }
         function thTdFlightPackageLines(pkg) {
             var lines = [];
             var fwd = thTdFlightDirectionLine(pkg && pkg.forward);
@@ -1428,34 +1408,15 @@ if ($return_url !== '' && $return_url[0] === '/') {
             var listItemEl = document.getElementById('flight-info-list-item');
             var apiSpan = document.getElementById('flight-info-from-api');
             var chipAirline = document.getElementById('flight-airline-chip-label');
-            var pkgsSec = document.getElementById('th-flight-packages');
             if (chipAirline) chipAirline.textContent = '';
             if (apiSpan) {
                 apiSpan.textContent = flightInfo || 'Уточните детали перелёта у нашего менеджера';
             }
             if (listItemEl) listItemEl.classList.remove('hidden');
-            if (pkgsSec) pkgsSec.classList.add('hidden');
-            thTdFlightsList = [];
-            thTdSelectedFlightIdx = -1;
             thTdSelectedFlightSummary = flightInfo || '';
         }
-        function thTdFetchFlights(url) {
-            var fetchFn = (typeof thTvFetch === 'function') ? thTvFetch : function (u) { return fetch(u, { cache: 'no-store' }); };
-            return fetchFn(url).then(function (r) { return r.json(); });
-        }
-        function thTdNormalizeFlightsJson(j) {
-            if (!j || j.success === false) return { flights: [], info: null };
-            var flights = j.flights;
-            if (!Array.isArray(flights) && j.data && Array.isArray(j.data.flights)) flights = j.data.flights;
-            if (!Array.isArray(flights)) flights = [];
-            var info = j.info || (j.data && j.data.info) || null;
-            return { flights: flights, info: info };
-        }
-        function thTdApplyFlightPackage(idx, opts) {
-            opts = opts || {};
-            var pkg = thTdFlightsList[idx];
+        function thTdApplyFlightPackage(pkg, info) {
             if (!pkg) return;
-            thTdSelectedFlightIdx = idx;
             var lines = thTdFlightPackageLines(pkg);
             var airlines = thTdFlightAirlines(pkg);
             var airlineLabel = airlines.join(' \u00b7 ');
@@ -1473,7 +1434,9 @@ if ($return_url !== '' && $return_url[0] === '/') {
                 }
             }
             if (listItemEl) listItemEl.classList.remove('hidden');
-            thTdSelectedFlightSummary = [airlineLabel].concat(lines).filter(Boolean).join(' | ');
+            thTdSelectedFlightSummary = (typeof thFlightPackageSummary === 'function')
+                ? thFlightPackageSummary(pkg)
+                : [airlineLabel].concat(lines).filter(Boolean).join(' | ');
             if (typeof thFlightMetaFromPackage === 'function') {
                 var meta = thFlightMetaFromPackage(pkg, defaultDeparture);
                 if (meta && typeof thFlightsCacheSet === 'function' && tourId) {
@@ -1481,7 +1444,9 @@ if ($return_url !== '' && $return_url[0] === '/') {
                 }
             }
             if (!fromPromo) {
-                var flightPriceNum = thTdFlightsPickPriceNum(pkg, thTdFlightsInfo);
+                var flightPriceNum = (typeof thFlightPackagePriceNum === 'function')
+                    ? thFlightPackagePriceNum(pkg, info)
+                    : thTdFlightsPickPriceNum(pkg, info);
                 if (flightPriceNum > 0) {
                     currentPrice = flightPriceNum;
                     tdPriceBeforePromo = flightPriceNum;
@@ -1495,115 +1460,33 @@ if ($return_url !== '' && $return_url[0] === '/') {
                     if (typeof updateCtaPrice === 'function') updateCtaPrice();
                 }
             }
-            if (!opts.skipRadioSync) {
-                var radios = document.querySelectorAll('input[name="th-flight-pkg"]');
-                for (var r = 0; r < radios.length; r++) {
-                    radios[r].checked = (String(radios[r].value) === String(idx));
+        }
+        function thTdResolveFlightPackage(flights, info) {
+            if (!flights || !flights.length) return null;
+            var cached = (typeof thFlightPackagesGet === 'function') ? thFlightPackagesGet(tourId) : null;
+            if (cached && cached.flights && cached.flights.length) {
+                var idx = cached.selectedIdx != null ? cached.selectedIdx : 0;
+                if (cached.flights[idx]) return { pkg: cached.flights[idx], info: cached.info || info };
+            }
+            var pick = (typeof thPickTourvisorFlightPackage === 'function')
+                ? thPickTourvisorFlightPackage(flights, defaultDeparture, (typeof departureId !== 'undefined' ? departureId : null))
+                : null;
+            var startIdx = 0;
+            if (pick) {
+                for (var i = 0; i < flights.length; i++) {
+                    if (flights[i] === pick) { startIdx = i; break; }
+                }
+            } else {
+                for (var d = 0; d < flights.length; d++) {
+                    if (flights[d] && flights[d].isDefault) { startIdx = d; break; }
                 }
             }
-            var cards = document.querySelectorAll('.th-flight-pkg');
-            for (var c = 0; c < cards.length; c++) {
-                cards[c].classList.toggle('is-selected', String(cards[c].getAttribute('data-idx')) === String(idx));
+            if (!thTdFlightPackageLines(flights[startIdx]).length) {
+                for (var k = 0; k < flights.length; k++) {
+                    if (thTdFlightPackageLines(flights[k]).length) { startIdx = k; break; }
+                }
             }
-        }
-        function thTdRenderFlightPackages() {
-            var sec = document.getElementById('th-flight-packages');
-            var listEl = document.getElementById('th-flight-packages-list');
-            if (!sec || !listEl) return;
-            if (!thTdFlightsList.length) {
-                sec.classList.add('hidden');
-                listEl.innerHTML = '';
-                return;
-            }
-            var html = '';
-            thTdFlightsList.forEach(function (pkg, idx) {
-                var lines = thTdFlightPackageLines(pkg);
-                if (!lines.length) return;
-                var airlines = thTdFlightAirlines(pkg);
-                var priceNum = thTdFlightsPickPriceNum(pkg, thTdFlightsInfo);
-                var priceTxt = priceNum > 0
-                    ? (function () {
-                        try { return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(priceNum); }
-                        catch (e) { return Math.round(priceNum) + ' ₽'; }
-                    })()
-                    : '';
-                var badges = [];
-                if (thTdFlightIsDirect(pkg)) badges.push('Прямой');
-                else if ((pkg.forward && pkg.forward.length > 1) || ((pkg.backward || pkg.back) && (pkg.backward || pkg.back).length > 1)) badges.push('С пересадкой');
-                if (pkg.isDefault) badges.push('По умолчанию');
-                var badgeHtml = badges.map(function (b) {
-                    return '<span class="th-flight-pkg__badge">' + thTdFlightEsc(b) + '</span>';
-                }).join('');
-                var linesHtml = lines.map(function (ln, li) {
-                    var label = li === 0 ? 'Туда' : 'Обратно';
-                    return '<div class="th-flight-pkg__leg"><span class="th-flight-pkg__leg-label">' + label + '</span><span>' + thTdFlightEsc(ln) + '</span></div>';
-                }).join('');
-                html +=
-                    '<label class="th-flight-pkg' + (idx === thTdSelectedFlightIdx ? ' is-selected' : '') + '" data-idx="' + idx + '">' +
-                    '<input type="radio" name="th-flight-pkg" value="' + idx + '"' + (idx === thTdSelectedFlightIdx ? ' checked' : '') + '>' +
-                    '<div class="th-flight-pkg__body">' +
-                    '<div class="th-flight-pkg__air">' + thTdFlightEsc(airlines.join(' · ') || 'Авиакомпания уточняется') + '</div>' +
-                    (badgeHtml ? '<div class="th-flight-pkg__badges">' + badgeHtml + '</div>' : '') +
-                    '<div class="th-flight-pkg__legs">' + linesHtml + '</div>' +
-                    '</div>' +
-                    (priceTxt ? '<div class="th-flight-pkg__price">' + thTdFlightEsc(priceTxt) + '</div>' : '') +
-                    '</label>';
-            });
-            if (!html) {
-                sec.classList.add('hidden');
-                listEl.innerHTML = '';
-                return;
-            }
-            listEl.innerHTML = html;
-            sec.classList.remove('hidden');
-            listEl.querySelectorAll('input[name="th-flight-pkg"]').forEach(function (inp) {
-                inp.addEventListener('change', function () {
-                    var i = parseInt(inp.value, 10);
-                    if (!isNaN(i)) thTdApplyFlightPackage(i, { skipRadioSync: true });
-                });
-            });
-        }
-        if (tourId && tvApiBase) {
-            var sepFl = tvApiBase.indexOf('?') >= 0 ? '&' : '?';
-            var flightsUrl = tvApiBase + sepFl + 'type=tour-flights&tourId=' + encodeURIComponent(tourId) + '&currency=RUB';
-            thTdFetchFlights(flightsUrl)
-                .then(function(j) {
-                    var norm = thTdNormalizeFlightsJson(j);
-                    if (!norm.flights.length) {
-                        thTdFlightManagerFallback();
-                        return;
-                    }
-                    thTdFlightsList = norm.flights.slice();
-                    thTdFlightsInfo = norm.info;
-                    var pick = (typeof thPickTourvisorFlightPackage === 'function')
-                        ? thPickTourvisorFlightPackage(thTdFlightsList, defaultDeparture, (typeof departureId !== 'undefined' ? departureId : null))
-                        : null;
-                    var startIdx = 0;
-                    if (pick) {
-                        for (var i = 0; i < thTdFlightsList.length; i++) {
-                            if (thTdFlightsList[i] === pick) { startIdx = i; break; }
-                        }
-                    } else {
-                        for (var d = 0; d < thTdFlightsList.length; d++) {
-                            if (thTdFlightsList[d] && thTdFlightsList[d].isDefault) { startIdx = d; break; }
-                        }
-                    }
-                    if (!thTdFlightPackageLines(thTdFlightsList[startIdx]).length) {
-                        var found = -1;
-                        for (var k = 0; k < thTdFlightsList.length; k++) {
-                            if (thTdFlightPackageLines(thTdFlightsList[k]).length) { found = k; break; }
-                        }
-                        if (found < 0) {
-                            thTdFlightManagerFallback();
-                            return;
-                        }
-                        startIdx = found;
-                    }
-                    thTdSelectedFlightIdx = startIdx;
-                    thTdRenderFlightPackages();
-                    thTdApplyFlightPackage(startIdx);
-                })
-                .catch(function() { thTdFlightManagerFallback(); });
+            return { pkg: flights[startIdx], info: info };
         }
 
         // Цена возле CTA
@@ -1655,6 +1538,62 @@ if ($return_url !== '' && $return_url[0] === '/') {
             }
         }
         updateCtaPrice();
+
+        if (tourId && tvApiBase) {
+            var cachedStore = (typeof thFlightPackagesGet === 'function') ? thFlightPackagesGet(tourId) : null;
+            if (cachedStore && cachedStore.flights && cachedStore.flights.length && cachedStore.selectedIdx != null) {
+                thTdApplyFlightPackage(cachedStore.flights[cachedStore.selectedIdx], cachedStore.info);
+            } else if (typeof thFetchTourFlightsJson === 'function') {
+                thFetchTourFlightsJson(tourId, { departureCity: defaultDeparture, departureId: departureId })
+                    .then(function (j) {
+                        var flights = j && j.flights;
+                        if (!Array.isArray(flights) && j && j.data && Array.isArray(j.data.flights)) flights = j.data.flights;
+                        if (!flights || !flights.length) {
+                            thTdFlightManagerFallback();
+                            return;
+                        }
+                        var info = (j && (j.info || (j.data && j.data.info))) || null;
+                        var resolved = thTdResolveFlightPackage(flights, info);
+                        if (!resolved || !resolved.pkg) {
+                            thTdFlightManagerFallback();
+                            return;
+                        }
+                        if (typeof thFlightPackagesSet === 'function') {
+                            var pickIdx = flights.indexOf(resolved.pkg);
+                            thFlightPackagesSet(tourId, {
+                                flights: flights.slice(),
+                                selectedIdx: pickIdx >= 0 ? pickIdx : 0,
+                                depCity: defaultDeparture,
+                                departureId: departureId,
+                                info: info
+                            });
+                        }
+                        thTdApplyFlightPackage(resolved.pkg, resolved.info);
+                    })
+                    .catch(function () { thTdFlightManagerFallback(); });
+            } else {
+                var sepFl = tvApiBase.indexOf('?') >= 0 ? '&' : '?';
+                var flightsUrl = tvApiBase + sepFl + 'type=tour-flights&tourId=' + encodeURIComponent(tourId) + '&currency=RUB';
+                fetch(flightsUrl, { cache: 'no-store' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (j) {
+                        var flights = j && j.flights;
+                        if (!Array.isArray(flights) && j && j.data && Array.isArray(j.data.flights)) flights = j.data.flights;
+                        if (!flights || !flights.length) {
+                            thTdFlightManagerFallback();
+                            return;
+                        }
+                        var info = (j && (j.info || (j.data && j.data.info))) || null;
+                        var resolved = thTdResolveFlightPackage(flights, info);
+                        if (!resolved || !resolved.pkg) {
+                            thTdFlightManagerFallback();
+                            return;
+                        }
+                        thTdApplyFlightPackage(resolved.pkg, resolved.info);
+                    })
+                    .catch(function () { thTdFlightManagerFallback(); });
+            }
+        }
 
         (function initTourDetailPromo() {
             var promoApplyBtn = document.getElementById('th-td-promo-apply');

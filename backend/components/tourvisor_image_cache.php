@@ -194,6 +194,31 @@ function th_tourvisor_image_cache_purge_to_size(?string $cacheDir = null, int $t
 }
 
 /**
+ * Удалить все файлы кэша (разовая полная очистка на тесте).
+ *
+ * @return array{deleted:int,freed_bytes:int,errors:int}
+ */
+function th_tourvisor_image_cache_purge_all(?string $cacheDir = null): array
+{
+    $cacheDir = $cacheDir ?? th_tourvisor_image_cache_dir();
+    $deleted = 0;
+    $freed = 0;
+    $errors = 0;
+
+    foreach (th_tourvisor_image_cache_list_files($cacheDir) as $path) {
+        $size = (int) @filesize($path);
+        if (@unlink($path)) {
+            $deleted++;
+            $freed += $size;
+        } else {
+            $errors++;
+        }
+    }
+
+    return ['deleted' => $deleted, 'freed_bytes' => $freed, 'errors' => $errors];
+}
+
+/**
  * Периодическая подрезка: просроченные + лимит из TOURVISOR_IMAGE_CACHE_MAX_MB.
  * Вызывается из image-proxy (~1% запросов) и из cron.
  *

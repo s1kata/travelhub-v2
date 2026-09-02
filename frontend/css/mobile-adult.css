@@ -12,8 +12,10 @@
     /* visualViewport height — ставит th-mobile.js; fallback 100dvh / 100vh */
     --th-vvh: 100dvh;
     --th-sticky-bottom-h: 0px;
-    /* Actual fixed header is ~70–76px with padding; 56 caused sticky underlap */
+    /* Actual fixed header is ~70–76px with padding; 56 caused sticky underlap.
+       --th-header-clearance: content offset under fixed header (JS overwrites both). */
     --th-header-h: 72px;
+    --th-header-clearance: calc(var(--th-header-h) + var(--th-safe-top) + 16px);
     --th-tap: 48px;
     --th-tap-lg: 52px;
     --th-mobile-pad: 16px;
@@ -195,7 +197,9 @@
 /* ——— Header: телефон крупный и всегда доступный ——— */
 @media (max-width: 767.98px) {
     #site-header.header {
-        min-height: calc(var(--th-header-h) + var(--th-safe-top));
+        /* Do not use --th-header-h here — JS sets it from measured height and
+           min-height: header-h + safe would grow the bar every resize. */
+        min-height: calc(56px + var(--th-safe-top));
         padding-top: max(10px, var(--th-safe-top)) !important;
         padding-bottom: 10px !important;
         padding-left: max(12px, var(--th-safe-left)) !important;
@@ -243,7 +247,7 @@
 
     /* Контент не прячется под fixed header */
     body {
-        scroll-padding-top: calc(var(--th-header-h) + var(--th-safe-top) + 8px);
+        scroll-padding-top: var(--th-header-clearance);
     }
 
     /* Моб. меню: крупные пункты для взрослых */
@@ -290,7 +294,7 @@
     .home-hero-section {
         min-height: auto !important;
         min-height: calc(var(--th-vvh) - 4px) !important;
-        padding-top: calc(var(--th-header-h) + var(--th-safe-top) + 12px) !important;
+        padding-top: var(--th-header-clearance) !important;
         padding-bottom: 28px !important;
         justify-content: flex-start !important;
     }
@@ -644,7 +648,7 @@
 @media (max-width: 767.98px) {
     .promo-unified-hero,
     .th-page-hero-v2 {
-        padding-top: calc(4rem + var(--th-safe-top)) !important;
+        padding-top: var(--th-header-clearance) !important;
         padding-bottom: 2rem !important;
         min-height: unset !important;
     }
@@ -716,7 +720,7 @@
 @media (max-width: 900px) and (max-height: 480px) and (orientation: landscape) {
     .home-hero-section {
         min-height: auto !important;
-        padding-top: calc(52px + var(--th-safe-top)) !important;
+        padding-top: var(--th-header-clearance) !important;
         padding-bottom: 16px !important;
     }
 

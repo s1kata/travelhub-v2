@@ -116,6 +116,10 @@ function th_departure_tour_matches_departure(int $departureId, array $tour): boo
     if (th_departure_tour_name_is_blocked($name)) {
         return false;
     }
+    /* Самара (7): дальние пакеты часто с MOW-* в name при корректном departureId=7 — не режем по IATA */
+    if ($departureId === 7) {
+        return true;
+    }
     if ($name !== '' && preg_match_all('/(?:^|[^A-Z])([A-Z]{3})-([A-Z]{3})(?:[^A-Z]|$)/', strtoupper($name), $matches, PREG_SET_ORDER)) {
         $allowed = th_departure_allowed_route_from_codes($departureId);
         foreach ($matches as $m) {

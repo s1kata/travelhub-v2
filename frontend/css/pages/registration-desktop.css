@@ -1,5 +1,15 @@
 .gradient-bg { background: linear-gradient(135deg, #f0f9ff 0%, #DCEEEC 50%, #C2E2DF 100%); }
         .card-shadow { box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08); }
+        .login-page-main {
+            padding-top: var(--th-header-clearance, max(7.5rem, calc(env(safe-area-inset-top, 0px) + 5.75rem)));
+            padding-bottom: 3rem;
+        }
+        @media (min-width: 768px) {
+            .login-page-main {
+                padding-top: max(8rem, calc(env(safe-area-inset-top, 0px) + 6rem));
+                padding-bottom: 6rem;
+            }
+        }
         .animated-button {
             background: linear-gradient(to right, #79BCB7 0%, #5DA9A4 51%, #457F7B 100%);
             border: none;

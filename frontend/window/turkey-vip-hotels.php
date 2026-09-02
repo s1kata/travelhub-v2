@@ -57,8 +57,8 @@ session_start();
                 <!-- Empty State -->
                 <div id="empty-state" class="hidden text-center py-12 max-w-lg mx-auto">
                     <i class="fas fa-hotel text-6xl text-slate-300 mb-4"></i>
-                    <p class="text-xl text-slate-600">Отели не найдены</p>
-                    <p id="vip-empty-hint" class="text-sm text-slate-500 mt-3 hidden"></p>
+                    <p class="text-xl text-slate-600">Отели временно недоступны</p>
+                    <p id="vip-empty-hint" class="text-sm text-slate-500 mt-3">Сейчас список VIP-отелей пуст. Загляните позже или выберите туры в Турцию на главной.</p>
                 </div>
             </div>
         </div>
@@ -114,16 +114,10 @@ session_start();
                     if (data.error) console.warn('[VIP отели] Причина пустого списка:', data.error);
                     const hint = document.getElementById('vip-empty-hint');
                     if (hint) {
-                        const parts = [];
-                        if (data.error) parts.push(String(data.error));
-                        if (data._debug && data._debug.message) parts.push(String(data._debug.message));
-                        if (parts.length) {
-                            hint.textContent = parts.join(' ');
-                            hint.classList.remove('hidden');
-                        } else {
-                            hint.classList.add('hidden');
-                            hint.textContent = '';
-                        }
+                        hint.textContent = (data.message && String(data.message).trim())
+                            ? String(data.message).trim()
+                            : 'Сейчас список VIP-отелей пуст. Загляните позже или выберите туры в Турцию на главной.';
+                        hint.classList.remove('hidden');
                     }
                     emptyState.classList.remove('hidden');
                 }

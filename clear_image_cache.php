@@ -10,6 +10,7 @@
  *   php clear_image_cache.php 14              — удалить старше 14 дней
  *   php clear_image_cache.php --trim-mb=800   — оставить не больше ~800 МБ (самые старые первыми)
  *   php clear_image_cache.php 14 --trim-mb=1024
+ *   php clear_image_cache.php --all             — удалить ВСЕ файлы кэша (тест)
  *   php clear_image_cache.php --stats         — только статистика, без удаления
  *
  * Папка: TOURVISOR_IMAGE_CACHE_DIR в .env, иначе data/tourvisor_image_cache
@@ -17,7 +18,7 @@
 declare(strict_types=1);
 
 if (PHP_SAPI !== 'cli') {
-    fwrite(STDERR, "Только CLI: php clear_image_cache.php [дней] [--trim-mb=N] [--stats]\n");
+    fwrite(STDERR, "Только CLI: php clear_image_cache.php [дней] [--all] [--trim-mb=N] [--stats]\n");
     exit(1);
 }
 
@@ -55,10 +56,15 @@ $argv = $GLOBALS['argv'] ?? [];
 $daysOld = 0;
 $trimMb = 0;
 $statsOnly = false;
+$purgeAll = false;
 
 foreach (array_slice($argv, 1) as $arg) {
     if ($arg === '--stats') {
         $statsOnly = true;
+        continue;
+    }
+    if ($arg === '--all') {
+        $purgeAll = true;
         continue;
     }
     if (preg_match('/^--trim-mb=(\d+)$/', $arg, $m)) {
@@ -92,6 +98,20 @@ if ($statsOnly) {
     echo 'TTL из .env: ' . (th_tourvisor_image_cache_ttl_seconds() / 86400) . " дн.\n";
     $maxMb = th_tourvisor_image_cache_max_bytes();
     echo 'Лимит MAX_MB: ' . ($maxMb > 0 ? round($maxMb / 1024 / 1024) : 'не задан') . "\n";
+    exit(0);
+}
+
+if ($purgeAll) {
+    $all = th_tourvisor_image_cache_purge_all($cacheDir);
+    echo "\nПолная очистка: удалено {$all['deleted']}, "
+        . round($all['freed_bytes'] / 1024 / 1024, 2) . " МБ\n";
+    $after = th_tourvisor_image_cache_stats($cacheDir);
+    echo "После очистки: {$after['files']} файлов, "
+        . round($after['bytes'] / 1024 / 1024, 2) . " МБ\n";
+    if ($all['errors'] > 0) {
+        fwrite(STDERR, "Ошибок: {$all['errors']}\n");
+        exit(1);
+    }
     exit(0);
 }
 

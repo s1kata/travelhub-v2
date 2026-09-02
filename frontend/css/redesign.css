@@ -2118,6 +2118,44 @@ select.flatpickr-monthDropdown-months {
     margin: 0 !important;
 }
 
+/* Пока не multi-month: weekdays/months всегда видимы (перебиваем конфликтующие display:none) */
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-months {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-height: 52px !important;
+    height: auto !important;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-weekdays:not(.tv-cal-weekdays--hidden) {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    min-height: 28px !important;
+    overflow: visible !important;
+    padding: 8px 6px 4px !important;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-weekday {
+    color: #64748b !important;
+    opacity: 1 !important;
+}
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .tv-cal-period-select,
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .flatpickr-current-month,
+.tv-sc-date-popup--cal-only .tv-sc-cal-container .cur-month {
+    color: #fff !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+.tv-sc-cal-container .tv-cal-month-caption,
+.tv-sc-cal-container .tv-cal-weekdays-row {
+    display: grid !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+.tv-sc-cal-container .tv-cal-month-caption {
+    display: block !important;
+}
+
 .tv-sc-cal-container .flatpickr-days.tv-cal-days-grid {
     display: flex !important;
     flex-direction: row !important;
@@ -3157,8 +3195,6 @@ select.flatpickr-monthDropdown-months {
     flex: 1;
     min-width: 0;
 }
-
-/* --- Геопозиция --- */
 .th-tour-card__geo {
     font-size: 12px;
     color: #94a3b8;
@@ -3268,15 +3304,41 @@ select.flatpickr-monthDropdown-months {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    margin-top: 2px;
+    margin: 8px 0 4px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
     min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    color: inherit;
+    position: relative;
+    z-index: 2;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+.th-tour-card__flight-pick:hover .th-tour-card__flight-chip {
+    border-color: rgba(93, 169, 164, 0.55);
+    background: #f3fbfa;
+}
+.th-tour-card__flight-pick:focus-visible {
+    outline: 2px solid #5DA9A4;
+    outline-offset: 2px;
+    border-radius: 12px;
+}
+.th-tour-card__flight-pick-slot {
+    margin: 0;
+    padding: 0;
 }
 .th-tour-card__flight-pick-label {
     font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    color: #64748b;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: #5DA9A4;
+    line-height: 1.3;
 }
 .th-tour-card__flight-select {
     width: 100%;
@@ -3398,6 +3460,15 @@ select.flatpickr-monthDropdown-months {
     flex: 1;
     text-decoration: none;
     color: inherit;
+}
+.th-tour-card__link--head,
+.th-tour-card__link--tail {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+.th-tour-card__link--tail {
+    margin-top: auto;
 }
 .th-tour-card__actions {
     display: flex;
@@ -3642,7 +3713,7 @@ body.th-promo-open { overflow: hidden; }
     display: none;
     position: fixed;
     left: 50%;
-    top: calc(var(--th-header-h, 56px) + max(6px, env(safe-area-inset-top, 0px)));
+    top: calc(var(--th-header-clearance, calc(var(--th-header-h, 72px) + env(safe-area-inset-top, 0px) + 16px)) - 10px);
     bottom: auto;
     transform: translateX(-50%);
     z-index: 9850;
@@ -3766,11 +3837,11 @@ body.th-abandon-open .th-promo-popup--collapsed .th-promo-popup__tab {
 
 /* Мобилка: промик сверху — лёгкий отступ контента под шапкой */
 body.th-promo-tab-bottom.th-promo-tab-visible {
-    padding-top: calc(var(--th-header-h, 56px) + 46px);
+    padding-top: calc(var(--th-header-clearance, calc(var(--th-header-h, 72px) + env(safe-area-inset-top, 0px) + 16px)) + 30px);
     padding-bottom: calc(var(--th-lead-bar-h, 48px) + env(safe-area-inset-bottom, 0px));
 }
 body.th-promo-page.th-promo-tab-bottom.th-promo-tab-visible {
-    padding-top: calc(var(--th-header-h, 56px) + 46px);
+    padding-top: calc(var(--th-header-clearance, calc(var(--th-header-h, 72px) + env(safe-area-inset-top, 0px) + 16px)) + 30px);
     padding-bottom: 0;
 }
 body.th-support-chat-open .th-promo-popup--collapsed .th-promo-popup__tab,
@@ -3780,7 +3851,7 @@ body.th-deals-cal-page .th-promo-popup--collapsed .th-promo-popup__tab {
 /* Над sticky lead-bar — промик остаётся сверху */
 @media (max-width: 1023px) {
     body.has-th-lead-bar.th-promo-tab-bottom .th-promo-popup--collapsed .th-promo-popup__tab {
-        top: calc(var(--th-header-h, 56px) + max(6px, env(safe-area-inset-top, 0px)));
+        top: calc(var(--th-header-clearance, calc(var(--th-header-h, 72px) + env(safe-area-inset-top, 0px) + 16px)) - 10px);
         bottom: auto;
         z-index: 9985;
     }
@@ -5079,7 +5150,7 @@ body.th-promo-page.th-promo-tab-visible {
 }
 /* Промик всегда сверху под шапкой — не конкурирует со sticky CTA внизу */
 body.th-promo-page.th-promo-tab-bottom .th-promo-popup--collapsed .th-promo-popup__tab {
-    top: calc(var(--th-header-h, 56px) + max(6px, env(safe-area-inset-top, 0px)));
+    top: calc(var(--th-header-clearance, calc(var(--th-header-h, 72px) + env(safe-area-inset-top, 0px) + 16px)) - 10px);
     bottom: auto;
 }
 @media (min-width: 768px) {
@@ -5351,4 +5422,147 @@ html.th-cookie-consent-open {
         flex: 1 1 auto;
         min-width: 0;
     }
+}
+
+/* ===== Flight pick modal (карточка тура) ===== */
+body.th-flight-pick-modal-open { overflow: hidden; }
+.th-flight-pick-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 130000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+}
+.th-flight-pick-modal.hidden { display: none !important; }
+.th-flight-pick-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+}
+.th-flight-pick-modal__panel {
+    position: relative;
+    width: min(560px, 100%);
+    max-height: min(88vh, 720px);
+    overflow: auto;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 24px 64px rgba(15, 23, 42, 0.22);
+    padding: 20px 18px 18px;
+    box-sizing: border-box;
+}
+.th-flight-pick-modal__close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 10px;
+    background: #f1f5f9;
+    color: #334155;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+.th-flight-pick-modal__title {
+    margin: 0 36px 6px 0;
+    font-size: 20px;
+    font-weight: 800;
+    color: #0f172a;
+}
+.th-flight-pick-modal__hint {
+    margin: 0 0 14px;
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.4;
+}
+.th-flight-pick-modal__loading {
+    margin: 12px 0 0;
+    font-size: 14px;
+    color: #64748b;
+}
+.th-flight-pkgs {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.th-flight-pkg {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: start;
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+}
+.th-flight-pkg:hover { border-color: rgba(93, 169, 164, 0.55); }
+.th-flight-pkg.is-selected {
+    border-color: #5DA9A4;
+    background: #f3fbfa;
+    box-shadow: 0 0 0 1px rgba(93, 169, 164, 0.25);
+}
+.th-flight-pkg__body { min-width: 0; }
+.th-flight-pkg__air {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+.th-flight-pkg__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.th-flight-pkg__badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #0f766e;
+    background: #ccfbf1;
+}
+.th-flight-pkg__legs {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.th-flight-pkg__leg {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    line-height: 1.35;
+}
+.th-flight-pkg__leg-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #94a3b8;
+}
+.th-flight-pkg__price {
+    font-size: 15px;
+    font-weight: 800;
+    color: #0f172a;
+    white-space: nowrap;
+}
+@media (max-width: 480px) {
+    .th-flight-pick-modal__panel { padding: 16px 14px 14px; }
+    .th-flight-pkg { grid-template-columns: 1fr; }
+    .th-flight-pkg__price { justify-self: start; }
+    .th-tour-card__flight-pick { margin-left: 12px; margin-right: 12px; width: calc(100% - 24px); }
 }

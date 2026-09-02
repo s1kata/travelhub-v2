@@ -264,7 +264,7 @@ body.th-modal-open .v2-back-to-top {
 
 /* ——— Country hero: контраст на всех экранах ——— */
 .th-country-hero {
-    padding-top: calc(5.25rem + var(--th-safe-top, 0px));
+    padding-top: var(--th-header-clearance, calc(5.25rem + var(--th-safe-top, 0px)));
 }
 
 /* Country hero: один ISO-бейдж на всех экранах (эмодзи-флаг на Edge = второй «ID») */

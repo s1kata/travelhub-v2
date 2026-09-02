@@ -546,17 +546,43 @@
 }
 
 #site-header .header__nav .header__more-toggle {
-    color: #ffffff;
+    /* Наследуют цвет как у .header__nav a (home/v2-theme) */
+    color: inherit;
     font-weight: 500;
 }
 
 #site-header .header__nav .header__more-toggle.is-active,
 #site-header .header__nav .header__more-toggle:hover,
 #site-header .header__nav .header__more-toggle:focus-visible {
-    color: #ffffff;
     text-decoration: underline;
     text-underline-offset: 4px;
     outline: none;
+}
+
+#site-header .header__more {
+    position: relative;
+}
+#site-header .header__more-menu {
+    left: auto !important;
+    right: 0 !important;
+}
+#site-header .header__more-menu a,
+#site-header[data-home="1"] .header__more-menu a,
+#site-header[data-home="1"]:not(.scrolled) .header__more-menu a,
+#site-header[data-home="1"].scrolled .header__more-menu a,
+#site-header[data-home="1"]:not(.scrolled) .header__nav .header__more-menu a,
+#site-header[data-home="1"].scrolled .header__nav .header__more-menu a {
+    color: #1A1A40 !important;
+    -webkit-text-fill-color: #1A1A40 !important;
+    opacity: 1 !important;
+}
+#site-header .header__more-menu a:hover,
+#site-header[data-home="1"] .header__more-menu a:hover,
+#site-header[data-home="1"]:not(.scrolled) .header__nav .header__more-menu a:hover {
+    color: #1A1A40 !important;
+    -webkit-text-fill-color: #1A1A40 !important;
+    background: rgba(93, 169, 164, 0.18) !important;
+    text-decoration: none !important;
 }
 
 #site-header .th-promo-header-slot {

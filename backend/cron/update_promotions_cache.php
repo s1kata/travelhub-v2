@@ -1,21 +1,34 @@
 <?php
 /**
  * Прогрев кэша горящих туров: promo-search live → data/promo_cache_{countryId}_{departureId}.json
+ * + tour-flights для топ-N туров (flightsByTourId в том же файле).
  * Питает витрину главной (home_showcase_shelves) — страны из popular_countries.php.
  *
  * Cron (2 раза в сутки, минимум 1× ночью):
- *   0 0,12 * * * cd /path/to/website-main && bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1
+ *   0 0,12 * * * cd /path/to/website-main && flock -n data/promo_warm.lock bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1
  *
- * Ручной прогрев по SSH (на хостинге нужен php7.4, не системный php 5.2):
- *   cd /path/to/website-main && bash backend/cron/warm_promotions_cache.sh
- *   # или: PHP_BIN=/usr/bin/php7.4 php backend/cron/update_promotions_cache.php
+ * Ручной прогрев по SSH (фон, не рвётся при disconnect):
+ *   cd ~/travel63test_ru/public_html && nohup env PHP_BIN=/usr/bin/php7.4 bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1 &
+ *   tail -f data/promo_warm.log
+ *
+ * Дозапуск после обрыва (пропускает уже свежие promo_cache_*):
+ *   PROMO_WARM_FORCE=0 nohup env PHP_BIN=/usr/bin/php7.4 bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1 &
+ *
+ * Быстрый прогрев без рейсов:
+ *   PROMO_WARM_SKIP_FLIGHTS=1 PHP_BIN=/usr/bin/php7.4 bash backend/cron/warm_promotions_cache.sh
  *
  * Требует SITE_URL / TOURVISOR_PROXY_URL (см. tourvisor_proxy_http_base.php).
  */
 declare(strict_types=1);
 
+@set_time_limit(0);
+if (function_exists('ignore_user_abort')) {
+    ignore_user_abort(true);
+}
+
 require_once __DIR__ . '/../components/tourvisor_proxy_http_base.php';
 require_once __DIR__ . '/../components/promo_speed_cache.php';
+require_once __DIR__ . '/../components/promo_sochi_filter.php';
 
 $isCli = (php_sapi_name() === 'cli');
 if (!$isCli) {
@@ -56,15 +69,18 @@ if (!is_array($popular) || $popular === []) {
 $proxyBase = get_tourvisor_proxy_http_base_url();
 $departures = th_promo_speed_warm_departures();
 
-$index = [];
+$index = th_promo_speed_index_get(true);
 $ok = 0;
 $err = 0;
+$skipped = 0;
 $seenCountry = [];
 
 th_promo_speed_log('cron_start', [
     'countries' => count($popular),
     'departures' => array_column($departures, 'departureId'),
-    'mode' => 'promo-search-tour-hots',
+    'mode' => 'promo-search-hybrid',
+    'skip_flights' => th_promo_speed_warm_skip_flights(),
+    'flights_max' => th_promo_speed_warm_flights_max(),
 ]);
 
 foreach ($departures as $depRow) {
@@ -87,6 +103,20 @@ foreach ($departures as $depRow) {
             continue;
         }
         $seenCountry[$comboKey] = true;
+
+        $countryName = isset($row['name']) ? (string) $row['name'] : (string) $countryId;
+        if (th_promo_speed_warm_combo_is_fresh($countryId, $departureId)) {
+            $skipped++;
+            if ($isCli) {
+                echo $countryName . " (dep {$departureId}): skip (fresh cache)\n";
+                @flush();
+            }
+            th_promo_speed_log('cron_promo_search_skip_fresh', [
+                'countryId' => $countryId,
+                'departureId' => $departureId,
+            ]);
+            continue;
+        }
 
         $dates = th_promo_speed_promo_dates($countryId);
 
@@ -115,6 +145,29 @@ foreach ($departures as $depRow) {
             'live' => '1',
         ]);
         $hotels = (!empty($res['success']) && is_array(isset($res['data']) ? $res['data'] : null)) ? $res['data'] : [];
+
+        if (count($hotels) === 0 && $countryId === th_promo_phuquoc_virtual_country_id()) {
+            $arrays = th_promo_speed_fetch_regular_window_arrays(
+                $countryId,
+                $departureId,
+                $dates,
+                2,
+                null,
+                $cronDispatch,
+                true,
+                true
+            );
+            if ($arrays !== []) {
+                $merged = th_promo_speed_merge_hotels($arrays, $countryId);
+                $hotels = th_promo_speed_prepare_live_search_hotels($merged, $countryId, $departureId, $dates);
+                th_promo_speed_log('cron_phuquoc_wide_fallback', [
+                    'countryId' => $countryId,
+                    'departureId' => $departureId,
+                    'hotels' => count($hotels),
+                ]);
+            }
+        }
+
         if (count($hotels) === 0) {
             th_promo_speed_log('cron_promo_search_empty', [
                 'countryId' => $countryId,
@@ -129,6 +182,20 @@ foreach ($departures as $depRow) {
                 'hotels' => count($hotels),
                 'source' => isset($res['promoSearchSource']) ? $res['promoSearchSource'] : null,
             ]);
+            $tourIds = th_promo_speed_collect_tour_ids_from_hotels($hotels, th_promo_speed_warm_flights_max());
+            $flightsByTourId = [];
+            if ($tourIds !== []) {
+                $flightsByTourId = th_promo_speed_warm_flights_for_tour_ids($tourIds, $cronDispatch);
+                th_promo_speed_log('cron_flights_warm', [
+                    'countryId' => $countryId,
+                    'departureId' => $departureId,
+                    'tours' => count($tourIds),
+                    'warmed' => count($flightsByTourId),
+                ]);
+            }
+            th_promo_speed_cache_set($countryId, $departureId, $hotels, array_merge($dates, [
+                'flightsByTourId' => $flightsByTourId,
+            ]));
         }
 
         $hotelsForTile = th_promo_filter_hotels_min_nights($hotels, $countryId);
@@ -151,22 +218,24 @@ foreach ($departures as $depRow) {
         if (count($hotels) > 0) {
             $ok++;
             if ($isCli) {
-                echo (isset($row['name']) ? $row['name'] : $countryId) . " (dep {$departureId}): " . count($hotels) . " отелей\n";
+                echo $countryName . " (dep {$departureId}): " . count($hotels) . " отелей\n";
+                @flush();
             }
         } else {
             $err++;
             if ($isCli) {
-                echo (isset($row['name']) ? $row['name'] : $countryId) . " (dep {$departureId}): пусто\n";
+                echo $countryName . " (dep {$departureId}): пусто\n";
+                @flush();
             }
         }
         th_promo_speed_index_set($index);
-        sleep(1);
+        usleep(500000);
     }
 }
 
 th_promo_speed_index_set($index);
-th_promo_speed_log('cron_done', ['ok' => $ok, 'err' => $err]);
+th_promo_speed_log('cron_done', ['ok' => $ok, 'err' => $err, 'skipped' => $skipped]);
 
 if (!$isCli) {
-    echo json_encode(['success' => true, 'ok' => $ok, 'err' => $err], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['success' => true, 'ok' => $ok, 'err' => $err, 'skipped' => $skipped], JSON_UNESCAPED_UNICODE);
 }

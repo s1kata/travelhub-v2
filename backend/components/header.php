@@ -28,7 +28,7 @@ $th_csrf_token = security_csrf_token();
 <?php define('TRAVELHUB_HEADER_FALLBACK_STYLES', true); ?>
 <?php /* v2: тема и микровзаимодействия на всех страницах (header подключается везде) */ ?>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/frontend/css/v2-theme.css?v=3">
+<link rel="stylesheet" href="/frontend/css/v2-theme.css?v=5">
 <script src="/frontend/js/v2-theme.js?v=1" defer></script>
 <style>
     /* Fallback styles: header works even without design-system.css */
@@ -96,7 +96,8 @@ $th_csrf_token = security_csrf_token();
         padding: 0;
         font: inherit;
         font-weight: 500;
-        color: #ffffff;
+        /* Цвет как у соседних пунктов nav — задаёт v2-theme / home.css */
+        color: inherit;
         background: none;
         border: none;
         cursor: pointer;
@@ -106,7 +107,6 @@ $th_csrf_token = security_csrf_token();
 
     #site-header .header__more-toggle:hover,
     #site-header .header__more-toggle:focus-visible {
-        color: #ffffff;
         text-decoration: underline;
         text-underline-offset: 4px;
         outline: none;
@@ -114,6 +114,8 @@ $th_csrf_token = security_csrf_token();
 
     #site-header .header__more-menu {
         position: absolute;
+        /* Привязка к правому краю «Ещё» — не уезжает под Акции/Страны */
+        left: auto;
         right: 0;
         /* Без зазора с кнопкой — иначе при движении курсора :hover пропадает */
         top: calc(100% - 2px);
@@ -121,9 +123,10 @@ $th_csrf_token = security_csrf_token();
         padding: 8px;
         padding-top: 10px;
         border-radius: 12px;
-        background: rgba(20, 20, 51, 0.96);
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        box-shadow: 0 18px 42px rgba(2, 6, 23, 0.45);
+        /* Один стиль меню на всех страницах (баг Даника: разный цвет на Главной / остальных) */
+        background: #ffffff;
+        border: 1px solid rgba(26, 26, 64, 0.12);
+        box-shadow: 0 18px 42px rgba(2, 6, 23, 0.18);
         display: none;
         z-index: 1200;
     }
@@ -138,19 +141,29 @@ $th_csrf_token = security_csrf_token();
         height: 14px;
     }
 
-    #site-header .header__more-menu a {
+    #site-header .header__more-menu a,
+    #site-header[data-home="1"] .header__more-menu a,
+    #site-header[data-home="1"]:not(.scrolled) .header__nav .header__more-menu a,
+    #site-header[data-home="1"].scrolled .header__nav .header__more-menu a {
         display: block;
         padding: 9px 10px;
         border-radius: 8px;
         text-decoration: none;
-        color: #ffffff;
+        /* !important + выше specificity, чем home nav white */
+        color: #1A1A40 !important;
+        -webkit-text-fill-color: #1A1A40 !important;
         font-weight: 500;
-        opacity: 0.95;
+        opacity: 1 !important;
+        background: transparent !important;
+        box-shadow: none !important;
     }
 
-    #site-header .header__more-menu a:hover {
-        background: rgba(93, 169, 164, 0.3);
+    #site-header .header__more-menu a:hover,
+    #site-header[data-home="1"]:not(.scrolled) .header__nav .header__more-menu a:hover {
+        background: rgba(93, 169, 164, 0.18) !important;
         text-decoration: none;
+        color: #1A1A40 !important;
+        -webkit-text-fill-color: #1A1A40 !important;
     }
 
     #site-header .header__more:hover .header__more-menu,

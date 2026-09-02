@@ -841,9 +841,25 @@ html.th-kb-open .th-search-choice-sheet__search {
     }
 }
 
+#tv-sc-date-popup.th-coral-popup,
+#tv-tourists-block.th-coral-popup,
+#tv-nights-popup.th-coral-popup {
+    z-index: 10270 !important;
+}
+
 /* Override legacy redesign.css display rules */
 #tv-sc-date-popup.th-coral-popup.is-open,
 #tv-sc-date-popup.th-coral-popup:not(.hidden) {
+    display: flex !important;
+}
+
+#tv-tourists-block.th-coral-popup.is-open,
+#tv-tourists-block.th-coral-popup:not(.hidden) {
+    display: flex !important;
+}
+
+#tv-nights-popup.th-coral-popup.is-open,
+#tv-nights-popup.th-coral-popup:not(.hidden) {
     display: flex !important;
 }
 
@@ -1030,63 +1046,106 @@ html.th-kb-open .th-search-choice-sheet__search {
     border-radius: 10px;
     font-weight: 600;
     color: var(--thcs-navy);
-    border: none;
+    border: 1px solid transparent;
     width: 100% !important;
     max-width: none !important;
-    height: 42px;
-    min-height: 42px;
-    line-height: 1.15;
+    min-height: 46px;
+    height: auto;
+    line-height: 1.1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 2px;
     margin: 0;
+    padding: 5px 2px 4px;
     box-sizing: border-box;
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-fly {
-    font-weight: 700;
-    box-shadow: inset 0 -2px 0 #5DA9A4;
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-fly:not(.startRange):not(.endRange):not(.inRange) {
+    background: rgba(93, 169, 164, 0.07);
+    border-color: rgba(93, 169, 164, 0.22);
+    box-shadow: none;
 }
-.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-fly-direct {
-    box-shadow: inset 0 -2px 0 #FF6B6B !important;
-    background: rgba(255, 107, 107, 0.16) !important;
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-fly-direct:not(.startRange):not(.endRange):not(.inRange) {
+    background: rgba(255, 107, 107, 0.08);
+    border-color: rgba(255, 107, 107, 0.28);
+    box-shadow: none;
 }
 .th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-fly-off {
-    opacity: 0.38;
+    opacity: 0.42;
 }
 .th-coral-date-popup .tv-sc-cal-container .tv-cal-day-price {
-    display: block;
+    display: inline-block;
     margin-top: 1px;
-    font-size: 0.55rem;
+    padding: 1px 5px;
+    border-radius: 999px;
+    font-size: 0.48rem;
     font-weight: 700;
-    color: #e11d48;
-    line-height: 1;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+}
+.th-coral-date-popup .tv-sc-cal-container .tv-cal-day-price.is-price {
+    color: #64748b;
+    background: #f1f5f9;
+}
+.th-coral-date-popup .tv-sc-cal-container .tv-cal-day-price.is-deal {
+    color: #047857;
+    background: #ecfdf5;
+}
+.th-coral-date-popup .tv-sc-cal-container .tv-cal-day-price.is-reduced {
+    color: #b45309;
+    background: #fffbeb;
 }
 
 .tv-cal-legend {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 10px 14px;
-    margin-top: 10px;
-    padding: 8px 10px;
-    border-radius: 10px;
-    background: #f8fafc;
+    justify-content: center;
+    gap: 8px 10px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
     font-size: 0.72rem;
     font-weight: 600;
-    color: #64748b;
+    color: #475569;
 }
-.tv-cal-legend__dot {
+.tv-cal-legend__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    white-space: nowrap;
+}
+.tv-cal-legend__mark {
     display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 3px;
-    margin-right: 4px;
-    vertical-align: middle;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
 }
-.tv-cal-legend__dot--fly { background: #5DA9A4; }
-.tv-cal-legend__dot--direct { background: #FF6B6B; }
+.tv-cal-legend__chip--fly .tv-cal-legend__mark {
+    background: #5DA9A4;
+    box-shadow: 0 0 0 2px rgba(93, 169, 164, 0.22);
+}
+.tv-cal-legend__chip--direct .tv-cal-legend__mark {
+    background: #FF6B6B;
+    box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
+}
+.tv-cal-legend__chip--deal .tv-cal-legend__mark {
+    background: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+/* legacy legend dots — hide if old markup cached */
+.tv-cal-legend__dot { display: none; }
 
 .tv-cal-month-column {
     width: 100%;
@@ -1114,6 +1173,47 @@ html.th-kb-open .th-search-choice-sheet__search {
 }
 .flatpickr-weekdays.tv-cal-weekdays--hidden {
     display: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+/* Multi: один ряд Пн–Вс (второй weekdaycontainer от flatpickr прячем) */
+.tv-cal-layout-multi .flatpickr-weekdays .flatpickr-weekdaycontainer:nth-child(n+2),
+.th-coral-date-popup .tv-sc-cal-container .tv-cal-layout-multi .flatpickr-weekdaycontainer:nth-child(n+2) {
+    display: none !important;
+}
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-weekdays,
+.th-coral-date-popup .tv-sc-cal-container .tv-cal-layout-multi .flatpickr-weekdays {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    min-height: 28px !important;
+    overflow: visible !important;
+    padding: 8px 6px 4px !important;
+    margin: 0 !important;
+}
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-weekdays.tv-cal-weekdays--hidden {
+    display: none !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+}
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-months {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-height: 52px !important;
+}
+.th-coral-date-popup .tv-sc-cal-container .tv-cal-month-caption {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #1A1A40 !important;
 }
 
 .th-coral-date-popup .tv-sc-cal-container .flatpickr-day.today {
@@ -1438,12 +1538,38 @@ body > #tv-tourists-block:not(.hidden) {
     transition: width 0.28s ease;
 }
 
+.th-coral-wizard .th-wizard__stepbar {
+    margin: 0.65rem 0 0.85rem;
+    padding-top: 0.35rem;
+    position: relative;
+    z-index: 1;
+    clear: both;
+}
+.th-coral-wizard .th-wizard__stepbar-track {
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(26, 26, 64, 0.08);
+    overflow: hidden;
+}
+.th-coral-wizard .th-wizard__stepbar-fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--thcs-teal), #79bcb7);
+    transition: width 0.28s ease;
+}
 .th-coral-wizard .th-wizard__stepbar-label {
-    margin: 0.35rem 0 0;
+    margin: 0.5rem 0 0;
+    padding: 0.15rem 0.35rem;
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--thcs-muted);
     text-align: center;
+    line-height: 1.35;
+    /* Не сливается с бирюзовой линией рельсы/прогресса */
+    background: #fff;
+    position: relative;
+    z-index: 2;
 }
 
 .th-coral-wizard .th-coral-search__field--step {
@@ -2205,14 +2331,28 @@ body > #tv-tourists-block:not(.hidden) {
 #tv-sc-date-popup.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.selected,
 #tv-sc-date-popup.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.startRange,
 #tv-sc-date-popup.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.endRange {
-    background: #1A1A40 !important;
-    border-color: #1A1A40 !important;
+    background: linear-gradient(145deg, #1A1A40 0%, #2a2a5c 100%) !important;
+    border-color: transparent !important;
     color: #fff !important;
+    box-shadow: 0 2px 10px rgba(26, 26, 64, 0.22) !important;
+}
+#tv-sc-date-popup.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.inRange {
+    background: rgba(93, 169, 164, 0.1) !important;
+    border-color: transparent !important;
+    color: #1e293b !important;
 }
 #tv-sc-date-popup.th-coral-date-popup .th-coral-popup__preview {
-    background: rgba(93, 169, 164, 0.12) !important;
-    border: 1px solid rgba(93, 169, 164, 0.35) !important;
+    background: linear-gradient(135deg, rgba(93, 169, 164, 0.14) 0%, rgba(93, 169, 164, 0.06) 100%) !important;
+    border: 1px solid rgba(93, 169, 164, 0.28) !important;
     color: #1A1A40 !important;
+    border-radius: 14px !important;
+    font-size: 0.9rem !important;
+    letter-spacing: 0.01em;
+    box-shadow: 0 1px 3px rgba(26, 26, 64, 0.06);
+}
+#tv-sc-date-popup.th-coral-date-popup .th-coral-popup__hint {
+    color: #64748b !important;
+    font-weight: 500;
 }
 #tv-sc-date-popup.th-coral-date-popup .th-coral-popup__apply,
 #tv-sc-date-popup .th-coral-popup__apply {

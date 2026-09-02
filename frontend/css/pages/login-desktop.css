@@ -14,10 +14,10 @@
             box-shadow: 0 10px 25px rgba(2, 132, 199, 0.3);
         }
         .login-page-main {
-            padding-top: max(7.5rem, calc(env(safe-area-inset-top, 0px) + 5.75rem));
+            padding-top: var(--th-header-clearance, max(7.5rem, calc(env(safe-area-inset-top, 0px) + 5.75rem)));
             padding-bottom: 3rem;
         }
-        @media (min-width: 768px) {
+            @media (min-width: 768px) {
             .login-page-main {
                 padding-top: max(8rem, calc(env(safe-area-inset-top, 0px) + 6rem));
                 padding-bottom: 6rem;

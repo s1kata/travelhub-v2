@@ -409,7 +409,8 @@ body.th-search-ui-tv #tv-sc-date-popup .tv-cal-month-column .dayContainer {
   width: 100% !important;
   min-width: 0 !important;
   max-width: 100% !important;
-  gap: 2px !important;
+  gap: 4px !important;
+  padding: 2px 4px 8px !important;
 }
 
 body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day {
@@ -417,40 +418,153 @@ body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day {
   width: 100% !important;
   max-width: none !important;
   margin: 0 !important;
-  height: 42px !important;
-  min-height: 42px !important;
-  line-height: 42px !important;
+  min-height: 46px !important;
+  height: auto !important;
+  line-height: 1.1 !important;
   box-sizing: border-box !important;
   display: flex !important;
+  flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
+  gap: 2px !important;
+  padding: 5px 2px 4px !important;
+  border-radius: 10px !important;
+  font-size: 0.88rem !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day:hover:not(.flatpickr-disabled):not(.startRange):not(.endRange) {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.today:not(.startRange):not(.endRange) {
+  border-color: rgba(93, 169, 164, 0.45) !important;
+  background: rgba(93, 169, 164, 0.06) !important;
+  font-weight: 700 !important;
 }
 
 body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.inRange {
-  background: rgba(93, 169, 164, 0.18) !important;
+  background: rgba(93, 169, 164, 0.1) !important;
   box-shadow: none !important;
   border-radius: 0 !important;
+  border-color: transparent !important;
+  color: #1e293b !important;
 }
 
 body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.startRange,
-body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.endRange,
+body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.endRange {
+  background: linear-gradient(145deg, #1A1A40 0%, #2a2a5c 100%) !important;
+  border-color: transparent !important;
+  border-radius: 10px !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 10px rgba(26, 26, 64, 0.22) !important;
+}
+
+body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.startRange.endRange {
+  border-radius: 10px !important;
+}
+
+body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.startRange:not(.endRange) {
+  border-radius: 10px 0 0 10px !important;
+}
+
+body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.endRange:not(.startRange) {
+  border-radius: 0 10px 10px 0 !important;
+}
+
 body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.selected {
   color: #fff !important;
 }
 
-body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.tv-cal-fly {
-  box-shadow: inset 0 -3px 0 #5DA9A4 !important;
-  font-weight: 700 !important;
+body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day {
+  position: relative;
 }
 
-body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.tv-cal-fly-direct {
-  box-shadow: inset 0 -3px 0 #FF6B6B !important;
-  background: rgba(255, 107, 107, 0.12) !important;
-  font-weight: 700 !important;
+/* Вылеты — мягкое кольцо + точка, без «скобок» */
+body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.tv-cal-fly:not(.startRange):not(.endRange):not(.inRange) {
+  background: rgba(93, 169, 164, 0.07) !important;
+  border-color: rgba(93, 169, 164, 0.22) !important;
+  box-shadow: none !important;
+}
+
+body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.tv-cal-fly::after {
+  content: '';
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #5DA9A4;
+  box-shadow: 0 0 0 2px rgba(93, 169, 164, 0.2);
+  pointer-events: none;
+}
+
+body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.tv-cal-fly-direct:not(.startRange):not(.endRange):not(.inRange) {
+  background: rgba(255, 107, 107, 0.08) !important;
+  border-color: rgba(255, 107, 107, 0.28) !important;
+  box-shadow: none !important;
+}
+
+body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.tv-cal-fly-direct::after {
+  background: #FF6B6B;
+  box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.18);
+}
+
+body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.startRange.tv-cal-fly::after,
+body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.endRange.tv-cal-fly::after,
+body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.inRange.tv-cal-fly::after {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: none;
 }
 
 body.th-search-ui-tv #tv-sc-date-popup .flatpickr-day.tv-cal-fly-off {
-  opacity: 0.38;
+  opacity: 0.42;
+  filter: grayscale(0.15);
+}
+
+/* Бейджи цен */
+body.th-search-ui-tv #tv-sc-date-popup .tv-cal-day-price {
+  display: inline-block;
+  margin-top: 1px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  font-size: 0.48rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.th-search-ui-tv #tv-sc-date-popup .tv-cal-day-price.is-price {
+  color: #64748b;
+  background: #f1f5f9;
+}
+
+body.th-search-ui-tv #tv-sc-date-popup .tv-cal-day-price.is-deal {
+  color: #047857;
+  background: #ecfdf5;
+}
+
+body.th-search-ui-tv #tv-sc-date-popup .tv-cal-day-price.is-reduced {
+  color: #b45309;
+  background: #fffbeb;
+}
+
+body.th-search-ui-tv #tv-sc-date-popup .startRange .tv-cal-day-price,
+body.th-search-ui-tv #tv-sc-date-popup .endRange .tv-cal-day-price,
+body.th-search-ui-tv #tv-sc-date-popup .inRange .tv-cal-day-price {
+  opacity: 0.85;
 }
 
 body.th-search-ui-tv #tv-sc-date-popup .flatpickr-calendar {

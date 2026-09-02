@@ -11,7 +11,7 @@
     --th-dc-line: rgba(26, 26, 64, 0.1);
     --th-dc-soft: #eef3f7;
     --th-dc-paper: #ffffff;
-    --th-dc-header-offset: calc(var(--th-header-h, 56px) + env(safe-area-inset-top, 0px));
+    --th-dc-header-offset: var(--th-header-clearance, calc(var(--th-header-h, 72px) + env(safe-area-inset-top, 0px) + 16px));
     background:
         radial-gradient(1200px 520px at 8% -10%, rgba(93, 169, 164, 0.18), transparent 55%),
         radial-gradient(900px 480px at 100% 0%, rgba(26, 26, 64, 0.12), transparent 50%),

@@ -241,10 +241,14 @@ button.th-wizard__chip:focus-visible {
     display: none !important;
 }
 
-/* Попапы туристов/дат остаются поверх wizard */
+/* Попапы туристов/дат остаются поверх wizard (не 40 — иначе под белой карточкой) */
 .th-wizard #tv-tourists-block:not(.hidden),
-.th-wizard #tv-sc-date-popup {
-    z-index: 40;
+.th-wizard #tv-sc-date-popup,
+.th-wizard #tv-nights-popup,
+body > #tv-sc-date-popup,
+body > #tv-tourists-block,
+body > #tv-nights-popup {
+    z-index: 10270 !important;
 }
 
 .th-wizard .tv-sc-select,

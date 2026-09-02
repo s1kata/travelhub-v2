@@ -21,3 +21,4 @@ alwaysApply: true
 ## Process
 - Before big UI: name the concept screen number(s) you match
 - After UI: device/web check when possible; otherwise list what to screenshot
+- Follow `.cursor/rules/travelhub-one-pass.mdc`: syntax-check JS, no dual chrome (native+custom), bump `?v=`, smoke before "done"

@@ -8,7 +8,7 @@
   --ph-muted: #64748b;
   --ph-line: rgba(18, 18, 46, 0.08);
   /* Match fixed #site-header; do NOT use overflow-x:hidden here — it breaks sticky */
-  --ph-header-offset: calc(var(--th-header-h, 56px) + env(safe-area-inset-top, 0px));
+  --ph-header-offset: var(--th-header-clearance, calc(var(--th-header-h, 72px) + env(safe-area-inset-top, 0px) + 16px));
   --ph-safe: env(safe-area-inset-bottom, 0px);
   background:
     radial-gradient(120% 60% at 0% -10%, rgba(47, 155, 148, 0.16), transparent 55%),

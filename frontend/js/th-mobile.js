@@ -78,8 +78,12 @@
     try {
       h = header.getBoundingClientRect().height || header.offsetHeight || 0;
     } catch (e4) {}
-    if (h > 40 && h < 160) {
+    /* Measured height already includes safe-area padding on the fixed header.
+       Content must clear that full height — do NOT add --th-safe-top again. */
+    if (h > 40 && h < 200) {
+      var gap = 16;
       root.style.setProperty('--th-header-h', Math.round(h) + 'px');
+      root.style.setProperty('--th-header-clearance', Math.round(h + gap) + 'px');
     }
   }
 
