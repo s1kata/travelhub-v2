@@ -575,10 +575,10 @@ if ($th_search_ui_raw === 'legacy') {
                             <p id="tv-sc-dates-step" class="th-coral-popup__hint" aria-live="polite">Выберите период вылета (от и до)</p>
                             <div id="tv-sc-cal-panel" class="tv-sc-cal-panel">
                                 <div id="tv-sc-cal-container" class="tv-sc-cal-container"></div>
-                                <div class="tv-cal-legend" role="note" aria-label="Обозначения календаря">
-                                    <span class="tv-cal-legend__chip tv-cal-legend__chip--fly"><span class="tv-cal-legend__mark" aria-hidden="true"></span>Есть вылеты</span>
-                                    <span class="tv-cal-legend__chip tv-cal-legend__chip--direct"><span class="tv-cal-legend__mark" aria-hidden="true"></span>Прямой рейс</span>
-                                    <span class="tv-cal-legend__chip tv-cal-legend__chip--deal"><span class="tv-cal-legend__mark" aria-hidden="true"></span>Выгодная цена</span>
+                                <div class="th-flight-legend th-flight-legend--cal" role="note" aria-label="Обозначения календаря">
+                                    <span class="th-flight-legend__chip th-flight-legend__chip--direct"><span class="th-flight-legend__mark" aria-hidden="true"></span>Прямой рейс</span>
+                                    <span class="th-flight-legend__chip th-flight-legend__chip--fly"><span class="th-flight-legend__mark" aria-hidden="true"></span>Перелёт (с пересадкой)</span>
+                                    <span class="th-flight-legend__chip th-flight-legend__chip--deal"><span class="th-flight-legend__mark" aria-hidden="true"></span>Выгодная цена</span>
                                 </div>
                             </div>
                         </div>
@@ -709,6 +709,7 @@ if ($th_search_ui_raw === 'legacy') {
                             <span class="tv-live-refine__spin" aria-hidden="true"></span>
                             <span id="tv-live-refine-text">Уточняем цены у операторов…</span>
                         </div>
+                        <div id="tv-flight-legend" class="th-flight-legend th-flight-legend--compact hidden" role="note" aria-label="Обозначения перелёта на карточках"></div>
                         <div id="tv-search-results" class="tv-search-results-grid th-tour-grid">
                             <!-- Карточки туров подставляются JS -->
                         </div>
@@ -1956,17 +1957,19 @@ if ($th_search_ui_raw === 'legacy') {
                             var m = String(dObj.getMonth() + 1).padStart(2, '0');
                             var d = String(dObj.getDate()).padStart(2, '0');
                             var key = y + '-' + m + '-' + d;
-                            dayEl.classList.remove('tv-cal-fly', 'tv-cal-fly-direct', 'tv-cal-fly-off');
+                            dayEl.classList.remove('tv-cal-fly', 'tv-cal-fly-direct', 'tv-cal-fly-off', 'tv-cal-deal', 'tv-cal-reduced', 'tv-cal-has-price');
                             var fly = window.__tvFlyDates || {};
                             var flags = tvFlightFlags();
                             var inAll = !!(fly.all && fly.all[key]);
                             var inCharter = !!(fly.charter && fly.charter[key]);
                             var inDirect = !!(fly.direct && fly.direct[key]);
-                            if (inAll || inCharter || inDirect) dayEl.classList.add('tv-cal-fly');
-                            if (inDirect) dayEl.classList.add('tv-cal-fly-direct');
-                            if (flags.direct && !inDirect && (inAll || inCharter || Object.keys(fly.direct || {}).length > 0)) {
-                                dayEl.classList.add('tv-cal-fly-off');
-                            } else if (flags.charter && !flags.direct && !inCharter && Object.keys(fly.charter || {}).length > 0) {
+                            if (inDirect) {
+                                dayEl.classList.add('tv-cal-fly-direct');
+                            } else if (inAll || inCharter) {
+                                dayEl.classList.add('tv-cal-fly');
+                            }
+                            /* «Только чартер» = только прямые рейсы */
+                            if ((flags.direct || flags.charter) && !inDirect && (inAll || inCharter || Object.keys(fly.direct || {}).length > 0)) {
                                 dayEl.classList.add('tv-cal-fly-off');
                             }
                             var info = window.__tvCalPriceMap && window.__tvCalPriceMap[key];
@@ -2282,15 +2285,9 @@ if ($th_search_ui_raw === 'legacy') {
                                 var allList = nr && nr.success ? nr.data : [];
                                 mergeNightMaps(allMap, nightsFromHotels(allList));
                                 tvCollectTourIdsByNight(allList, tourIdsByNight);
-                                if (cacheOnly && wantCharterDirect) {
-                                    if (flags.charter) {
-                                        var nc = await tvFetch('search-cached', Object.assign({}, baseParams, { onlyCharter: '1' }), opts);
-                                        mergeNightMaps(charterMap, nightsFromHotels(nc && nc.success ? nc.data : []));
-                                    }
-                                    if (withDirect && flags.direct) {
-                                        var nd = await tvFetch('search-cached', Object.assign({}, baseParams, { onlyDirect: '1' }), opts);
-                                        mergeNightMaps(directMap, nightsFromHotels(nd && nd.success ? nd.data : []));
-                                    }
+                                if (cacheOnly && wantCharterDirect && withDirect && (flags.charter || flags.direct)) {
+                                    var nd = await tvFetch('search-cached', Object.assign({}, baseParams, { onlyDirect: '1' }), opts);
+                                    mergeNightMaps(directMap, nightsFromHotels(nd && nd.success ? nd.data : []));
                                 }
                             }
                             for (var bi = 0; bi < nightBands.length; bi++) {
@@ -3018,17 +3015,18 @@ if ($th_search_ui_raw === 'legacy') {
                         direct: !!(document.getElementById('tv-only-direct') && document.getElementById('tv-only-direct').checked)
                     };
                 var flyN = window.__tvFlyNights || {};
-                var availMap = flags.direct
+                var availMap = (flags.direct || flags.charter)
                     ? (flyN.direct || {})
-                    : (flags.charter ? (flyN.charter || {}) : (flyN.all || {}));
+                    : (flyN.all || {});
                 var hasAvail = Object.keys(availMap).length > 0;
                 var legend = document.querySelector('#tv-nights-popup .tv-nights-legend');
                 if (legend) {
                     legend.classList.toggle('is-filter-on', !!(flags.direct || flags.charter));
                     legend.classList.toggle('has-data', !!(
-                        (flyN.all && Object.keys(flyN.all).length)
+                        (flyN.nights && Object.keys(flyN.all || {}).length)
                         || (flyN.direct && Object.keys(flyN.direct).length)
                     ));
+                    legend.setAttribute('aria-hidden', legend.classList.contains('has-data') ? 'false' : 'true');
                 }
                 tvNightsGrid.querySelectorAll('.tv-nights-cell').forEach(function(btn) {
                     var n = parseInt(btn.getAttribute('data-n'), 10);
@@ -3571,7 +3569,7 @@ if ($th_search_ui_raw === 'legacy') {
             if (thIsHotelSearchMode()) return;
             var cid = document.getElementById('tv-country') && document.getElementById('tv-country').value;
             if (!thIsDirectPriorityCountry(cid)) return;
-            if (window.__tvSearchFlightFlags && window.__tvSearchFlightFlags.onlyDirect) return;
+            if (window.__tvSearchFlightFlags && (window.__tvSearchFlightFlags.onlyDirect || window.__tvSearchFlightFlags.onlyCharter)) return;
             if (!Array.isArray(tvHotelsBeforeBudgetFilter) || !tvHotelsBeforeBudgetFilter.length) return;
             var before = tvHotelsBeforeBudgetFilter.map(function (h) { return tvHotelKey(h); }).join(',');
             tvHotelsBeforeBudgetFilter = tvSortHotelsDirectFlightFirst(tvHotelsBeforeBudgetFilter);
@@ -3980,6 +3978,66 @@ if ($th_search_ui_raw === 'legacy') {
             if (!hasExact) tvShowAltNightsBanner(true, origFrom, origTo);
         }
 
+        function tvYmdAddDays(ymd, days) {
+            var ts = Date.parse(String(ymd || '').slice(0, 10) + 'T12:00:00');
+            if (!isFinite(ts)) return ymd;
+            var d = new Date(ts + (parseInt(days, 10) || 0) * 86400000);
+            return d.getFullYear() + '-'
+                + String(d.getMonth() + 1).padStart(2, '0') + '-'
+                + String(d.getDate()).padStart(2, '0');
+        }
+        function tvFmtYmdShort(ymd) {
+            if (!ymd) return '';
+            try {
+                var p = String(ymd).slice(0, 10).split('-');
+                if (p.length === 3) return parseInt(p[2], 10) + '.' + parseInt(p[1], 10);
+            } catch (e) {}
+            return String(ymd);
+        }
+        function tvShowCharterDateShiftBanner(show, origFrom, origTo, newFrom, newTo) {
+            var el = document.getElementById('tv-search-alt-banner');
+            if (!el) return;
+            if (!show) {
+                if (el.dataset.charterShift === '1') {
+                    el.classList.add('hidden');
+                    el.textContent = '';
+                    delete el.dataset.charterShift;
+                }
+                return;
+            }
+            el.textContent = 'На выбранные даты (' + tvFmtYmdShort(origFrom) + '–' + tvFmtYmdShort(origTo)
+                + ') прямых рейсов нет — показаны ближайшие (' + tvFmtYmdShort(newFrom) + '–' + tvFmtYmdShort(newTo) + ').';
+            el.dataset.charterShift = '1';
+            el.classList.remove('hidden');
+        }
+        async function tvTryNearestDirectSearch(baseParams, dateFrom, dateTo, opts) {
+            opts = opts || {};
+            var shifts = [3, -3, 7, -7, 14, -14, 21, -21];
+            var fetchOpts = opts.cacheOpts || { cacheScope: 'country_page', slim: true };
+            for (var si = 0; si < shifts.length; si++) {
+                var shift = shifts[si];
+                var newFrom = tvYmdAddDays(dateFrom, shift);
+                var newTo = tvYmdAddDays(dateTo, shift);
+                var p = Object.assign({}, baseParams, { dateFrom: newFrom, dateTo: newTo, onlyDirect: '1' });
+                delete p.onlyCharter;
+                var r = await tvFetch('search-cached', p, fetchOpts);
+                if (r && r.success && Array.isArray(r.data) && r.data.length > 0 && tvCountPlausibleHotels(r.data) > 0) {
+                    return { result: r, dateFrom: newFrom, dateTo: newTo, shiftDays: shift };
+                }
+                if (opts.tryLive && typeof tvProgressiveLiveSearch === 'function') {
+                    var rLive = await tvProgressiveLiveSearch(p, {
+                        gen: opts.gen,
+                        earlyProgress: 30,
+                        softMaxMs: 12000
+                    });
+                    if (rLive && rLive.success && Array.isArray(rLive.data) && rLive.data.length > 0
+                        && tvCountPlausibleHotels(rLive.data) > 0) {
+                        return { result: rLive, dateFrom: newFrom, dateTo: newTo, shiftDays: shift };
+                    }
+                }
+            }
+            return null;
+        }
         async function performTvSearch(manual, opts) {
             opts = opts || {};
             var softSearch = !!opts.soft;
@@ -4027,14 +4085,13 @@ if ($th_search_ui_raw === 'legacy') {
             var hotelModeSearch = thIsHotelSearchMode();
             var onlyCharterOn = !hotelModeSearch && !!(document.getElementById('tv-only-charter') && document.getElementById('tv-only-charter').checked);
             var onlyDirectOn = !hotelModeSearch && !!(document.getElementById('tv-only-direct') && document.getElementById('tv-only-direct').checked);
-            var preferDirectFirst = !hotelModeSearch && !onlyDirectOn && thIsDirectPriorityCountry(country);
-            if (onlyCharterOn) params.set('onlyCharter', '1');
-            /* onlyDirect в API — только если юзер явно включил «Только прямой».
-               Для TH/VN/LK без галочки: сначала прямые из кэша, потом полная выдача. */
-            if (onlyDirectOn) params.set('onlyDirect', '1');
+            var charterDirectMode = onlyCharterOn || onlyDirectOn;
+            var preferDirectFirst = !hotelModeSearch && !charterDirectMode && thIsDirectPriorityCountry(country);
+            /* «Только чартер» = только прямые рейсы (onlyDirect), не onlyCharter в API */
+            if (charterDirectMode) params.set('onlyDirect', '1');
             window.__tvSearchFlightFlags = {
                 onlyCharter: onlyCharterOn,
-                onlyDirect: onlyDirectOn,
+                onlyDirect: charterDirectMode,
                 preferDirect: preferDirectFirst
             };
 
@@ -4045,6 +4102,9 @@ if ($th_search_ui_raw === 'legacy') {
             tvHotelsBeforeBudgetFilter = [];
             tvLastResults = [];
             tvShowAltNightsBanner(false);
+            tvShowCharterDateShiftBanner(false);
+            if (typeof thFlightLoadResetAll === 'function') thFlightLoadResetAll();
+            window.__thFlightsLoadGen = (window.__thFlightsLoadGen || 0) + 1;
             window.__thDeferHeavyCards = true;
             window.__tvSearchBusy = true;
             if (window.THTourCard && typeof window.THTourCard.clearCarouselHydrateQueue === 'function') {
@@ -4074,9 +4134,9 @@ if ($th_search_ui_raw === 'legacy') {
             if (typeof tvSelectedServiceIds !== 'undefined' && tvSelectedServiceIds.length > 0) {
                 cacheParams.hotelServices = tvSelectedServiceIds.join(',');
             }
-            if (onlyCharterOn) cacheParams.onlyCharter = '1';
-            if (onlyDirectOn) cacheParams.onlyDirect = '1';
+            if (charterDirectMode) cacheParams.onlyDirect = '1';
             var earlyDirectHotels = [];
+            var usedCharterDateShift = false;
 
             function tvMergeHotelsDirectFirst(directList, allList) {
                 var byId = {};
@@ -4167,7 +4227,7 @@ if ($th_search_ui_raw === 'legacy') {
 
                 /* 1) Параллельный cacheOnly: основной + alt + (для TH/VN/LK) прямые */
                 const cacheOpts = { cacheOnly: true, cacheScope: 'country_page', slim: true };
-                var wantAltNights = (origNFrom === 6 && origNTo === 9) || origNFrom >= 10;
+                var wantAltNights = !charterDirectMode && ((origNFrom === 6 && origNTo === 9) || origNFrom >= 10);
                 var altParams = tvBuildAltNightsParams(cacheParams, origNFrom, origNTo);
                 var cacheReqs = [tvFetch('search-cached', cacheParams, cacheOpts)];
                 var altReqIdx = -1;
@@ -4189,6 +4249,15 @@ if ($th_search_ui_raw === 'legacy') {
                         rCache = rAlt;
                         usedAltNights = true;
                         tvShowAltNightsBanner(true, origNFrom, origNTo);
+                    }
+                }
+                if ((!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0 || tvCountPlausibleHotels(rCache.data) <= 0)
+                    && onlyCharterOn && !softSearch) {
+                    var nearCharter = await tvTryNearestDirectSearch(cacheParams, dateFrom, dateTo, { cacheOpts: cacheOpts });
+                    if (nearCharter) {
+                        rCache = nearCharter.result;
+                        usedCharterDateShift = true;
+                        tvShowCharterDateShiftBanner(true, dateFrom, dateTo, nearCharter.dateFrom, nearCharter.dateTo);
                     }
                 }
                 if (preferDirectFirst && directReqIdx >= 0 && cachePack[directReqIdx]) {
@@ -4296,6 +4365,20 @@ if ($th_search_ui_raw === 'legacy') {
                         }
                     });
                     if (tvIsSearchStale()) return;
+
+                    if ((!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0 || tvCountPlausibleHotels(rCache.data) <= 0)
+                        && onlyCharterOn && !usedCharterDateShift) {
+                        var nearCharterLive = await tvTryNearestDirectSearch(cacheParams, dateFrom, dateTo, {
+                            cacheOpts: { cacheScope: 'country_page', slim: true },
+                            tryLive: true,
+                            gen: searchGen
+                        });
+                        if (nearCharterLive) {
+                            rCache = nearCharterLive.result;
+                            usedCharterDateShift = true;
+                            tvShowCharterDateShiftBanner(true, dateFrom, dateTo, nearCharterLive.dateFrom, nearCharterLive.dateTo);
+                        }
+                    }
 
                     /* 4) Alt-ночи: только если основной live пуст (не параллельный второй live) */
                     if ((!rCache.success || !Array.isArray(rCache.data) || rCache.data.length === 0) && !rCache.keptPartial && wantAltNights && altParams) {
@@ -5018,6 +5101,7 @@ if ($th_search_ui_raw === 'legacy') {
             var el = document.getElementById('tv-search-alt-banner');
             if (!el) return;
             if (show) {
+                if (el.dataset.charterShift === '1') return;
                 origFrom = parseInt(origFrom, 10) || 0;
                 origTo = parseInt(origTo, 10) || 0;
                 if (origFrom >= 10) {
@@ -5076,46 +5160,23 @@ if ($th_search_ui_raw === 'legacy') {
             tvCompareSyncButtons();
             tvCompareRenderPanel();
             var tvResEl = document.getElementById('tv-search-results');
-            var skipFlightFetch = !!opts.skipFlights
-                || !!window.__thDeferHeavyCards
-                || window.__tvSearchResultsFromCache === true
-                || (window.__tvRestoringFromBack
-                && window.__mainFlightsByTourId
-                && Object.keys(window.__mainFlightsByTourId).length > 0);
-            function afterFlightsPatch() {
-                if (tvResEl && window.THTourCard && typeof window.THTourCard.mountInContainer === 'function') {
-                    window.THTourCard.mountInContainer(tvResEl);
-                } else if (tvResEl && window.THTourCard && typeof window.THTourCard.patchFlightsInContainer === 'function') {
-                    window.THTourCard.patchFlightsInContainer(tvResEl);
-                }
-                if (tvResEl && window.THTourCard && typeof window.THTourCard.ensureCarouselsInContainer === 'function') {
-                    window.THTourCard.ensureCarouselsInContainer(tvResEl);
-                } else if (tvResEl && window.THTourCard && typeof window.THTourCard.kickImagesInContainer === 'function') {
-                    window.THTourCard.kickImagesInContainer(tvResEl);
-                }
-                if (!opts.skipFlights && !thIsHotelSearchMode() && typeof thLoadFlightsForVisibleCards === 'function' && tvResEl) {
-                    thLoadFlightsForVisibleCards(tvResEl, {
-                        apiBase: (typeof TV_API_BASE !== 'undefined' ? TV_API_BASE : ''),
-                        departureCity: (typeof tvEffectiveSearchDeparture === 'function' ? tvEffectiveSearchDeparture().name : '') || 'Самара',
-                        departureId: (typeof tvEffectiveSearchDeparture === 'function' ? tvEffectiveSearchDeparture().id : '') || '',
-                        maxConcurrent: 3,
-                        patchEvery: 1,
-                        patchContainer: tvResEl
-                    });
-                }
+            if (tvResEl && window.THTourCard && typeof window.THTourCard.mountInContainer === 'function') {
+                window.THTourCard.mountInContainer(tvResEl);
             }
-            if (skipFlightFetch || thIsHotelSearchMode()) {
-                afterFlightsPatch();
-            } else if (typeof loadMainFlightsForTours === 'function') {
-                loadMainFlightsForTours(slice, function () {
-                    afterFlightsPatch();
-                    if (preferDirect) {
-                        tvMaybeResortDirectPriority();
-                        applyTvSort({ skipFlights: true });
+            var skipFlightFetch = !!opts.skipFlights || thIsHotelSearchMode();
+            if (!skipFlightFetch) {
+                tvKickSearchFlightsLoad(slice, {
+                    onDone: function () {
+                        var preferDirect = !thIsHotelSearchMode()
+                            && window.__tvSearchFlightFlags
+                            && window.__tvSearchFlightFlags.preferDirect
+                            && !window.__tvSearchFlightFlags.onlyDirect;
+                        if (preferDirect) {
+                            tvMaybeResortDirectPriority();
+                            applyTvSort({ skipFlights: true });
+                        }
                     }
                 });
-            } else {
-                afterFlightsPatch();
             }
             if (!window.__tvRestoringFromBack) saveTvMainSearchSnapshot();
         }
@@ -5153,25 +5214,78 @@ if ($th_search_ui_raw === 'legacy') {
             const tourId = tour.id ?? tour.tourId ?? tour.tourid ?? '';
             return (tourId != null && tourId !== '') ? String(tourId) : '';
         }
+        var tvFlightLoadTimer = null;
         function loadMainFlightsForTours(hotels, callback) {
-            const base = typeof TV_API_BASE !== 'undefined' ? TV_API_BASE : '';
-            const depActiveFl = tvActiveDeparture();
-            const depCityMainFl = depActiveFl.name || 'Самара';
-            if (typeof thLoadTourFlightsForHotels === 'function' && base) {
-                thLoadTourFlightsForHotels(hotels, {
-                    apiBase: base,
-                    departureCity: depCityMainFl,
-                    departureId: depActiveFl.id,
-                    maxTours: hotels.length,
-                    maxConcurrent: 3,
-                    patchEvery: 1,
-                    getTourId: getMainTourId,
-                    patchContainer: document.getElementById('tv-search-results'),
-                    onDone: callback
-                });
-                return;
+            tvKickSearchFlightsLoad(hotels, { onDone: callback });
+        }
+
+        function tvKickSearchFlightsLoad(priorityHotels, opts) {
+            opts = opts || {};
+            if (thIsHotelSearchMode()) {
+                if (opts.onDone) opts.onDone();
+                return Promise.resolve();
             }
-            if (callback) callback();
+            if (tvFlightLoadTimer) clearTimeout(tvFlightLoadTimer);
+            return new Promise(function (resolve) {
+                tvFlightLoadTimer = setTimeout(function () {
+                    tvFlightLoadTimer = null;
+                    var allHotels = opts.allHotels || tvLastResults || [];
+                    var base = typeof TV_API_BASE !== 'undefined' ? TV_API_BASE : '';
+                    if (!base || !allHotels.length || typeof thLoadTourFlightsForHotels !== 'function') {
+                        if (opts.onDone) opts.onDone();
+                        resolve();
+                        return;
+                    }
+                    var loadGen = window.__thFlightsLoadGen;
+                    var depActiveFl = tvEffectiveSearchDeparture();
+                    var depCityMainFl = depActiveFl.name || 'Самара';
+                    var container = document.getElementById('tv-search-results');
+                    var priorityIds = {};
+                    (priorityHotels || []).forEach(function (h) {
+                        var tid = getMainTourId(h);
+                        if (tid) priorityIds[tid] = true;
+                    });
+                    thLoadTourFlightsForHotels(allHotels, {
+                        apiBase: base,
+                        departureCity: depCityMainFl,
+                        departureId: depActiveFl.id,
+                        maxTours: 0,
+                        maxConcurrent: 4,
+                        waveSize: 12,
+                        patchEvery: 1,
+                        loadGen: loadGen,
+                        priorityTourIds: priorityIds,
+                        getTourId: getMainTourId,
+                        patchContainer: container,
+                        onDone: function () {
+                            if (loadGen !== window.__thFlightsLoadGen) {
+                                if (opts.onDone) opts.onDone();
+                                resolve();
+                                return;
+                            }
+                            if (container && typeof thLoadFlightsForVisibleCards === 'function') {
+                                thLoadFlightsForVisibleCards(container, {
+                                    apiBase: base,
+                                    departureCity: depCityMainFl,
+                                    departureId: depActiveFl.id,
+                                    maxConcurrent: 4,
+                                    waveSize: 12,
+                                    patchEvery: 1,
+                                    loadGen: loadGen,
+                                    patchContainer: container,
+                                    onDone: function () {
+                                        if (opts.onDone) opts.onDone();
+                                        resolve();
+                                    }
+                                });
+                                return;
+                            }
+                            if (opts.onDone) opts.onDone();
+                            resolve();
+                        }
+                    });
+                }, opts.immediate ? 0 : 120);
+            });
         }
 
         function tvTourStartYmd(tour) {
@@ -5332,7 +5446,7 @@ if ($th_search_ui_raw === 'legacy') {
                                 return fm && fm.direct === true;
                             })())
                         )),
-                        transferBadge: !!(!hotelMode && !((window.__tvSearchFlightFlags && window.__tvSearchFlightFlags.onlyDirect)) && (function () {
+                        transferBadge: !!(!hotelMode && !(window.__tvSearchFlightFlags && window.__tvSearchFlightFlags.onlyDirect) && (function () {
                             var fm = tvFlightMetaLookup(tourId, departureCity);
                             return fm && fm.direct === false;
                         })()),
@@ -5727,10 +5841,10 @@ if ($th_search_ui_raw === 'legacy') {
                 <p id="tv-nights-draft-preview" class="th-coral-popup__preview" aria-hidden="true">6–9 ночей</p>
                 <div id="tv-nights-quick" class="tv-nights-quick" aria-label="Быстрый выбор ночей"></div>
                 <p id="tv-nights-hint" class="th-coral-popup__hint">Свой диапазон: сначала «от», потом «до»</p>
-                <div class="tv-nights-legend" aria-hidden="true">
-                    <span class="tv-nights-legend__item tv-nights-legend__item--avail">Есть туры</span>
-                    <span class="tv-nights-legend__item tv-nights-legend__item--direct">Прямой рейс</span>
-                    <span class="tv-nights-legend__item tv-nights-legend__item--off">Нет под фильтром</span>
+                <div class="tv-nights-legend th-flight-legend th-flight-legend--nights" aria-hidden="true">
+                    <span class="th-flight-legend__chip th-flight-legend__chip--fly"><span class="th-flight-legend__mark" aria-hidden="true"></span>Есть вылеты</span>
+                    <span class="th-flight-legend__chip th-flight-legend__chip--direct"><span class="th-flight-legend__mark" aria-hidden="true"></span>Прямой рейс</span>
+                    <span class="th-flight-legend__chip th-flight-legend__chip--off"><span class="th-flight-legend__mark" aria-hidden="true"></span>Нет под фильтром</span>
                 </div>
                 <div id="tv-nights-grid" class="tv-nights-grid th-coral-nights-popup__grid">
                     <?php for ($n = 1; $n <= 28; $n++): ?>

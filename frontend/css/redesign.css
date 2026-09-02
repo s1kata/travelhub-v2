@@ -3186,6 +3186,79 @@ select.flatpickr-monthDropdown-months {
 .th-tour-card__badge--transfer  { background: #64748b; top: 44px; }
 .th-tour-card__badge--hot       { background: #E53E3E; }
 
+/* Легенда перелёта — те же цвета, что бейджи карточек и календарь */
+.th-flight-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #475569;
+}
+.th-flight-legend.hidden { display: none !important; }
+.th-flight-legend--compact {
+    margin-bottom: 8px;
+    padding: 8px 10px;
+    font-size: 0.68rem;
+}
+.th-flight-legend__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    white-space: nowrap;
+}
+.th-flight-legend__mark {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+.th-flight-legend--cal {
+    margin-top: 12px;
+}
+.th-flight-legend__chip--fly .th-flight-legend__mark {
+    background: rgba(93, 169, 164, 0.16);
+    border: 2px solid rgba(93, 169, 164, 0.72);
+    box-shadow: inset 0 -2px 0 transparent;
+}
+.th-flight-legend__chip--direct .th-flight-legend__mark {
+    background: rgba(255, 107, 107, 0.14);
+    border: 2px solid rgba(255, 107, 107, 0.82);
+    box-shadow: none;
+}
+.th-flight-legend__chip--deal .th-flight-legend__mark {
+    background: #fff;
+    border: 2px solid #e2e8f0;
+    box-shadow: inset 0 -3px 0 #10b981;
+}
+.th-flight-legend__chip--pending .th-flight-legend__mark {
+    background: #cbd5e1;
+    box-shadow: none;
+}
+.th-flight-legend__chip--off .th-flight-legend__mark {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    box-shadow: none;
+}
+.th-flight-legend__chip--off { display: none; }
+.th-flight-legend.is-filter-on .th-flight-legend__chip--off { display: inline-flex; }
+@media (max-width: 480px) {
+    .th-flight-legend__chip--pending { white-space: normal; max-width: 100%; }
+}
+
 /* --- Тело --- */
 .th-tour-card__body {
     display: flex;
@@ -3408,6 +3481,11 @@ select.flatpickr-monthDropdown-months {
     font-weight: 500;
     font-style: italic;
     color: #94a3b8;
+}
+.th-tour-card__flight-sub--loading {
+    font-weight: 500;
+    font-style: italic;
+    color: #5DA9A4;
 }
 
 /* Город вылета, если нет данных рейса */

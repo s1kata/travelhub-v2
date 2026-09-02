@@ -1060,21 +1060,67 @@ html.th-kb-open .th-search-choice-sheet__search {
     margin: 0;
     padding: 5px 2px 4px;
     box-sizing: border-box;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    position: relative;
 }
 
-.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-fly:not(.startRange):not(.endRange):not(.inRange) {
-    background: rgba(93, 169, 164, 0.07);
-    border-color: rgba(93, 169, 164, 0.22);
-    box-shadow: none;
+/* Обычный перелёт (не прямой) — бирюзовая рамка, как в легенде */
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-fly:not(.tv-cal-fly-direct):not(.startRange):not(.endRange):not(.inRange):not(.selected) {
+    background: rgba(93, 169, 164, 0.16);
+    border: 2px solid rgba(93, 169, 164, 0.72);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
 }
-.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-fly-direct:not(.startRange):not(.endRange):not(.inRange) {
-    background: rgba(255, 107, 107, 0.08);
-    border-color: rgba(255, 107, 107, 0.28);
-    box-shadow: none;
+/* Прямой рейс — красная рамка */
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-fly-direct:not(.startRange):not(.endRange):not(.inRange):not(.selected) {
+    background: rgba(255, 107, 107, 0.14);
+    border: 2px solid rgba(255, 107, 107, 0.82);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
 }
 .th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-fly-off {
-    opacity: 0.42;
+    opacity: 0.38;
+    filter: grayscale(0.15);
+}
+/* Выгодная цена — зелёный акцент снизу (может сочетаться с перелётом) */
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-deal:not(.startRange):not(.endRange):not(.inRange):not(.selected) {
+    box-shadow: inset 0 -3px 0 #10b981;
+}
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-deal.tv-cal-fly-direct:not(.selected):not(.startRange):not(.endRange) {
+    box-shadow: inset 0 -3px 0 #10b981, inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-deal.tv-cal-fly:not(.tv-cal-fly-direct):not(.selected):not(.startRange):not(.endRange) {
+    box-shadow: inset 0 -3px 0 #10b981, inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+/* Маркер типа перелёта — точка под числом (видно даже на выбранных) */
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-fly-direct::before,
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-fly:not(.tv-cal-fly-direct)::before {
+    content: '';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    pointer-events: none;
+}
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-fly-direct::before {
+    background: #FF6B6B;
+    box-shadow: 0 0 0 1px #fff;
+}
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-fly:not(.tv-cal-fly-direct)::before {
+    background: #5DA9A4;
+    box-shadow: 0 0 0 1px #fff;
+}
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.selected.tv-cal-fly-direct::before,
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.startRange.tv-cal-fly-direct::before,
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.endRange.tv-cal-fly-direct::before {
+    background: #ffb4b4;
+    box-shadow: 0 0 0 1px rgba(26, 26, 64, 0.35);
+}
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.selected.tv-cal-fly:not(.tv-cal-fly-direct)::before,
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.startRange.tv-cal-fly:not(.tv-cal-fly-direct)::before,
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.endRange.tv-cal-fly:not(.tv-cal-fly-direct)::before {
+    background: #9fd9d5;
+    box-shadow: 0 0 0 1px rgba(26, 26, 64, 0.35);
 }
 .th-coral-date-popup .tv-sc-cal-container .tv-cal-day-price {
     display: inline-block;
@@ -1092,7 +1138,9 @@ html.th-kb-open .th-search-choice-sheet__search {
 }
 .th-coral-date-popup .tv-sc-cal-container .tv-cal-day-price.is-deal {
     color: #047857;
-    background: #ecfdf5;
+    background: #d1fae5;
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    font-weight: 800;
 }
 .th-coral-date-popup .tv-sc-cal-container .tv-cal-day-price.is-reduced {
     color: #b45309;
@@ -1238,6 +1286,14 @@ html.th-kb-open .th-search-choice-sheet__search {
 
 .th-coral-date-popup .tv-sc-cal-container .flatpickr-day:hover:not(.disabled):not(.selected):not(.startRange):not(.endRange):not(.inRange) {
     background: rgba(93, 169, 164, 0.12);
+}
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-fly:not(.tv-cal-fly-direct):hover:not(.disabled):not(.selected):not(.startRange):not(.endRange):not(.inRange) {
+    background: rgba(93, 169, 164, 0.24);
+    border-color: #5DA9A4;
+}
+.th-coral-date-popup .tv-sc-cal-container .flatpickr-day.tv-cal-fly-direct:hover:not(.disabled):not(.selected):not(.startRange):not(.endRange):not(.inRange) {
+    background: rgba(255, 107, 107, 0.22);
+    border-color: #FF6B6B;
 }
 
 .th-coral-date-popup .tv-sc-cal-container .flatpickr-day.disabled,

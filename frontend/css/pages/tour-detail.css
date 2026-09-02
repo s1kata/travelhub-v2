@@ -406,6 +406,20 @@ body.th-page-tour-detail {
     white-space: nowrap;
     text-align: right;
 }
+.th-detail__flight-retry {
+    margin-top: 10px;
+    padding: 10px 16px;
+    border: 1px solid rgba(93, 169, 164, 0.55);
+    border-radius: 999px;
+    background: #fff;
+    color: #0f766e;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.th-detail__flight-retry:hover {
+    background: #f3fbfa;
+}
 @media (max-width: 560px) {
     .th-flight-pkg {
         grid-template-columns: auto 1fr;

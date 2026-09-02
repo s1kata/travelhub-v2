@@ -214,14 +214,31 @@
   }
 
   var FLIGHT_STUB_TEXT = '\u0423\u0442\u043e\u0447\u043d\u0438\u0442\u0435 \u0443 \u043c\u0435\u043d\u0435\u0434\u0436\u0435\u0440\u0430';
+  var FLIGHT_LOADING_TEXT = '\u0417\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u043c \u043f\u0435\u0440\u0435\u043b\u0451\u0442\u2026';
 
-  function flightSublineClass(hasData) {
-    return hasData
-      ? 'th-tour-card__flight-sub'
-      : 'th-tour-card__flight-sub th-tour-card__flight-sub--stub';
+  function flightMetaHasLines(meta) {
+    if (!meta) return false;
+    return !!(String(meta.forwardLine || meta.subline || meta.summary || meta.airline || meta.time || '').trim());
   }
 
-  function buildFlightLegHtml(label, cityLine, subline, hasData, modClass) {
+  function flightPlaceholderText(tourId) {
+    if (!tourId) return FLIGHT_STUB_TEXT;
+    if (typeof global.thFlightLoadIsFailed === 'function' && global.thFlightLoadIsFailed(tourId)) {
+      return FLIGHT_STUB_TEXT;
+    }
+    if (typeof global.thFlightLoadIsPending === 'function' && global.thFlightLoadIsPending(tourId)) {
+      return FLIGHT_LOADING_TEXT;
+    }
+    return FLIGHT_LOADING_TEXT;
+  }
+
+  function flightSublineClass(hasData, mode) {
+    if (hasData) return 'th-tour-card__flight-sub';
+    if (mode === 'loading') return 'th-tour-card__flight-sub th-tour-card__flight-sub--loading';
+    return 'th-tour-card__flight-sub th-tour-card__flight-sub--stub';
+  }
+
+  function buildFlightLegHtml(label, cityLine, subline, hasData, modClass, subMode) {
     modClass = modClass || '';
     return (
       '<div class="th-tour-card__flight-leg' + modClass + '">' +
@@ -229,7 +246,7 @@
       '<div class="th-tour-card__flight-text">' +
       '<b>' + esc(label) + '</b>' +
       (cityLine ? '<span class="th-tour-card__flight-city">' + esc(cityLine) + '</span>' : '') +
-      '<span class="' + flightSublineClass(hasData) + '">' + esc(subline) + '</span>' +
+      '<span class="' + flightSublineClass(hasData, subMode) + '">' + esc(subline) + '</span>' +
       '</div></div>'
     );
   }
@@ -260,17 +277,21 @@
     }
     var hasForward = !!forwardLine;
     var hasBackward = !!backwardLine;
+    var subMode = flightMetaHasLines(meta) ? 'data' : (flightPlaceholderText(tourId) === FLIGHT_LOADING_TEXT ? 'loading' : 'stub');
+    var fwdFallback = forwardLine || (subMode === 'loading' ? FLIGHT_LOADING_TEXT : flightPlaceholderText(tourId));
+    var bwdFallback = backwardLine || (subMode === 'loading' ? FLIGHT_LOADING_TEXT : flightPlaceholderText(tourId));
     var inner = '';
     if (!hasForward && !hasBackward) {
-      inner = buildFlightLegHtml('\u0412\u044b\u043b\u0435\u0442', city, FLIGHT_STUB_TEXT, false);
+      inner = buildFlightLegHtml('\u0412\u044b\u043b\u0435\u0442', city, fwdFallback, false, '', subMode);
     } else {
-      inner = buildFlightLegHtml('\u0412\u044b\u043b\u0435\u0442', city, forwardLine || FLIGHT_STUB_TEXT, hasForward);
+      inner = buildFlightLegHtml('\u0412\u044b\u043b\u0435\u0442', city, fwdFallback, hasForward, '', hasForward ? 'data' : subMode);
       inner += buildFlightLegHtml(
         '\u041e\u0431\u0440\u0430\u0442\u043d\u043e',
         '',
-        backwardLine || FLIGHT_STUB_TEXT,
+        bwdFallback,
         hasBackward,
-        ' th-tour-card__flight-leg--return'
+        ' th-tour-card__flight-leg--return',
+        hasBackward ? 'data' : subMode
       );
     }
     var chipHtml = '<div class="th-tour-card__flight-chip">' + inner + '</div>';
@@ -313,11 +334,13 @@
       if (flightPickSlot) {
         flightPickSlot.innerHTML = html;
         wireFlightPickInContainer(card);
+        syncCardDetailFlightParams(card);
         return;
       }
       if (chip) {
         chip.outerHTML = html;
         wireFlightPickInContainer(card);
+        syncCardDetailFlightParams(card);
         return;
       }
       if (dep) {
@@ -335,16 +358,14 @@
   /** Принудительная загрузка img в карусели. */
   function preloadCarouselImage(img) {
     if (!img) return;
-    var src = img.getAttribute('src') || img.dataset.src || '';
+    var src = (img.dataset && img.dataset.src) || img.getAttribute('data-src') || img.getAttribute('src') || '';
     if (!src) return;
     img.loading = 'eager';
-    if (img.complete && img.naturalWidth > 1) return;
-    if (!img.getAttribute('src')) img.setAttribute('src', src);
-    if (!img.src) {
+    if (!img.getAttribute('src') || img.getAttribute('src') !== src) {
+      img.setAttribute('src', src);
       img.src = src;
-      return;
     }
-    if (img.complete) return;
+    if (img.complete && img.naturalWidth > 1) return;
     /* lazy в скрытом слайде мог не стартовать — перезапуск без пустого src */
     if (img.dataset.thPreload !== src) {
       img.dataset.thPreload = src;
@@ -462,7 +483,13 @@
     }
     slides.forEach(function (sl, i) {
       sl.classList.toggle('is-active', i === current);
-      if (i === current || (n > 1 && (i === (current + 1) % n || i === (current - 1 + n) % n))) {
+      if (i === current) {
+        preloadCarouselImage(sl);
+        return;
+      }
+      /* Соседей не трогаем, пока в сети идут tour-flights — иначе verybig забивает очередь. */
+      if (isCarouselHydrateDeferred()) return;
+      if (n > 1 && (i === (current + 1) % n || i === (current - 1 + n) % n)) {
         preloadCarouselImage(sl);
       }
     });
@@ -637,9 +664,9 @@
     return global.TH_TV_IMAGE_PROXY || global.TV_IMAGE_PROXY || '';
   }
 
-  /** Во время live-поиска не долбим type=hotel / пачку фото — иначе PHP-FPM → 503. */
+  /** Во время live-поиска / волны tour-flights не долбим type=hotel и verybig — иначе flights ждут в очереди браузера. */
   function isCarouselHydrateDeferred() {
-    return !!global.__thDeferHeavyCards;
+    return !!(global.__thDeferHeavyCards || global.__thFlightsNetworkBusy);
   }
 
   var thCarouselHydrateQueue = [];
@@ -669,6 +696,14 @@
       }
       hydrateCarouselsFromHotelApi(root || document);
     }, delayMs != null ? delayMs : 600);
+  }
+
+  /** После волны tour-flights — добить очередь каруселей. */
+  function resumeCarouselHydrate(root) {
+    if (isCarouselHydrateDeferred()) return;
+    var apiBase = resolveTvApiBase();
+    if (apiBase) thCarouselDrainHydrateQueue(apiBase);
+    scheduleCarouselHydrate(root || document, 250);
   }
 
   function rebuildCarouselTrack(carousel, slides, options) {
@@ -723,6 +758,7 @@
     var url = base + sep + 'type=hotel&hotelId=' + encodeURIComponent(job.hotelId);
     if (thCarouselHydrateFailed[job.hotelId]) {
       job.card.setAttribute('data-th-carousel-hydrated', '1');
+      job.card.removeAttribute('data-th-carousel-hydrate-pending');
       thCarouselHydrateActive--;
       setTimeout(function () { thCarouselDrainHydrateQueue(apiBase); }, TH_CAROUSEL_HYDRATE_GAP_MS);
       return;
@@ -736,12 +772,18 @@
         return r;
       });
     }
+    var applied = false;
     fetchHotel()
       .then(function (r) {
         if (!r || !r.ok) return null;
         return r.json();
       })
       .then(function (j) {
+        /* Ответ пришёл во время волны flights — не качаем verybig, вернём в очередь. */
+        if (isCarouselHydrateDeferred()) {
+          thCarouselHydrateQueue.unshift(job);
+          return;
+        }
         if (!j || !j.success || !j.data) return;
         var proxy = resolveImageProxy();
         var mapped = [];
@@ -756,7 +798,7 @@
         var existingSlide = job.carousel.querySelector('.th-tour-card__carousel-slide.is-active')
           || job.carousel.querySelector('.th-tour-card__carousel-slide')
           || job.carousel.querySelector('.th-tour-card__img');
-        var existingSrc = existingSlide ? String(existingSlide.getAttribute('src') || '').trim() : '';
+        var existingSrc = existingSlide ? String(existingSlide.getAttribute('src') || existingSlide.getAttribute('data-src') || '').trim() : '';
         if (existingSrc && existingSrc.indexOf('unsplash.com') < 0 && !dedup[existingSrc]) {
           mapped.unshift(existingSrc);
           if (mapped.length > PHOTO_SLIDE_MAX) mapped = mapped.slice(0, PHOTO_SLIDE_MAX);
@@ -771,11 +813,19 @@
         });
         kickImagesInContainer(job.card);
         initCarouselsInContainer(job.card);
+        applied = true;
       })
       .catch(function () {})
       .finally(function () {
-        job.card.setAttribute('data-th-carousel-hydrated', '1');
         thCarouselHydrateActive--;
+        if (applied || thCarouselHydrateFailed[job.hotelId]) {
+          job.card.setAttribute('data-th-carousel-hydrated', '1');
+          job.card.removeAttribute('data-th-carousel-hydrate-pending');
+        } else if (thCarouselHydrateQueue.indexOf(job) < 0) {
+          /* Нет фото / ошибка — не крутим вечно */
+          job.card.setAttribute('data-th-carousel-hydrated', '1');
+          job.card.removeAttribute('data-th-carousel-hydrate-pending');
+        }
         setTimeout(function () {
           thCarouselDrainHydrateQueue(apiBase);
         }, TH_CAROUSEL_HYDRATE_GAP_MS);
@@ -822,10 +872,12 @@
     thCarouselDrainHydrateQueue(apiBase);
   }
 
-  /** Прогрузка фото туров (карусель, прокси): без lazy, сразу eager. */
+  /** Прогрузка фото: только обложка / активный слайд. Остальные — lazy, чтобы не душить tour-flights. */
   function kickImagesInContainer(root) {
     var scope = root && root.querySelectorAll ? root : document;
-    var imgs = scope.querySelectorAll('.th-tour-card__carousel-slide, .th-tour-card__strip-img, .th-tour-card__img');
+    var imgs = scope.querySelectorAll(
+      '.th-tour-card__carousel-slide.is-active, .th-tour-card__strip-img, .th-tour-card__img'
+    );
     if (!imgs.length) return;
 
     function applyFallback(img) {
@@ -957,7 +1009,11 @@
 
     var slideHtml = list.map(function (src, ji) {
       var prio = ji === 0 ? ' fetchpriority="high"' : '';
-      return '<img src="' + esc(src) + '" data-fb="' + fbAttr + '" alt="' + esc(hotelName) + '" class="th-tour-card__carousel-slide' + (ji === 0 ? ' is-active' : '') + '" loading="eager"' + prio + ' decoding="async" onerror="' + imgFallbackHandler + '" onload="' + imgLoadCheckHandler + '">';
+      /* Только первый слайд сразу в src — остальные data-src (иначе 5× verybig душат tour-flights). */
+      if (ji === 0) {
+        return '<img src="' + esc(src) + '" data-src="' + esc(src) + '" data-fb="' + fbAttr + '" alt="' + esc(hotelName) + '" class="th-tour-card__carousel-slide is-active" loading="eager"' + prio + ' decoding="async" onerror="' + imgFallbackHandler + '" onload="' + imgLoadCheckHandler + '">';
+      }
+      return '<img data-src="' + esc(src) + '" data-fb="' + fbAttr + '" alt="' + esc(hotelName) + '" class="th-tour-card__carousel-slide" loading="lazy" decoding="async" onerror="' + imgFallbackHandler + '" onload="' + imgLoadCheckHandler + '">';
     }).join('');
 
     var multi = list.length > 1;
@@ -1195,6 +1251,35 @@
     });
   }
 
+  function flightSummaryFromMeta(meta) {
+    if (!meta) return '';
+    if (typeof global.thFlightPackageSummary === 'function' && meta.pkg) {
+      return global.thFlightPackageSummary(meta.pkg);
+    }
+    var air = String(meta.airline || (meta.companies && meta.companies[0]) || '').trim();
+    var fwd = String(meta.forwardLine || meta.subline || meta.summary || '').trim();
+    var bwd = String(meta.backwardLine || '').trim();
+    return [air, fwd, bwd].filter(Boolean).join(' | ');
+  }
+
+  /** Пробрасывает в ссылку на tour-detail: flight_info если перелёт есть, иначе flight_missing=1. */
+  function syncCardDetailFlightParams(card) {
+    if (!card) return;
+    var tourId = card.getAttribute('data-th-tour-id');
+    if (!tourId) return;
+    var depCity = card.getAttribute('data-th-departure-city') || departureName();
+    var summary = card.getAttribute('data-th-flight-summary') || '';
+    var meta = resolveFlightMeta(tourId, depCity, {});
+    if (!summary && flightMetaHasLines(meta)) summary = flightSummaryFromMeta(meta);
+    if (summary) {
+      updateCardDetailLinks(card, { flight_info: summary, flight_missing: null });
+      card.setAttribute('data-th-flight-summary', summary);
+      return;
+    }
+    if (typeof global.thFlightLoadIsPending === 'function' && global.thFlightLoadIsPending(tourId)) return;
+    updateCardDetailLinks(card, { flight_missing: '1', flight_info: null });
+  }
+
   /** Обновить карточку после выбора пакета перелёта в модалке. */
   function applyFlightSelection(card, tourId, pkg, info) {
     if (!card || !tourId || !pkg) return;
@@ -1222,10 +1307,11 @@
       ? global.thFlightPackageSummary(pkg)
       : '';
     if (summary) {
-      updateCardDetailLinks(card, { flight_info: summary, price: priceNum > 0 ? String(priceNum) : undefined });
+      updateCardDetailLinks(card, { flight_info: summary, flight_missing: null, price: priceNum > 0 ? String(priceNum) : undefined });
       card.setAttribute('data-th-flight-summary', summary);
     }
     wireFlightPickInContainer(card);
+    syncCardDetailFlightParams(card);
   }
 
   function openFlightPickFromBtn(btn) {
@@ -1292,6 +1378,53 @@
     return hotels.map(mapFn).join('');
   }
 
+  /** Бейджи перелёта на карточке — единая логика для поиска и акций. */
+  function flightMetaBadges(flightMeta, opts) {
+    opts = opts || {};
+    if (opts.hideFlight || !flightMeta || typeof flightMeta.direct !== 'boolean') {
+      return { directBadge: false, transferBadge: false };
+    }
+    if (opts.onlyDirect) {
+      return { directBadge: flightMeta.direct === true, transferBadge: false };
+    }
+    return {
+      directBadge: flightMeta.direct === true,
+      transferBadge: flightMeta.direct === false
+    };
+  }
+
+  /**
+   * Легенда перелёта — те же цвета, что бейджи на карточках и метки календаря.
+   * mode: 'cards' | 'calendar' | 'nights'
+   */
+  function buildFlightLegendHtml(options) {
+    options = options || {};
+    var mode = options.mode || 'cards';
+    var modClass = options.modClass ? (' ' + options.modClass) : '';
+    var chips = '';
+    if (mode === 'calendar') {
+      chips =
+        '<span class="th-flight-legend__chip th-flight-legend__chip--fly"><span class="th-flight-legend__mark" aria-hidden="true"></span>Есть вылеты</span>' +
+        '<span class="th-flight-legend__chip th-flight-legend__chip--direct"><span class="th-flight-legend__mark" aria-hidden="true"></span>Прямой рейс</span>' +
+        '<span class="th-flight-legend__chip th-flight-legend__chip--deal"><span class="th-flight-legend__mark" aria-hidden="true"></span>Выгодная цена</span>';
+    } else if (mode === 'nights') {
+      chips =
+        '<span class="th-flight-legend__chip th-flight-legend__chip--fly"><span class="th-flight-legend__mark" aria-hidden="true"></span>Есть вылеты</span>' +
+        '<span class="th-flight-legend__chip th-flight-legend__chip--direct"><span class="th-flight-legend__mark" aria-hidden="true"></span>Прямой рейс</span>' +
+        '<span class="th-flight-legend__chip th-flight-legend__chip--off"><span class="th-flight-legend__mark" aria-hidden="true"></span>Нет под фильтром</span>';
+    } else {
+      chips =
+        '<span class="th-flight-legend__chip th-flight-legend__chip--direct"><span class="th-flight-legend__mark" aria-hidden="true"></span>Прямой рейс</span>' +
+        '<span class="th-flight-legend__chip th-flight-legend__chip--transfer"><span class="th-flight-legend__mark" aria-hidden="true"></span>С пересадкой</span>' +
+        '<span class="th-flight-legend__chip th-flight-legend__chip--pending"><span class="th-flight-legend__mark" aria-hidden="true"></span>Без метки — перелёт ещё грузится</span>';
+    }
+    return (
+      '<div class="th-flight-legend' + modClass + '" role="note" aria-label="Обозначения перелёта">' +
+      chips +
+      '</div>'
+    );
+  }
+
   global.THTourCard = {
     DETAIL_BTN_LABEL: DETAIL_BTN_LABEL,
     PHOTO_SLIDE_MAX: PHOTO_SLIDE_MAX,
@@ -1312,6 +1445,8 @@
     collectHotelPhotoRawUrls: collectHotelPhotoRawUrls,
     mapTourvisorImageUrl: mapTourvisorImageUrl,
     buildFlightBlockHtml: buildFlightBlockHtml,
+    buildFlightLegendHtml: buildFlightLegendHtml,
+    flightMetaBadges: flightMetaBadges,
     patchFlightsInContainer: patchFlightsInContainer,
     applyFlightSelection: applyFlightSelection,
     wireFlightPickInContainer: wireFlightPickInContainer,
@@ -1323,6 +1458,7 @@
     hydrateCarouselsFromHotelApi: hydrateCarouselsFromHotelApi,
     clearCarouselHydrateQueue: clearCarouselHydrateQueue,
     scheduleCarouselHydrate: scheduleCarouselHydrate,
+    resumeCarouselHydrate: resumeCarouselHydrate,
     rebuildCarouselTrack: rebuildCarouselTrack,
     buildPromoLeadButtonHtml: buildPromoLeadButtonHtml,
     FALLBACK_IMG: FALLBACK_IMG

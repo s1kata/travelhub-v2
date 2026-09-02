@@ -2466,7 +2466,9 @@
                     departureCity: depCity,
                     departureId: depIdFl,
                     maxTours: hotels.length,
-                    maxConcurrent: 6,
+                    maxConcurrent: 4,
+                    waveSize: 12,
+                    patchEvery: 1,
                     loadGen: loadGen,
                     getTourId: getTourId,
                     patchContainer: resultsEl,
@@ -2476,7 +2478,8 @@
                                 apiBase: base,
                                 departureCity: depCity,
                                 departureId: depIdFl,
-                                maxConcurrent: 6,
+                                maxConcurrent: 4,
+                                waveSize: 12,
                                 patchContainer: resultsEl
                             });
                         }
