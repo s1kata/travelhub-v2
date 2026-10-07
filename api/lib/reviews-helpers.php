@@ -5,6 +5,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/auth-jwt.php';
+require_once __DIR__ . '/review-profanity.php';
 
 function reviews_db_connect(array $config): PDO
 {
@@ -50,15 +51,8 @@ function reviews_sanitize_label(string $text, int $maxLen = 255): string
 
 function reviews_assert_no_profanity(string $text): void
 {
-    $stop = [
-        'бля', 'блять', 'хуй', 'пизд', 'пидор', 'ебан', 'ебат', 'сука', 'мудак',
-        'fuck', 'shit', 'bitch', 'asshole', 'cunt', 'dick', 'whore', 'slut',
-    ];
-    $lower = mb_strtolower($text);
-    foreach ($stop as $word) {
-        if (mb_strpos($lower, $word) !== false) {
-            reviews_json_error('Отзыв содержит недопустимые слова', 400);
-        }
+    if (review_text_contains_profanity($text)) {
+        reviews_json_error('Отзыв содержит недопустимые слова', 400);
     }
 }
 
@@ -190,14 +184,17 @@ function reviews_assert_single_per_target(PDO $pdo, int $userId, ?string $tourId
     }
 }
 
-function reviews_sanitize_text(string $text, int $maxLen = 4000): string
+function reviews_sanitize_text(string $text, int $maxLen = 1000): string
 {
-    $text = trim($text);
+    $text = trim(preg_replace('/\s+/u', ' ', $text) ?? '');
     if ($text === '') {
         reviews_json_error('Текст отзыва обязателен', 400);
     }
+    if (mb_strlen($text) < 3) {
+        reviews_json_error('Отзыв слишком короткий (минимум 3 символа)', 400);
+    }
     if (mb_strlen($text) > $maxLen) {
-        $text = mb_substr($text, 0, $maxLen);
+        reviews_json_error('Отзыв слишком длинный (максимум ' . $maxLen . ' символов)', 400);
     }
     return $text;
 }

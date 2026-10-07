@@ -18,7 +18,8 @@
 # Cron (2 раза в сутки):
 #   5 0,12 * * * cd /home/g/garant77li/travel63test_ru/public_html && flock -n data/promo_warm.lock env PHP_BIN=/usr/bin/php7.4 bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1
 
-set -euo pipefail
+# SpaceWeb: без pipefail — CRLF ломает set -o pipefail.
+set -eu
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"

@@ -4,7 +4,8 @@
 # Cron (понедельник 00:10, перед ротацией 00:25):
 #   10 0 * * 1 cd /path/to/travelhub-v2 && PHP_BIN=/usr/bin/php8.1 flock -n data/yml_rotation_warm.lock bash backend/cron/warm_yml_rotation_countries.sh >> data/yml_rotation_warm.log 2>&1
 
-set -euo pipefail
+# SpaceWeb: без pipefail — CRLF ломает set -o pipefail.
+set -eu
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"

@@ -130,6 +130,68 @@
         return out;
     }
 
+    function promoCountHotelsInStarRange(hotels, minStars, maxStars) {
+        var n = 0;
+        if (!hotels || !hotels.length) return 0;
+        for (var i = 0; i < hotels.length; i++) {
+            var c = getHotelStarCategory(hotels[i]);
+            if (c !== null && c >= minStars && c <= maxStars) n++;
+        }
+        return n;
+    }
+
+    /**
+     * После postProcess пусто, но API вернул отели — для Турции/Египта не показываем «сырые» 3★
+     * (раньше оставляли только promoFilterHotelsWithTours и на экране были одни тройки).
+     */
+    function promoCoerceHotelsAfterPostProcess(apiData, countryId) {
+        var raw = Array.isArray(apiData) ? apiData : [];
+        if (!raw.length) return [];
+        var list = promoPostProcessHotelList(raw, countryId);
+        if (list.length) return list;
+        if (isPromoTrOrEg(countryId)) return [];
+        return promoFilterHotelsWithTours(raw);
+    }
+
+    /** Добор 4★/5★ (Турция) и 5★ (Египет) через search-cached — как на бэкенде в promo_finalize. */
+    function promoApplyTrEgStarBoostFetch(list, countryId) {
+        if (!isPromoTrOrEg(countryId)) return Promise.resolve(list);
+        list = Array.isArray(list) ? list : [];
+        var needBoost = false;
+        if (isPromoTurkeyCountry(countryId)) {
+            needBoost = promoCountHotelsInStarRange(list, 4, 5) < PROMO_BLEND_MIN_HOTELS;
+        } else if (isPromoEgyptCountry(countryId)) {
+            needBoost = promoCountHotelsInStarRange(list, 5, 5) < 6;
+        }
+        if (!needBoost) return Promise.resolve(list);
+        var primaryDep = String(DEPARTURE_ID || DEFAULT_DEPARTURE_ID || '7');
+        var cats = isPromoTurkeyCountry(countryId) ? [4, 5] : (isPromoEgyptCountry(countryId) ? [5] : []);
+        if (!cats.length) return Promise.resolve(list);
+        var windows = promoNightWindowsForCountry(countryId);
+        var urls = [];
+        cats.forEach(function (cat) {
+            windows.forEach(function (w) {
+                urls.push(promoRegularSearchUrlForCountry(countryId, w[0], w[1], primaryDep, {
+                    preferCache: true,
+                    hotelCategory: cat
+                }));
+            });
+        });
+        return Promise.all(urls.map(function (url) {
+            return fetch(url, { method: 'GET', cache: 'no-store' })
+                .then(function (r) { return r.text().then(function (t) { return { ok: r.ok, text: t }; }); })
+                .then(parseTourvisorSearchJsonResponse)
+                .catch(function () { return { success: false, data: [] }; });
+        })).then(function (results) {
+            var arrays = results.map(function (x) {
+                return (x && x.success && Array.isArray(x.data)) ? x.data : [];
+            });
+            var boosted = mergePromoHotelDataArrays([list].concat(arrays), String(countryId));
+            boosted.sort(function (a, b) { return promoHotelListPrice(a) - promoHotelListPrice(b); });
+            return boosted.length ? boosted : list;
+        }).catch(function () { return list; });
+    }
+
     function promoDatePlusTo(countryId) {
         var s = String(countryId != null ? countryId : '');
         if (isVietnamPromoCountry(s) || isPhuQuocPromoCountry(s) || s === PROMO_COUNTRY_ID_THAILAND || isSochiPromoCountry(s) || s === PROMO_COUNTRY_ID_MALDIVES) return 21;
@@ -214,19 +276,20 @@
     function promoFinalizeTourResults(data, countryId, opts) {
         opts = opts || {};
         var list = Array.isArray(data) ? data.slice() : [];
+        return promoApplyTrEgStarBoostFetch(list, countryId).then(function (listBoosted) {
         var chain;
-        var needBlend = list.length < PROMO_BLEND_MIN_HOTELS
+        var needBlend = listBoosted.length < PROMO_BLEND_MIN_HOTELS
             && (promoAlwaysBlendRegularWithPromo(countryId) || usesNearestPromoFallback(countryId));
-        if (list.length >= PROMO_BLEND_MIN_HOTELS) {
-            chain = Promise.resolve(list);
+        if (listBoosted.length >= PROMO_BLEND_MIN_HOTELS) {
+            chain = Promise.resolve(listBoosted);
         } else if (needBlend) {
-            chain = applyNearestFallbackIfNeeded(list, countryId);
-        } else if (list.length > 0) {
-            chain = Promise.resolve(list);
+            chain = applyNearestFallbackIfNeeded(listBoosted, countryId);
+        } else if (listBoosted.length > 0) {
+            chain = Promise.resolve(listBoosted);
         } else if (usesNearestPromoFallback(countryId)) {
-            chain = applyNearestFallbackIfNeeded(list, countryId);
+            chain = applyNearestFallbackIfNeeded(listBoosted, countryId);
         } else {
-            chain = Promise.resolve(list);
+            chain = Promise.resolve(listBoosted);
         }
         return chain.then(function (out) {
             var prepared = promoPostProcessHotelList(Array.isArray(out) ? out : [], countryId);
@@ -234,6 +297,7 @@
                 prepared = promoMarkHotelsForPromoDisplay(prepared);
             }
             return filterDirectFlightsPromoIfNeeded(prepared, countryId);
+        });
         });
     }
 
@@ -262,13 +326,14 @@
     function promoSkipsStarFilterForCountry(countryId) {
         return String(countryId != null ? countryId : '') === '46';
     }
-    /** Сочи, Мальдивы, Таиланд, VN/Фукуок, Абхазия, Шри-Ланка, ОАЭ: подмешиваем обычный поиск. */
+    /** Сочи, Мальдивы, Таиланд, VN/Фукуок, Абхазия, Шри-Ланка, ОАЭ, Турция: подмешиваем обычный поиск. */
     function usesNearestPromoFallback(countryId) {
         if (isSochiPromoCountry(countryId)) return true;
         if (String(countryId) === PROMO_COUNTRY_ID_MALDIVES) return true;
         if (isThailandPromoCountry(countryId)) return true;
         if (isPhuQuocPromoCountry(countryId)) return true;
         if (isVietnamPromoCountry(countryId)) return true; /* Самара→VN promo часто пуст */
+        if (isPromoTurkeyCountry(countryId)) return true;
         if (String(countryId) === '46' || String(countryId) === '12' || String(countryId) === '9') return true;
         return false;
     }
@@ -278,6 +343,7 @@
             || isThailandPromoCountry(countryId)
             || isPhuQuocPromoCountry(countryId)
             || isVietnamPromoCountry(countryId)
+            || isPromoTurkeyCountry(countryId)
             || String(countryId) === '46'
             || String(countryId) === '12'
             || String(countryId) === '9';
@@ -394,6 +460,9 @@
         };
         if (opts.preferCache) {
             params.cacheOnly = '1';
+        }
+        if (opts.hotelCategory != null && opts.hotelCategory !== '') {
+            params.hotelCategory = String(opts.hotelCategory);
         }
         var vd = promoVirtualDestinationConfig(countryId);
         /* skipRegion: широкий поиск по стране, потом клиентский фильтр Фукуока */
@@ -1991,7 +2060,14 @@
         var fin = Array.isArray(finalized) ? finalized : [];
         var raw = Array.isArray(rawFallback) ? rawFallback : [];
         var pick;
-        if (cid !== PROMO_COUNTRY_ID_SOCHI && cid !== PROMO_COUNTRY_ID_PHUQUOC && !isVietnamPromoCountry(cid) && raw.length > fin.length && raw.length >= 3) {
+        if (
+            !isPromoTrOrEg(cid)
+            && cid !== PROMO_COUNTRY_ID_SOCHI
+            && cid !== PROMO_COUNTRY_ID_PHUQUOC
+            && !isVietnamPromoCountry(cid)
+            && raw.length > fin.length
+            && raw.length >= 3
+        ) {
             pick = raw;
         } else if (fin.length) {
             pick = fin;
@@ -2059,13 +2135,7 @@
         if (!seqOk()) return false;
         var ent = promoToursSwrReadForCountry(swrKey, countryId);
         if (!ent) return false;
-        var raw = promoPostProcessHotelList(ent.data, countryId);
-        if (!raw.length && Array.isArray(ent.data) && ent.data.length) {
-            raw = promoFilterHotelsWithTours(ent.data);
-        }
-        if (usesNearestPromoFallback(countryId) && raw.length === 0 && Array.isArray(ent.data) && ent.data.length) {
-            raw = promoFilterHotelsWithTours(ent.data);
-        }
+        var raw = promoCoerceHotelsAfterPostProcess(ent.data, countryId);
         if (raw.length === 0) return false;
         if (!seqOk()) return false;
         raw.sort(function (a, b) { return promoHotelListPrice(a) - promoHotelListPrice(b); });
@@ -2498,6 +2568,10 @@
         if (!h) return null;
         var raw = h.category;
         if (raw == null || raw === '') raw = h.hotelCategory != null ? h.hotelCategory : h.stars;
+        if (raw == null || raw === '') raw = h.hotelstars != null ? h.hotelstars : h.hotelStars;
+        if ((raw == null || raw === '') && h.hotel && typeof h.hotel === 'object') {
+            raw = h.hotel.category != null ? h.hotel.category : h.hotel.stars;
+        }
         if (raw == null || raw === '') return null;
         var s = String(raw).trim();
         var n = parseInt(s, 10);
@@ -3273,11 +3347,8 @@
                         return;
                     }
 
-                    var data0 = promoPostProcessHotelList(Array.isArray(j.data) ? j.data : [], COUNTRY_ID);
+                    var data0 = promoCoerceHotelsAfterPostProcess(j.data, COUNTRY_ID);
                     promoDebugSummarizeHotels(data0, 'после postProcess (legacy)');
-                    if (!data0.length && Array.isArray(j.data) && j.data.length) {
-                        data0 = promoFilterHotelsWithTours(j.data);
-                    }
                     if (data0.length > 0) {
                         data0.sort(function (a, b) { return promoHotelListPrice(a) - promoHotelListPrice(b); });
                         promoToursSwrWrite(swrKey, data0);
@@ -3595,11 +3666,8 @@
                         if (emptyEl) emptyEl.classList.remove('hidden');
                         return;
                     }
-                    var data0u = promoPostProcessHotelList(Array.isArray(j.data) ? j.data : [], countryId);
+                    var data0u = promoCoerceHotelsAfterPostProcess(j.data, countryId);
                     promoDebugSummarizeHotels(data0u, 'после postProcess (unified)');
-                    if (!data0u.length && Array.isArray(j.data) && j.data.length) {
-                        data0u = promoFilterHotelsWithTours(j.data);
-                    }
                     if (data0u.length > 0) {
                         data0u.sort(function (a, b) { return promoHotelListPrice(a) - promoHotelListPrice(b); });
                         promoToursSwrWrite(swrKeyU, data0u);
@@ -3939,6 +4007,7 @@
                 phone: String(fd.get('phone') || '').trim(),
                 message: leadMessage,
                 agree: !!fd.get('agree'),
+                agree_ads: !!fd.get('agree_ads'),
                 website: String(fd.get('website') || ''),
                 source: leadSource
             };
@@ -3986,6 +4055,7 @@
                         phone: payload.phone,
                         message: payload.message,
                         agree: payload.agree,
+                        agree_ads: payload.agree_ads,
                         website: payload.website,
                         funnel_source: leadSource,
                         source: leadSource

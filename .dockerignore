@@ -1,0 +1,15 @@
+.*env
+!.env_example
+.env.local
+.env.example
+.git
+.gitignore
+/docs
+/vendor
+/data
+/export
+/logs
+/deploy
+./backups
+./node_modules
+.*md

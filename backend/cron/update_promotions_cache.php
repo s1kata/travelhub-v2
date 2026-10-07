@@ -146,6 +146,26 @@ foreach ($departures as $depRow) {
         ]);
         $hotels = (!empty($res['success']) && is_array(isset($res['data']) ? $res['data'] : null)) ? $res['data'] : [];
 
+        if (
+            count($hotels) > 0
+            && in_array($countryId, th_promo_speed_tr_eg_star_boost_country_ids(), true)
+        ) {
+            $hotels = th_promo_speed_finalize_merged(
+                $hotels,
+                $countryId,
+                $departureId,
+                $dates,
+                2,
+                null,
+                $cronDispatch
+            );
+            th_promo_speed_log('cron_promo_tr_eg_finalize', [
+                'countryId' => $countryId,
+                'departureId' => $departureId,
+                'hotels' => count($hotels),
+            ]);
+        }
+
         if (count($hotels) === 0 && $countryId === th_promo_phuquoc_virtual_country_id()) {
             $arrays = th_promo_speed_fetch_regular_window_arrays(
                 $countryId,

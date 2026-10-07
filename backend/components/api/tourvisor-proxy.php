@@ -508,6 +508,11 @@ function tvCachedShort(string $type, array $params, int $ttlSeconds, callable $f
         return $res;
     }
     if (is_array($res) && $type === 'tour-flights') {
+        if (!empty($res['operatorNoFlights'])) {
+            tvCacheSet($cacheKey, $res);
+
+            return $res;
+        }
         $errLow = strtolower(trim((string) ($res['error'] ?? '')));
         if ($errLow !== '' && (str_contains($errLow, 'not found') || str_contains($errLow, 'не найден'))) {
             $gone = array_merge($res, ['success' => false, 'tourGone' => true]);
@@ -1985,11 +1990,35 @@ function tourvisor_proxy_dispatch(): array
             $r = tvCachedShort('tour-flights', ['tourId' => $tourId, 'currency' => $currency], $ttl, function () use ($tourId, $currency) {
                 $res = tvRequest('/tours/' . $tourId . '/flights', ['currency' => $currency]);
                 if ($res['success'] && isset($res['data'])) {
+                    $flights = $res['data']['flights'] ?? [];
+                    $err = $res['data']['error'] ?? null;
+                    /* success + пустые flights + error.code=3 — ТО не ответил (часто Paks/SL).
+                       Кладём как failure, иначе клиент вечно «Загружаем перелёт…». */
+                    if ((!is_array($flights) || $flights === []) && $err !== null && $err !== '') {
+                        $reason = 'no flights';
+                        if (is_array($err)) {
+                            $reason = trim((string) ($err['reason'] ?? $err['message'] ?? $err['code'] ?? $reason));
+                        } else {
+                            $reason = trim((string) $err);
+                        }
+                        if ($reason === '') {
+                            $reason = 'no flights';
+                        }
+
+                        return [
+                            'success' => false,
+                            'error' => $reason,
+                            'flights' => [],
+                            'operatorNoFlights' => true,
+                            'data' => $res['data'],
+                        ];
+                    }
+
                     return [
                         'success' => true,
-                        'flights' => $res['data']['flights'] ?? [],
+                        'flights' => is_array($flights) ? $flights : [],
                         'info' => $res['data']['info'] ?? null,
-                        'error' => $res['data']['error'] ?? null,
+                        'error' => $err,
                         'data' => $res['data'],
                     ];
                 }

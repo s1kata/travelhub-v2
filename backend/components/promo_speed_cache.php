@@ -448,6 +448,20 @@ function th_promo_speed_promo_search_hybrid(
         $file = th_promo_speed_cache_get($countryId, $departureId, true, $departureId);
         if ($file !== null) {
             $fromFile = is_array($file['results'] ?? null) ? $file['results'] : [];
+            if (
+                !$cacheOnly
+                && th_promo_speed_tr_eg_needs_star_boost($fromFile, $countryId)
+            ) {
+                $fromFile = th_promo_speed_apply_tr_eg_star_boosts(
+                    $fromFile,
+                    $countryId,
+                    $departureId,
+                    $promoDates,
+                    $adults,
+                    $childs,
+                    $dispatch
+                );
+            }
             $hotels = th_promo_speed_prepare_live_search_hotels($fromFile, $countryId, $departureId, $promoDates);
             if ($hotels !== []) {
                 $fresh = th_promo_speed_cache_is_fresh($file, $promoDates);

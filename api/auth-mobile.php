@@ -427,7 +427,8 @@ function handle_delete_account(PDO $pdo, array $config): void
 
 function issue_tokens_and_respond(PDO $pdo, array $config, array $user): void
 {
-    $accessTtl = (int) ($config['access_ttl'] ?? 3600);
+    $accessTtl = (int) ($config['access_ttl'] ?? 1800);
+    $accessTtl = max(900, min(86400, $accessTtl));
     $refreshTtl = (int) ($config['refresh_ttl'] ?? 2592000);
     $secret = (string) $config['jwt_secret'];
 

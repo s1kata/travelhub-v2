@@ -21,7 +21,8 @@ return [
     'tinkoff_password' => getenv('TINKOFF_PASSWORD') ?: 'H7!7mXlXMQmuAsik',
     'app_url' => rtrim(getenv('APP_URL') ?: 'https://travelhub63.ru', '/'),
     'api_url' => rtrim(getenv('API_URL') ?: 'https://travelhub63.ru', '/'),
-    'access_ttl' => 3600,
+    /** Access JWT: 30 мин (refresh продлевает сессию без повторного входа). */
+    'access_ttl' => 1800,
     'refresh_ttl' => 31536000,
 
     'tables' => [

@@ -756,7 +756,8 @@
         }
         var run;
         if (typeof global.tvFetch === 'function') {
-            run = global.tvFetch('tour-flights', { tourId: tid, currency: 'RUB' }, { timeoutMs: 45000, quiet: true });
+            /* TV на пустых Paks/SL часто отвечает 15–35с; 45с держит «Загружаем…» слишком долго. */
+            run = global.tvFetch('tour-flights', { tourId: tid, currency: 'RUB' }, { timeoutMs: 18000, quiet: true });
         } else {
             var base = opts.apiBase || global.TH_TV_API_BASE || global.TV_API_BASE || '';
             if (!base) {
@@ -781,8 +782,32 @@
                     return j;
                 }
                 thMarkTourFlightsFail(tid, errMsg);
+                return j || { success: false, error: 'empty response' };
             }
-            return j || { success: false, error: 'empty response' };
+            /* TV часто: success=true, flights=[], error.code=3 «нет ответа от ТО» (Paks/SL).
+               Без этого карточка вечно «Загружаем перелёт…», прямые не появляются. */
+            var flights = j.flights;
+            if (!Array.isArray(flights) && j.data && Array.isArray(j.data.flights)) {
+                flights = j.data.flights;
+            }
+            var tvErr = j.error || (j.data && j.data.error) || null;
+            var noFlights = !Array.isArray(flights) || !flights.length;
+            if (noFlights) {
+                var reason = 'no flights';
+                if (tvErr) {
+                    if (typeof tvErr === 'string') reason = tvErr;
+                    else reason = String(tvErr.reason || tvErr.message || tvErr.code || reason);
+                }
+                thMarkTourFlightsFail(tid, reason);
+                return {
+                    success: false,
+                    error: reason,
+                    flights: [],
+                    _operatorNoFlights: true,
+                    _tvError: tvErr
+                };
+            }
+            return j;
         }).catch(function (e) {
             thMarkTourFlightsFail(tid, e && e.message ? e.message : e);
             return { success: false, error: String(e && e.message ? e.message : e) };
@@ -800,13 +825,13 @@
         if (ctrl) {
             timer = setTimeout(function () {
                 try { ctrl.abort(); } catch (eA) {}
-            }, 45000);
+            }, 18000);
         }
         return fetch(url, { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
             .then(function (r) {
-                if (r.ok || attempt >= 2) return r;
+                if (r.ok || attempt >= 1) return r;
                 if (r.status === 503 || r.status === 429 || r.status === 502 || r.status === 504) {
-                    var waitMs = 900 + attempt * 700;
+                    var waitMs = 600 + attempt * 500;
                     return new Promise(function (resolve) {
                         setTimeout(resolve, waitMs);
                     }).then(function () {
@@ -943,7 +968,7 @@
                 if (onDone) onDone();
                 return;
             }
-            if (retryQueue.length && retryPass < 2) {
+            if (retryQueue.length && retryPass < 1) {
                 retryPass++;
                 inRetryPhase = true;
                 queue = retryQueue.slice();
@@ -972,11 +997,13 @@
                 thFlightLoadClearPending(tourId);
                 return;
             }
-            if (j && j._memoFail) {
-                retryQueue.push(tourId);
+            /* Пустой ответ ТО / memo — не крутим ретраи, сразу stub. */
+            if (j && (j._operatorNoFlights || j.operatorNoFlights || j._memoFail)) {
+                thFlightLoadMarkFailed(tourId);
                 return;
             }
             if (j && j.success === false) {
+                /* Один мягкий ретрай только на сетевые/временные ошибки. */
                 retryQueue.push(tourId);
                 return;
             }
@@ -1017,7 +1044,7 @@
                                 noteTourFlightResult(tourId, j);
                                 return;
                             }
-                            if (!j || j._memoFail || j.tourGone) {
+                            if (!j || j._memoFail || j.tourGone || j._operatorNoFlights || j.operatorNoFlights) {
                                 noteTourFlightResult(tourId, j);
                                 return;
                             }

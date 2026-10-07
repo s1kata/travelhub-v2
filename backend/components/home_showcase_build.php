@@ -260,9 +260,14 @@ function th_home_showcase_append_from_hotels(
     int $perCountry = 6
 ): void {
     $countryId = (int) ($meta['countryId'] ?? 0);
+    $countryName = (string) ($meta['name'] ?? '');
     $hotels = th_promo_filter_hotels_for_promo_country($hotels, $countryId);
     $hotels = th_promo_filter_hotels_future_tours($hotels, date('Y-m-d'));
     $hotels = th_promo_filter_hotels_min_nights($hotels, $countryId);
+    /* Тот же whitelist, что search/live (FunSun…Ambotis / TR+EG короткий). */
+    $hotels = th_promo_filter_hotels_by_allowed_operators($hotels, $countryId, $countryName, [
+        'departureId' => $departureId,
+    ]);
     $hotels = th_home_showcase_sort_hotels($hotels);
     $taken = 0;
     foreach ($hotels as $hotel) {

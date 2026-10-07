@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+    build:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Set up PHP
+          uses: shivammathur/setup-php@v2
+          with:
+            php-version: '8.3'
+        - uses: actions/checkout@v3
+        - name: Check PHP syntax
+          run : find index.php backend frontend api -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+        - name: Install image dokcer
+          run: docker build -t travelhub_app:latest .
+          
+      
+            

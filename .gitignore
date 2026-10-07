@@ -86,3 +86,5 @@ backend/config/firebase-service-account.json
 # QA-чеклисты для ручного теста — только локально, не в репозитории
 docs/QA-*.md
 docs/qa-danik-pack*/
+
+cursor
