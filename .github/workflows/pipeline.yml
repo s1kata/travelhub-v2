@@ -8,18 +8,75 @@ on:
     branches:
       - master
 jobs:
-    build:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Set up PHP
-          uses: shivammathur/setup-php@v2
-          with:
-            php-version: '8.3'
-        - uses: actions/checkout@v3
-        - name: Check PHP syntax
-          run : find index.php backend frontend api -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
-        - name: Install image dokcer
-          run: docker build -t travelhub_app:latest .
-          
-      
-            
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+      - name: Check PHP syntax
+        run: find index.php backend frontend api -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+      - name: Build Docker image
+        run: docker build -t travelhub_app:latest .
+
+  update-staging-files:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require staging repository write token
+        env:
+          STAGING_REPO_TOKEN: ${{ secrets.STAGING_REPO_TOKEN }}
+        run: |
+          if [ -z "$STAGING_REPO_TOKEN" ]; then
+            echo "::error::Add the STAGING_REPO_TOKEN Actions secret with contents:write access to s1kata/travelhubstand."
+            exit 1
+          fi
+      - name: Check out website source
+        uses: actions/checkout@v4
+        with:
+          path: source
+      - name: Check out staging repository
+        uses: actions/checkout@v4
+        with:
+          repository: s1kata/travelhubstand
+          ref: main
+          token: ${{ secrets.STAGING_REPO_TOKEN }}
+          path: staging
+      - name: Synchronize website files
+        run: |
+          rsync -a --delete \
+            --exclude='/.git/' \
+            --exclude='/.github/' \
+            --exclude='/.cursor/' \
+            --exclude='/.gitignore' \
+            --exclude='/.dockerignore' \
+            --exclude='.env' \
+            --exclude='.env.*' \
+            --exclude='/Dockerfile' \
+            --exclude='/Dockerfile.*' \
+            --exclude='/docker-compose*.yml' \
+            --exclude='/travelhub-chart/' \
+            --exclude='/nginx/' \
+            --exclude='/deploy/' \
+            --exclude='/data/' \
+            --exclude='/backups/' \
+            source/ staging/
+      - name: Commit and push staging updates
+        working-directory: staging
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          if git diff --cached --quiet; then
+            echo "Staging files are already up to date."
+            exit 0
+          fi
+          git commit -m "Sync website code from travelhub-v2 (${SOURCE_SHA})"
+          git push origin HEAD:main 
+          git pull

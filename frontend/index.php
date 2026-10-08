@@ -2785,12 +2785,13 @@ if ($th_search_ui_raw === 'legacy') {
             window.loadTvRegions = loadTvRegions;
 
             countrySel.addEventListener('change', async function() {
+                var restoringSearchState = !!window.__tvRestoringFromBack;
                 window.__tvFlyDates = { key: '', all: {}, charter: {}, direct: {} };
                 window.__tvFlyNights = { key: '', all: {}, charter: {}, direct: {}, enriched: false };
                 window.__tvCalPriceMap = {};
                 window.__tvCalPriceMapKey = '';
                 await loadTvRegions();
-                applyDefaultDateWindow();
+                if (!restoringSearchState) applyDefaultDateWindow();
                 tvSchedulePrefetchHomeSearch();
                 if (typeof window.tvLoadCalendarPriceMap === 'function') window.tvLoadCalendarPriceMap();
                 if (typeof window.tvLoadFlyAvailability === 'function') window.tvLoadFlyAvailability();
