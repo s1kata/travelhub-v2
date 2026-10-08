@@ -78,5 +78,4 @@ jobs:
             exit 0
           fi
           git commit -m "Sync website code from travelhub-v2 (${SOURCE_SHA})"
-          git push origin HEAD:main 
-          git pull
+          git push origin HEAD:main
