@@ -119,6 +119,19 @@
     return match ? match[0] : '';
   }
 
+  function tourAdultsKey(tour) {
+    var adults = tour && tour.adults;
+    if (adults == null || adults === '') return '2';
+    return String(adults).trim();
+  }
+
+  function tourChildsKey(tour) {
+    var childs = tour && tour.childs;
+    if (childs == null || childs === '' || childs === 0 || childs === '0') return '';
+    if (Array.isArray(childs)) return childs.map(function (n) { return String(n); }).join(',');
+    return String(childs).trim();
+  }
+
   function getRoomOptions(hotel, selectedTour) {
     var tours = hotel && Array.isArray(hotel.roomOptions)
       ? hotel.roomOptions
@@ -129,8 +142,8 @@
     var selectedOperator = tourOperatorKey(selectedTour);
     var selectedDate = tourDateKey(selectedTour);
     var selectedNights = String(selectedTour.nights == null ? '' : selectedTour.nights).trim();
-    var selectedAdults = String(selectedTour.adults == null ? '' : selectedTour.adults).trim();
-    var selectedChilds = String(selectedTour.childs == null ? '' : selectedTour.childs).trim();
+    var selectedAdults = tourAdultsKey(selectedTour);
+    var selectedChilds = tourChildsKey(selectedTour);
     var options = [];
 
     function add(tour, isSelected) {
@@ -175,8 +188,8 @@
       if (String(tour.nights == null ? '' : tour.nights).trim() !== selectedNights) return;
       if (tourMealKey(tour) !== selectedMeal) return;
       if (tourOperatorKey(tour) !== selectedOperator) return;
-      if (String(tour.adults == null ? '' : tour.adults).trim() !== selectedAdults) return;
-      if (String(tour.childs == null ? '' : tour.childs).trim() !== selectedChilds) return;
+      if (tourAdultsKey(tour) !== selectedAdults) return;
+      if (tourChildsKey(tour) !== selectedChilds) return;
       add(tour, false);
     });
 
@@ -196,6 +209,84 @@
       return '';
     } catch (e) {
       return '';
+    }
+  }
+
+  function decodeRoomOptions(encoded) {
+    if (!encoded || typeof encoded !== 'string') return [];
+    try {
+      var b64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+      var pad = b64.length % 4;
+      if (pad) b64 += '===='.slice(0, 4 - pad);
+      var json = decodeURIComponent(escape(atob(b64)));
+      var raw = JSON.parse(json);
+      if (!Array.isArray(raw)) return [];
+      var out = [];
+      raw.slice(0, 20).forEach(function (row) {
+        if (!row || typeof row !== 'object') return;
+        var tourId = String(row.tourId != null ? row.tourId : '').replace(/\D+/g, '');
+        var roomId = String(row.roomId != null ? row.roomId : '').replace(/[^a-zA-Z0-9_-]/g, '');
+        var price = Math.round(Number(row.price) || 0);
+        if (!tourId || price <= 0) return;
+        out.push({
+          roomId: roomId.slice(0, 64),
+          roomType: String(row.roomType || 'Вариант номера').slice(0, 80),
+          tourId: tourId.slice(0, 24),
+          price: price
+        });
+      });
+      return out.length >= 2 ? out : [];
+    } catch (eDec) {
+      return [];
+    }
+  }
+
+  var TH_ROOM_CTX_TTL_MS = 45 * 60 * 1000;
+
+  function thRoomCtxStorageKey(hotelId) {
+    return 'th_hotel_room_ctx_' + String(hotelId || '').trim();
+  }
+
+  /**
+   * Контекст отеля из выдачи (sessionStorage) — мгновенный список номеров на tour-detail.
+   */
+  function getRoomOptionsFromSessionCache(hotelId, tourId) {
+    var hid = String(hotelId || '').trim();
+    if (!hid) return [];
+    try {
+      var encKey = 'th_room_enc_' + hid + '_' + String(tourId || '');
+      var encRaw = sessionStorage.getItem(encKey);
+      if (encRaw) {
+        var encRow = JSON.parse(encRaw);
+        if (encRow && encRow.ts && (Date.now() - encRow.ts) <= TH_ROOM_CTX_TTL_MS && encRow.enc) {
+          var fromEnc = decodeRoomOptions(encRow.enc);
+          if (fromEnc.length >= 2) return fromEnc;
+        }
+      }
+      var ctxRaw = sessionStorage.getItem(thRoomCtxStorageKey(hid));
+      if (!ctxRaw) return [];
+      var ctx = JSON.parse(ctxRaw);
+      if (!ctx || !ctx.ts || (Date.now() - ctx.ts) > TH_ROOM_CTX_TTL_MS || !ctx.hotel) return [];
+      var hotel = ctx.hotel;
+      var tours = Array.isArray(hotel.tours) ? hotel.tours : [];
+      if (!tours.length) return [];
+      var matchTour = null;
+      var wantTid = String(tourId || ctx.tourId || '').trim();
+      if (wantTid) {
+        tours.some(function (t) {
+          var tid = String(t && (t.id != null ? t.id : (t.tourId || ''))).trim();
+          if (tid && tid === wantTid) {
+            matchTour = t;
+            return true;
+          }
+          return false;
+        });
+      }
+      if (!matchTour) matchTour = tours[0];
+      var opts = getRoomOptions(hotel, matchTour);
+      return opts.length >= 2 ? opts : [];
+    } catch (eCache) {
+      return [];
     }
   }
 
@@ -847,6 +938,13 @@
     setTimeout(run, 0);
     setTimeout(run, 80);
     setTimeout(run, 300);
+    if (global.__tvSnapshotRestored) {
+      setTimeout(function () {
+        global.__tvSnapshotRestored = false;
+        if (!isCarouselHydrateDeferred()) scheduleCarouselHydrate(scope, 400);
+      }, 2500);
+      return;
+    }
     if (isCarouselHydrateDeferred()) {
       scheduleCarouselHydrate(scope, 1200);
       return;
@@ -1373,6 +1471,9 @@
     var hotelIdAttr = h.id ? ' data-th-hotel-id="' + esc(String(h.id)) + '"' : '';
     var tourIdAttr = tourIdStr ? ' data-th-tour-id="' + esc(tourIdStr) + '"' : '';
     var depCityAttr = depCity ? ' data-th-departure-city="' + esc(depCity) + '"' : '';
+    var roomOptAttr = options.roomOptionsEncoded
+      ? (' data-th-room-options="' + esc(String(options.roomOptionsEncoded)) + '"')
+      : '';
     var cardBookingPayload = (options.cardQuickLead !== false && tourIdStr)
       ? buildCardBookingPayload(h, tour, {
           detailUrl: cardHref,
@@ -1414,7 +1515,7 @@
         ' aria-pressed="false">Сравнить</button>')
       : '';
     return (
-      '<article class="th-tour-card' + modClass + '"' + skipPatch + hotelIdAttr + tourIdAttr + depCityAttr + '>' +
+      '<article class="th-tour-card' + modClass + '"' + skipPatch + hotelIdAttr + tourIdAttr + depCityAttr + roomOptAttr + '>' +
       mediaHtml +
       '<div class="th-tour-card__body">' +
       '<a href="' + esc(cardHref) + '"' + targetAttr + ' class="th-tour-card__link th-tour-card__link--main th-tour-card__link--head">' +
@@ -1485,6 +1586,7 @@
       var cardHotelId = card.getAttribute('data-th-hotel-id');
       if (cardHotelId && hotel.id != null && cardHotelId !== String(hotel.id)) return;
       updateCardDetailLinks(card, { room_options: encoded });
+      card.setAttribute('data-th-room-options', encoded);
     });
   }
 
@@ -1701,6 +1803,8 @@
     PHOTO_SLIDE_MAX: PHOTO_SLIDE_MAX,
     getRoomOptions: getRoomOptions,
     encodeRoomOptions: encodeRoomOptions,
+    decodeRoomOptions: decodeRoomOptions,
+    getRoomOptionsFromSessionCache: getRoomOptionsFromSessionCache,
     syncRoomOptionsForHotel: syncRoomOptionsForHotel,
     render: render,
     renderList: renderList,

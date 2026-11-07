@@ -3582,7 +3582,7 @@ if ($th_search_ui_raw === 'legacy') {
                 if (hasRestoreParam && window.TourSessionManager && typeof window.TourSessionManager.restore === 'function') {
                     setTimeout(function() {
                         window.TourSessionManager.restore();
-                    }, restoredFromSnap ? 200 : 500);
+                    }, restoredFromSnap ? 50 : 500);
                 } else if (!hasRestoreParam) {
                     window.__tvRestoringFromBack = false;
                 }
@@ -3667,22 +3667,71 @@ if ($th_search_ui_raw === 'legacy') {
         function tvHotelKey(h) {
             return h && h.id != null ? String(h.id) : '';
         }
+        function tvFindHotelById(hid) {
+            var id = String(hid || '').trim();
+            if (!id) return null;
+            var pools = [];
+            if (Array.isArray(tvHotelsBeforeBudgetFilter) && tvHotelsBeforeBudgetFilter.length) {
+                pools.push(tvHotelsBeforeBudgetFilter);
+            }
+            if (Array.isArray(tvLastResults) && tvLastResults.length) {
+                pools.push(tvLastResults);
+            }
+            for (var p = 0; p < pools.length; p++) {
+                var list = pools[p];
+                for (var i = 0; i < list.length; i++) {
+                    if (list[i] && String(list[i].id) === id) return list[i];
+                }
+            }
+            return null;
+        }
+        var TH_ROOM_CTX_TTL_MS = 45 * 60 * 1000;
+        window.__tvSaveHotelRoomContext = function (hid, tid, href, card) {
+            var hotelId = String(hid || '').trim();
+            if (!hotelId) return;
+            try {
+                var hotel = tvFindHotelById(hotelId);
+                if (hotel) {
+                    sessionStorage.setItem('th_hotel_room_ctx_' + hotelId, JSON.stringify({
+                        ts: Date.now(),
+                        tourId: String(tid || ''),
+                        hotel: hotel
+                    }));
+                }
+                var enc = card && card.getAttribute('data-th-room-options');
+                if (!enc && href) {
+                    try {
+                        var u = new URL(href, window.location.origin);
+                        enc = u.searchParams.get('room_options') || '';
+                    } catch (eHref) {}
+                }
+                if (enc) {
+                    sessionStorage.setItem('th_room_enc_' + hotelId + '_' + String(tid || ''), JSON.stringify({
+                        ts: Date.now(),
+                        enc: enc
+                    }));
+                }
+            } catch (eCtx) {}
+        };
         var TV_MAIN_SNAPSHOT_KEY = 'tv_main_search_snapshot_v1';
         var TV_MAIN_SNAPSHOT_TTL_MS = 45 * 60 * 1000;
 
         function saveTvMainSearchSnapshot() {
             try {
                 if (!tvLastResults || tvLastResults.length === 0) return;
+                if (window.__tvRestoringFromBack && !window.__tvSnapshotRestored) return;
                 var sortEl = document.getElementById('tv-sort');
                 var snap = {
                     ts: Date.now(),
                     hotels: tvLastResults,
+                    hotelsRaw: Array.isArray(tvHotelsBeforeBudgetFilter) ? tvHotelsBeforeBudgetFilter : tvLastResults,
                     displayed: tvDisplayedCount,
                     sort: (sortEl && sortEl.value) ? sortEl.value : 'price-asc',
                     flights: window.__mainFlightsByTourId || {},
                     adults: tvAdultsCount,
                     childAges: tvChildrenAges ? tvChildrenAges.slice() : [],
-                    scrollY: window.scrollY || window.pageYOffset || 0
+                    scrollY: window.scrollY || window.pageYOffset || 0,
+                    searchMode: window.__thSearchMode || 'tours'
                 };
                 sessionStorage.setItem(TV_MAIN_SNAPSHOT_KEY, JSON.stringify(snap));
             } catch (e) {}
@@ -3709,7 +3758,12 @@ if ($th_search_ui_raw === 'legacy') {
                 if (p.ts && (Date.now() - p.ts > TV_MAIN_SNAPSHOT_TTL_MS)) return false;
                 window.__tvRestoringFromBack = true;
                 tvLastResults = p.hotels;
-                tvHotelsBeforeBudgetFilter = Array.isArray(p.hotels) ? p.hotels.slice() : [];
+                tvHotelsBeforeBudgetFilter = Array.isArray(p.hotelsRaw) && p.hotelsRaw.length
+                    ? p.hotelsRaw.slice()
+                    : (Array.isArray(p.hotels) ? p.hotels.slice() : []);
+                if (p.searchMode === 'hotels' || p.searchMode === 'tours') {
+                    window.__thSearchMode = p.searchMode;
+                }
                 tvDisplayedCount = Math.min(Math.max(parseInt(p.displayed, 10) || TV_PAGE_SIZE, 1), tvLastResults.length);
                 if (typeof p.adults === 'number' && p.adults >= 1 && p.adults <= 9) tvAdultsCount = p.adults;
                 if (Array.isArray(p.childAges)) {
@@ -3719,11 +3773,21 @@ if ($th_search_ui_raw === 'legacy') {
                     }).slice(0, 3);
                 }
                 window.__mainFlightsByTourId = (p.flights && typeof p.flights === 'object') ? p.flights : {};
+                window.__tvSnapshotRestored = true;
+                window.__tvSearchBusy = false;
+                window.__tvTourCardsPending = false;
                 var sortEl2 = document.getElementById('tv-sort');
                 if (sortEl2 && p.sort) sortEl2.value = p.sort;
                 var wrapper = document.getElementById('tv-results-wrapper');
                 if (wrapper) wrapper.classList.remove('hidden');
-                applyTvSort();
+                applyTvSort({ skipFlights: true, fromSnapshot: true });
+                if (window.THTourCard && typeof window.THTourCard.patchFlightsInContainer === 'function') {
+                    var tvResElSnap = document.getElementById('tv-search-results');
+                    if (tvResElSnap) window.THTourCard.patchFlightsInContainer(tvResElSnap);
+                }
+                tvSetResultsPackageLoading(false);
+                tvReleaseLoaderIfFirstPageDrawn();
+                tvLoaderHide();
                 updateTvLoadMoreButton();
                 var rC = document.getElementById('tv-result-count');
                 if (rC) rC.textContent = String(tvLastResults.length);
@@ -5379,7 +5443,14 @@ if ($th_search_ui_raw === 'legacy') {
 
             if (opts.skipFlights || thIsHotelSearchMode() || !slice.length) {
                 renderSlice();
-                if (!slice.length && !window.__tvSearchBusy) {
+                if (opts.skipFlights || opts.fromSnapshot) {
+                    tvSetResultsPackageLoading(false);
+                    tvReleaseLoaderIfFirstPageDrawn();
+                    if (!window.__tvSearchBusy) {
+                        window.__tvTourCardsPending = false;
+                        tvLoaderHide();
+                    }
+                } else if (!slice.length && !window.__tvSearchBusy) {
                     window.__tvTourCardsPending = false;
                     tvLoaderHide();
                 }
@@ -5674,9 +5745,13 @@ if ($th_search_ui_raw === 'legacy') {
                     if (tour.roomId != null || tour.roomid != null || tour.room_id != null) {
                         params.room_id = String(tour.roomId != null ? tour.roomId : (tour.roomid != null ? tour.roomid : tour.room_id));
                     }
+                    var roomOptionsEncoded = '';
                     if (window.THTourCard && typeof window.THTourCard.getRoomOptions === 'function') {
                         const roomOptions = window.THTourCard.getRoomOptions(h, tour);
-                        if (roomOptions.length > 1) params.room_options = window.THTourCard.encodeRoomOptions(roomOptions);
+                        if (roomOptions.length > 1 && window.THTourCard.encodeRoomOptions) {
+                            roomOptionsEncoded = window.THTourCard.encodeRoomOptions(roomOptions);
+                            if (roomOptionsEncoded) params.room_options = roomOptionsEncoded;
+                        }
                     }
                     if (opName) params.tour_operator = String(opName).trim();
                     var childsStr = tvChildsParam();
@@ -5721,7 +5796,8 @@ if ($th_search_ui_raw === 'legacy') {
                             var fm = tvFlightMetaLookup(tourId, departureCity);
                             return fm && fm.direct === false;
                         })()),
-                        flightMeta: (!hotelMode && tourId) ? tvFlightMetaLookup(tourId, departureCity) : null
+                        flightMeta: (!hotelMode && tourId) ? tvFlightMetaLookup(tourId, departureCity) : null,
+                        roomOptionsEncoded: roomOptionsEncoded || ''
                     });
                 }).join('');
                 document.getElementById('tv-result-count').textContent = tvLastResults.length;

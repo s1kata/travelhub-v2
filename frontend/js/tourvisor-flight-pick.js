@@ -915,6 +915,9 @@
         return value == null ? '' : String(value).trim();
     }
 
+    /**
+     * Уникальные roomId по всем турам отеля (для tour-package / подписей номеров).
+     */
     function thTourRoomIds(hotel) {
         var rows = hotel && Array.isArray(hotel.roomOptions)
             ? hotel.roomOptions
@@ -922,11 +925,7 @@
         var ids = [];
         rows.forEach(function (tour) {
             var roomId = thTourRoomId(tour);
-            var roomTypeValue = tour && (tour.roomType || tour.room || tour.roomName);
-            var roomType = roomTypeValue && typeof roomTypeValue === 'object'
-                ? (roomTypeValue.russianName || roomTypeValue.name || roomTypeValue.title || '')
-                : roomTypeValue;
-            if (!String(roomType || '').trim() && /^\d{1,12}$/.test(roomId) && ids.indexOf(roomId) < 0) ids.push(roomId);
+            if (/^\d{1,12}$/.test(roomId) && ids.indexOf(roomId) < 0) ids.push(roomId);
         });
         return ids.slice(0, 30);
     }

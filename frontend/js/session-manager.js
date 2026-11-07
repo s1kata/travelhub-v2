@@ -183,8 +183,12 @@
         try {
             var card = link.closest('.th-tour-card, .tv-tour-card, [data-th-hotel-id]');
             var hid = card && card.getAttribute('data-th-hotel-id');
+            var tid = card && card.getAttribute('data-th-tour-id');
             if (hid) sessionStorage.setItem(LAST_CARD_KEY, hid);
             else sessionStorage.removeItem(LAST_CARD_KEY);
+            if (typeof window.__tvSaveHotelRoomContext === 'function') {
+                window.__tvSaveHotelRoomContext(hid, tid, link.href, card);
+            }
         } catch (_) {}
         if (typeof window.saveTvMainSearchSnapshot === 'function') {
             window.saveTvMainSearchSnapshot();
@@ -247,10 +251,90 @@
         window.__tvRestoringFromBack = false;
     }
 
+    function hasValidSearchSnapshot() {
+        try {
+            var raw = sessionStorage.getItem('tv_main_search_snapshot_v1');
+            if (!raw) return false;
+            var p = JSON.parse(raw);
+            if (!p || !Array.isArray(p.hotels) || !p.hotels.length) return false;
+            if (p.ts && (Date.now() - p.ts) > TTL_MS) return false;
+            return true;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    /** После снимка выдачи — только подписи формы и скролл, без reloadCountries и change. */
+    function restoreAfterSearchSnapshot() {
+        var s = readExtraState();
+        var targetY = (s && s.scrollY) ? s.scrollY : 0;
+        var lastCardId = '';
+        try { lastCardId = sessionStorage.getItem(LAST_CARD_KEY) || ''; } catch (_) {}
+
+        if (s) {
+            if (s.nightsFrom) {
+                window.tvNightsFrom = s.nightsFrom;
+                window.tvNightsTo = s.nightsTo || s.nightsFrom;
+                var nightLblSnap = document.getElementById('tv-nights-summary-text');
+                if (nightLblSnap) {
+                    nightLblSnap.textContent = window.tvNightsFrom === window.tvNightsTo
+                        ? String(window.tvNightsFrom)
+                        : window.tvNightsFrom + ' — ' + window.tvNightsTo;
+                }
+            }
+            if (s.adults) window.tvAdultsCount = s.adults;
+            if (Array.isArray(s.childAges)) window.tvChildrenAges = s.childAges;
+            if (s.category) safeSet('tv-category', s.category, true);
+            if (s.departure) safeSet('tv-departure', s.departure, true);
+            if (s.country) safeSet('tv-country', s.country, true);
+            if (s.meal) safeSet('tv-meal', s.meal, true);
+            if (s.region) safeSet('tv-region', s.region, true);
+            if (s.datesRaw && window.tvDatePicker) {
+                try { window.tvDatePicker.setDate(s.datesRaw, true); } catch (_) {}
+            }
+        }
+
+        if (!lastCardId && targetY <= 80) {
+            finishRestore();
+            return;
+        }
+
+        var attempts = 0;
+        var maxAttempts = 60;
+        var iv = setInterval(function () {
+            var card = findCardByStoredId(lastCardId);
+            if (card) {
+                clearInterval(iv);
+                highlightCard(card);
+                finishRestore();
+                return;
+            }
+            if (targetY > 80 && attempts > 3) {
+                clearInterval(iv);
+                if (!scrollResultsBlockIntoView('auto')) {
+                    window.scrollTo({ top: targetY, behavior: 'auto' });
+                }
+                finishRestore();
+                return;
+            }
+            if (++attempts >= maxAttempts) {
+                clearInterval(iv);
+                finishRestore();
+            }
+        }, 100);
+    }
+
     function restoreExtra() {
         if (!shouldRestore()) return;
 
         window.__tvRestoringFromBack = true;
+
+        var resultsRoot = document.getElementById('tv-search-results');
+        var hasCards = !!(resultsRoot && resultsRoot.querySelector('.th-tour-card, [data-th-hotel-id]'));
+        if (window.__tvSnapshotRestored || (hasValidSearchSnapshot() && hasCards)) {
+            restoreAfterSearchSnapshot();
+            return;
+        }
 
         var s = readExtraState();
         var targetY = (s && s.scrollY) ? s.scrollY : 0;
@@ -299,10 +383,6 @@
                     if (!found) {
                         restoreMealAndRegion();
                         return;
-                    }
-                    var country = document.getElementById('tv-country');
-                    if (country) {
-                        try { country.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) {}
                     }
                     restoreMealAndRegion();
                 });
@@ -424,6 +504,12 @@
             if (!ev.persisted) return;
             if (!shouldRestore()) return;
             setTimeout(restoreExtra, 200);
+        });
+        window.addEventListener('pagehide', function () {
+            saveExtra();
+            if (typeof window.saveTvMainSearchSnapshot === 'function') {
+                window.saveTvMainSearchSnapshot();
+            }
         });
     }
 
