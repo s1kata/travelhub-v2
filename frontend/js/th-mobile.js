@@ -257,6 +257,7 @@
     syncStickyPad();
     syncModalLock();
     pinFixedBottomsForYandex();
+    pinLeadModalsForKeyboard();
   }
 
   var scheduled = false;
@@ -318,6 +319,112 @@
    * Подтягиваем нижние CTA к низу visualViewport.
    * На desktop сбрасываем инлайн-стили — иначе плашка «съезжает» влево после ресайза.
    */
+  var leadModalPinProps = ['top', 'left', 'right', 'bottom', 'width', 'height', 'max-height'];
+
+  function clearLeadModalBox(el) {
+    if (!el || !el.style) return;
+    for (var i = 0; i < leadModalPinProps.length; i++) {
+      el.style.removeProperty(leadModalPinProps[i]);
+    }
+  }
+
+  function leadModalPanel(el) {
+    if (!el) return null;
+    return el.querySelector('.th-qbm-modal__panel')
+      || el.querySelector('.th-sf-card')
+      || el.querySelector('.th-tour-booking-modal__panel');
+  }
+
+  /**
+   * Bottom-sheet заявки: при клавиатуре привязка к visualViewport (Яндекс / Android / iOS).
+   */
+  function pinLeadModalsForKeyboard() {
+    var vv = window.visualViewport;
+    var kbOpen = root.classList.contains('th-kb-open');
+    var ids = ['th-tour-booking-modal', 'quick-booking-modal', 'th-site-feedback-overlay'];
+    var layoutH = window.innerHeight || document.documentElement.clientHeight || 0;
+
+    ids.forEach(function (id) {
+      var modal = document.getElementById(id);
+      if (!modal) return;
+      var panel = leadModalPanel(modal);
+      var visible = isModalVisible(modal);
+      if (id === 'th-tour-booking-modal' && modal.style.display === 'none') visible = false;
+      if (id === 'quick-booking-modal' && modal.style.display === 'none') visible = false;
+
+      if (!visible || !kbOpen || !isMobile() || !vv) {
+        clearLeadModalBox(modal);
+        if (panel) {
+          panel.style.removeProperty('max-height');
+          panel.style.removeProperty('overflow-y');
+        }
+        return;
+      }
+
+      var top = Math.round(vv.offsetTop || 0);
+      var left = Math.round(vv.offsetLeft || 0);
+      var w = Math.round(vv.width || modal.clientWidth || 0);
+      var h = Math.round(vv.height || layoutH);
+      modal.style.setProperty('position', 'fixed', 'important');
+      modal.style.setProperty('top', top + 'px', 'important');
+      modal.style.setProperty('left', left + 'px', 'important');
+      modal.style.setProperty('width', (w > 0 ? w : '100%') + '', 'important');
+      modal.style.setProperty('height', h + 'px', 'important');
+      modal.style.setProperty('right', 'auto', 'important');
+      modal.style.setProperty('bottom', 'auto', 'important');
+      modal.style.setProperty('max-height', h + 'px', 'important');
+
+      if (panel) {
+        var panelMax = Math.max(120, h - 6);
+        panel.style.setProperty('max-height', panelMax + 'px', 'important');
+        panel.style.setProperty('overflow-y', 'auto', 'important');
+        panel.style.setProperty('-webkit-overflow-scrolling', 'touch', 'important');
+      }
+    });
+
+    var bookingModal = document.getElementById('booking-modal');
+    if (bookingModal && bookingModal.style.display !== 'none' && isModalVisible(bookingModal) && kbOpen && vv && isMobile()) {
+      var bookingPanel = bookingModal.querySelector('.bg-white') || bookingModal.firstElementChild;
+      if (bookingPanel) {
+        var bh = Math.round(vv.height || layoutH);
+        bookingModal.style.setProperty('position', 'fixed', 'important');
+        bookingModal.style.setProperty('top', Math.round(vv.offsetTop || 0) + 'px', 'important');
+        bookingModal.style.setProperty('left', '0', 'important');
+        bookingModal.style.setProperty('width', '100%', 'important');
+        bookingModal.style.setProperty('height', bh + 'px', 'important');
+        bookingModal.style.setProperty('bottom', 'auto', 'important');
+        bookingPanel.style.setProperty('max-height', Math.max(120, bh - 8) + 'px', 'important');
+        bookingPanel.style.setProperty('overflow-y', 'auto', 'important');
+      }
+    } else if (bookingModal) {
+      clearLeadModalBox(bookingModal);
+    }
+  }
+
+  function scrollLeadFieldIntoView(el) {
+    if (!el || !isMobile()) return;
+    var panel = el.closest('.th-qbm-modal__panel, .th-sf-card, .th-tour-booking-modal__panel');
+    if (!panel) return;
+    var run = function () {
+      try {
+        el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+      } catch (e1) {
+        try { el.scrollIntoView(false); } catch (e2) {}
+      }
+      var panelRect = panel.getBoundingClientRect();
+      var fieldRect = el.getBoundingClientRect();
+      if (fieldRect.bottom > panelRect.bottom - 8) {
+        panel.scrollTop += fieldRect.bottom - panelRect.bottom + 24;
+      }
+      if (fieldRect.top < panelRect.top + 8) {
+        panel.scrollTop -= panelRect.top - fieldRect.top + 24;
+      }
+    };
+    setTimeout(run, 80);
+    setTimeout(run, 320);
+    setTimeout(run, 520);
+  }
+
   function pinFixedBottomsForYandex() {
     if (!isMobile()) {
       root.style.setProperty('--th-yandex-fixed-gap', '0px');
@@ -442,7 +549,21 @@
       var tag = t.tagName.toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select') {
         root.classList.add('th-kb-open');
-        setTimeout(function () { setVvh(); pinFixedBottomsForYandex(); }, 300);
+        setVvh();
+        pinLeadModalsForKeyboard();
+        if (t.closest('#th-tour-booking-modal, #quick-booking-modal, #th-site-feedback-overlay, #booking-modal')) {
+          scrollLeadFieldIntoView(t);
+        }
+        setTimeout(function () {
+          setVvh();
+          pinFixedBottomsForYandex();
+          pinLeadModalsForKeyboard();
+          scrollLeadFieldIntoView(t);
+        }, 300);
+        setTimeout(function () {
+          pinLeadModalsForKeyboard();
+          scrollLeadFieldIntoView(t);
+        }, 600);
       }
     }, true);
     document.addEventListener('focusout', function () {
@@ -453,6 +574,7 @@
           root.classList.remove('th-kb-open');
           setVvh();
           pinFixedBottomsForYandex();
+          pinLeadModalsForKeyboard();
           schedule();
         }
       }, 200);
@@ -473,6 +595,8 @@
   window.THMobile = {
     sync: syncAll,
     pinFixedBottoms: pinFixedBottomsForYandex,
+    pinLeadModals: pinLeadModalsForKeyboard,
+    scrollLeadFieldIntoView: scrollLeadFieldIntoView,
     isMobile: isMobile,
     isYandex: isYandex,
     isHomeFunnelTop: function () {

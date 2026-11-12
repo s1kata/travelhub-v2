@@ -135,6 +135,13 @@
         background: #fff !important;
     }
 
+    html.th-kb-open #th-tour-booking-modal .th-qbm-modal__panel,
+    html.th-kb-open #quick-booking-modal .th-qbm-modal__panel,
+    html.th-kb-open #th-site-feedback-overlay .th-sf-card {
+        overflow-y: auto !important;
+        max-height: calc(var(--th-vvh, 100vh) - 4px) !important;
+    }
+
     #tv-nights-popup-card.th-coral-popup__panel {
         display: flex !important;
         flex-direction: column !important;

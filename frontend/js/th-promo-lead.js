@@ -1,5 +1,5 @@
 /**
- * Promo page lead entry — opens site feedback modal with tour context.
+ * Promo page lead — единая модалка THTourBookingModal.
  */
 (function (global) {
   'use strict';
@@ -34,12 +34,6 @@
     }
   }
 
-  function starsLabel() {
-    var lbl = global.document.getElementById('promo-stars-label');
-    if (!lbl) return '';
-    return String(lbl.textContent || '').trim();
-  }
-
   function buildMessage(note, extras) {
     extras = extras || {};
     var parts = ['Горящие туры / акции'];
@@ -48,43 +42,36 @@
     if (country) parts.push('Страна: ' + country);
     if (extras.hotelName) parts.push('Отель: ' + extras.hotelName);
     if (extras.hotelPrice) parts.push('Цена: ' + extras.hotelPrice + ' ₽');
-    var stars = starsLabel();
-    if (stars) parts.push('Фильтр отелей: ' + stars);
     if (note) parts.push(String(note));
     return parts.join('\n');
   }
 
   /**
    * @param {object} [opts]
-   * @param {string} [opts.source]
-   * @param {string} [opts.title]
-   * @param {string} [opts.sub]
-   * @param {string} [opts.note]
-   * @param {string} [opts.message]
-   * @param {boolean} [opts.focusPhone]
    */
   function open(opts) {
     opts = opts || {};
-    var source = String(opts.source || 'promo_lead');
-    var message = opts.message || buildMessage(opts.note || '', {
-      country: opts.country,
-      hotelName: opts.hotelName,
-      hotelPrice: opts.hotelPrice
-    });
+    var country = opts.country || countryLabel();
     ymGoal('promo_lead_modal_open');
-
-    if (typeof global.openSiteFeedbackModal === 'function') {
-      global.openSiteFeedbackModal({
-        title: opts.title || 'Подобрать горящий тур',
-        sub: opts.sub || 'Оставьте заявку — менеджер ответит в рабочее время с актуальными акциями.',
-        message: message,
-        source: source,
-        focusPhone: opts.focusPhone !== false,
-        phoneOnly: !!opts.phoneOnly
+    if (global.THTourBookingModal && typeof global.THTourBookingModal.open === 'function') {
+      global.THTourBookingModal.open({
+        from_promo: '1',
+        lead_source: opts.source || 'promo_lead',
+        country: country,
+        hotel_name: opts.hotelName || (country ? ('Подбор: ' + country) : 'Горящие туры'),
+        price: opts.hotelPrice || '',
+        departure_city: departureLabel(),
+        lead_note: opts.note || '',
+        lead_message: opts.message || buildMessage(opts.note || '', {
+          country: country,
+          hotelName: opts.hotelName,
+          hotelPrice: opts.hotelPrice
+        }),
+        modal_title: opts.title || 'Заявка на акционный тур',
+        phone_only: !!opts.phoneOnly
       });
       return true;
     }
-
     return false;
   }
 

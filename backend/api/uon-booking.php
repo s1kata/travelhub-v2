@@ -11,6 +11,7 @@
  */
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/components/session_bootstrap.php';
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/components/security_helper.php';
 require_once dirname(__DIR__) . '/components/lead_validation.php';
@@ -42,6 +43,9 @@ if ($input === []) {
 }
 
 $csrfToken = trim((string) ($input['_csrf_token'] ?? $input['csrf_token'] ?? $_POST['_csrf_token'] ?? ''));
+if ($csrfToken === '') {
+    $csrfToken = trim((string) ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''));
+}
 if ($csrfToken === '' || !security_csrf_verify_token($csrfToken)) {
     http_response_code(403);
     echo json_encode(['success' => false, 'error' => 'Недействительный запрос (CSRF). Обновите страницу и попробуйте снова.']);
@@ -85,7 +89,18 @@ if ($is_guest_manager) {
     echo json_encode(['success' => false, 'error' => 'Слишком много запросов. Попробуйте позже.']);
     exit;
 }
-$tour_link = tour_link_sanitize_for_app(trim((string) ($input['tour_link'] ?? '')));
+$tour_id_crm = preg_replace('/\D+/', '', trim((string) ($input['tour_id'] ?? $input['tourId'] ?? '')));
+if (strlen($tour_id_crm) > 24) {
+    $tour_id_crm = substr($tour_id_crm, 0, 24);
+}
+$tour_link_raw = trim((string) ($input['tour_link'] ?? ''));
+if ($tour_link_raw === '' && $tour_id_crm !== '') {
+    $tour_link_raw = 'tourvisor:tour:' . $tour_id_crm;
+}
+$tour_link = tour_link_sanitize_for_app($tour_link_raw);
+if ($tour_link === '' && $tour_id_crm !== '') {
+    $tour_link = 'tourvisor:tour:' . $tour_id_crm;
+}
 if ($tour_link !== '' && isset($tour_link[0]) && $tour_link[0] === '/' && strpos($tour_link, '//') !== 0) {
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $h = isset($_SERVER['HTTP_HOST']) ? trim((string) $_SERVER['HTTP_HOST']) : '';
@@ -125,10 +140,6 @@ $search_adults_param = isset($input['search_adults']) && $input['search_adults']
     ? max(1, min(9, (int) $input['search_adults']))
     : null;
 $search_childs_param = trim((string) ($input['search_childs'] ?? ''));
-$tour_id_crm = preg_replace('/\D+/', '', trim((string) ($input['tour_id'] ?? $input['tourId'] ?? '')));
-if (strlen($tour_id_crm) > 24) {
-    $tour_id_crm = substr($tour_id_crm, 0, 24);
-}
 $tour_operator = trim((string) ($input['tour_operator'] ?? ''));
 if (function_exists('mb_substr')) {
     $tour_operator = mb_substr($tour_operator, 0, 200, 'UTF-8');

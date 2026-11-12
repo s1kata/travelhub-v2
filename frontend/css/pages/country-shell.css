@@ -1,0 +1,579 @@
+/**
+ * Страницы стран — единый визуал (hero → туры → факты → поиск → фото).
+ */
+body.th-global-shell-v3.th-country-page,
+body.th-global-shell-v3.ds-page:has(.th-country-page) {
+  background: #eef3f6 !important;
+}
+
+.th-country-page {
+  --th-cntry-radius: 20px;
+  color: #1e293b;
+}
+
+.th-country-page .th-country-hero {
+  min-height: min(52vh, 520px);
+  padding-top: calc(var(--th-header-clearance, 80px) + 1.5rem);
+  padding-bottom: 2.5rem;
+  margin-bottom: 0;
+}
+
+.th-country-page .th-country-hero__overlay {
+  background: linear-gradient(
+    180deg,
+    rgba(18, 18, 46, 0.35) 0%,
+    rgba(18, 18, 46, 0.55) 45%,
+    rgba(18, 18, 46, 0.88) 100%
+  ) !important;
+}
+
+.th-country-page .th-country-hero h1 {
+  font-size: clamp(2rem, 5vw, 3.25rem) !important;
+  line-height: 1.12;
+}
+
+.th-country-page .th-country-hero__iso {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+}
+
+/* Плашка действий */
+.th-country-page__actions {
+  position: relative;
+  z-index: 5;
+  margin-top: -2.25rem;
+  padding: 0 1rem 1.5rem;
+}
+
+.th-country-page__actions-inner {
+  max-width: 640px;
+  margin: 0 auto;
+  display: grid;
+  gap: 0.65rem;
+  padding: 1rem;
+  background: #fff;
+  border-radius: var(--th-cntry-radius);
+  border: 1px solid rgba(18, 18, 46, 0.08);
+  box-shadow: 0 12px 40px rgba(18, 18, 46, 0.12);
+}
+
+@media (min-width: 640px) {
+  .th-country-page__actions-inner {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .th-country-page__actions-inner .th-country-page__action--full {
+    grid-column: 1 / -1;
+  }
+}
+
+.th-country-page__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 52px;
+  padding: 0.65rem 1rem;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.th-country-page__btn--primary {
+  background: linear-gradient(135deg, #ff6b6b, #f65252);
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(255, 107, 107, 0.3);
+}
+
+.th-country-page__btn--secondary {
+  background: #fff;
+  color: #12122e;
+  border: 1px solid rgba(18, 18, 46, 0.12);
+}
+
+.th-country-page__btn--ghost {
+  background: rgba(93, 169, 164, 0.1);
+  color: #234649;
+  border: 1px dashed rgba(93, 169, 164, 0.45);
+}
+
+.th-country-page__btn:hover {
+  transform: translateY(-1px);
+}
+
+/* Факты */
+.th-country-page__facts {
+  padding: 1.5rem 0 2rem;
+  background: #eef3f6;
+}
+
+.th-country-page__facts-grid {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .th-country-page__facts-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.th-country-page__fact-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid rgba(18, 18, 46, 0.08);
+  box-shadow: 0 4px 18px rgba(18, 18, 46, 0.05);
+}
+
+.th-country-page__fact-card h3 {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #5da9a4;
+  margin: 0 0 0.35rem;
+  font-weight: 700;
+}
+
+.th-country-page__fact-card p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.th-country-page__highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+.th-country-page__highlight {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(93, 169, 164, 0.12);
+  color: #12122e;
+}
+
+/* Блок туров */
+.th-country-page #country-promo-tours {
+  background: #fff !important;
+  border: none !important;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+.th-country-page #country-promo-tours .rounded-2xl.overflow-hidden {
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.th-country-page #country-promo-tours > .container {
+  max-width: 1140px;
+}
+
+.th-country-page .th-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.th-country-page .th-section-head h2 {
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
+  color: #12122e;
+  margin: 0;
+}
+
+.th-country-page .th-section-head p {
+  color: #64748b;
+  margin: 0.35rem 0 0;
+  font-size: 0.95rem;
+  max-width: 36rem;
+}
+
+/* Галерея — сетка */
+.th-country-page #country-photo-gallery {
+  background: #fff;
+  padding: 2.5rem 0;
+}
+
+.th-country-page .th-country-gallery__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .th-country-page .th-country-gallery__grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+}
+
+.th-country-page .th-country-gallery__item {
+  aspect-ratio: 4 / 3;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  box-shadow: 0 6px 20px rgba(18, 18, 46, 0.08);
+}
+
+.th-country-page .th-country-gallery__item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.th-country-page .th-country-gallery__item:hover img {
+  transform: scale(1.05);
+}
+
+.th-country-page #contact {
+  background: #fff !important;
+  border-top: 1px solid rgba(18, 18, 46, 0.06);
+}
+
+.th-country-page #turkey-vip-hotels-banner {
+  background: #faf7f4 !important;
+  border-bottom: 1px solid rgba(18, 18, 46, 0.06) !important;
+}
+
+/* Фильтр звёзд на странице страны — как на акциях (promotions.css только .th-promo-page) */
+#country-promo-tours #country-promo-filters-row {
+  position: relative;
+  z-index: 30;
+  width: 100%;
+  max-width: 100%;
+}
+
+#country-promo-tours #country-promo-filters-row .promo-stars-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-height: 56px;
+  margin: 0;
+  padding: 10px 12px 10px 10px;
+  border: 2px solid rgba(255, 107, 107, 0.28);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #fff8f7 100%);
+  color: #1a1a40;
+  cursor: pointer;
+  box-shadow:
+    0 4px 16px rgba(255, 107, 107, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  text-align: left;
+  font-family: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+#country-promo-tours #country-promo-filters-row .promo-stars-trigger:hover {
+  border-color: rgba(255, 107, 107, 0.45);
+  box-shadow:
+    0 6px 20px rgba(255, 107, 107, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+#country-promo-tours #country-promo-filters-row .promo-stars-trigger:active {
+  transform: scale(0.985);
+}
+
+#country-promo-tours #country-promo-filters-row .promo-stars-trigger__badge {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ff6b6b 0%, #f65252 100%);
+  color: #fff;
+  font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.35);
+}
+
+#country-promo-tours #country-promo-filters-row .promo-stars-trigger__title {
+  display: block;
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  color: #1a1a40;
+}
+
+#country-promo-tours #country-promo-filters-row .promo-stars-trigger__hint {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-top: 2px;
+  line-height: 1.3;
+  color: #64748b;
+}
+
+#country-promo-tours #country-promo-filters-row .promo-stars-trigger__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+}
+
+#country-promo-tours #country-promo-filters-row .promo-stars-trigger__chev {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#country-promo-tours #country-promo-filters-row .promo-stars-trigger__icon {
+  font-size: 0.72rem;
+  color: #64748b;
+  transition: transform 0.2s ease;
+}
+
+#country-promo-tours #country-promo-filters-row .promo-stars-trigger[aria-expanded="true"] .promo-stars-trigger__icon {
+  transform: rotate(180deg);
+}
+
+#country-promo-tours #country-promo-filters-row .promo-stars-trigger.has-selection {
+  border-color: #ff6b6b;
+  background: linear-gradient(180deg, #fff 0%, #fff5f5 100%);
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.2);
+}
+
+#country-promo-tours #country-promo-filters-row .promo-stars-trigger.has-selection .promo-stars-trigger__hint {
+  color: #c2410c;
+}
+
+@media (min-width: 640px) {
+  #country-promo-tours #country-promo-filters-row .promo-stars-trigger {
+    min-height: 62px;
+    padding: 12px 16px 12px 12px;
+  }
+
+  #country-promo-tours #country-promo-filters-row .promo-stars-trigger__title {
+    font-size: 1.08rem;
+  }
+
+  #country-promo-tours #country-promo-filters-row .promo-stars-trigger__hint {
+    font-size: 0.84rem;
+  }
+}
+
+@media (max-width: 479px) {
+  #country-promo-tours #country-promo-filters-row .promo-stars-trigger {
+    gap: 10px;
+    padding: 10px;
+  }
+
+  #country-promo-tours #country-promo-filters-row .promo-stars-trigger__badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+  }
+
+  #country-promo-tours #country-promo-filters-row .promo-stars-trigger__hint {
+    font-size: 0.72rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+}
+
+#country-promo-tours .promo-stars-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 9990;
+}
+
+#country-promo-tours .promo-stars-popup {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  padding: 22px 20px 20px;
+  width: min(calc(100% - 32px), 360px);
+  z-index: 10000;
+  box-sizing: border-box;
+}
+
+#country-promo-tours .promo-stars-popup__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+#country-promo-tours .promo-stars-popup__title {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.25;
+}
+
+#country-promo-tours .promo-stars-popup__close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f3f4f6;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+#country-promo-tours .promo-stars-popup__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+#country-promo-tours .promo-stars-popup__item {
+  display: block;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+#country-promo-tours .promo-stars-popup__item input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
+#country-promo-tours .promo-stars-popup__item-face {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 54px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 2px solid #e5e7eb;
+  background: #f8fafc;
+  box-sizing: border-box;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+#country-promo-tours .promo-stars-popup__item-face > span:first-child {
+  flex: 0 0 auto;
+  min-width: 5rem;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #1e293b;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+#country-promo-tours .promo-stars-popup__item-face small {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #64748b;
+  line-height: 1.35;
+  padding-left: 8px;
+}
+
+#country-promo-tours .promo-stars-popup__item input:checked + .promo-stars-popup__item-face {
+  border-color: #ff6b6b;
+  background: #fff5f5;
+  box-shadow: 0 4px 16px rgba(255, 107, 107, 0.18);
+}
+
+#country-promo-tours .promo-stars-popup__item input:checked + .promo-stars-popup__item-face > span:first-child {
+  color: #c2410c;
+}
+
+@media (max-width: 767.98px) {
+  #country-promo-tours .promo-stars-popup {
+    bottom: 0;
+    top: auto;
+    left: 0;
+    right: 0;
+    transform: none;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+#country-promo-tours .promo-stars-popup__apply {
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 16px;
+  margin-top: 4px;
+  background: linear-gradient(135deg, #ff6b6b, #f65252);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(255, 107, 107, 0.35);
+}
+
+@media (max-width: 479px) {
+  #country-promo-tours .promo-stars-popup__item-face {
+    min-height: 50px;
+    padding: 11px 14px;
+    gap: 10px;
+  }
+
+  #country-promo-tours .promo-stars-popup__item-face > span:first-child {
+    min-width: 4.25rem;
+    font-size: 1.05rem;
+  }
+
+  #country-promo-tours .promo-stars-popup__item-face small {
+    font-size: 0.75rem;
+    white-space: normal;
+    text-align: right;
+  }
+}

@@ -20,7 +20,7 @@ $appUrl = $isSuccess ? $appSuccessUrl : $appFailUrl;
 
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru"<?php echo th_ui_html_class_attr() !== '' ? ' class="' . trim(th_ui_html_class_attr()) . '"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -68,7 +68,7 @@ $appUrl = $isSuccess ? $appSuccessUrl : $appFailUrl;
         .btn:hover { background: #457F7B; }
     </style>
 </head>
-<body>
+<body class="<?php echo trim(th_ui_body_class_attr()); ?>">
     <div class="card <?php echo $isSuccess ? 'success' : 'fail'; ?>">
         <div class="icon"><?php echo $isSuccess ? '✓' : '✕'; ?></div>
         <h1><?php echo $isSuccess ? 'Оплата прошла успешно!' : 'Оплата не выполнена'; ?></h1>

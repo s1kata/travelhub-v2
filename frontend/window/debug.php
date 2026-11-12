@@ -25,7 +25,7 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] ?? null) !== 'admin'
 header('Content-Type: text/html; charset=utf-8');
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru"<?php echo th_ui_html_class_attr() !== '' ? ' class="' . trim(th_ui_html_class_attr()) . '"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -42,7 +42,7 @@ header('Content-Type: text/html; charset=utf-8');
         .meta { color: #64748b; font-size: 0.875rem; }
     </style>
 </head>
-<body>
+<body class="<?php echo trim(th_ui_body_class_attr()); ?>">
     <h1>🔧 Отладка Travel Hub</h1>
     <p class="meta"><?= date('Y-m-d H:i:s') ?> · <?= $_SERVER['HTTP_HOST'] ?? '—' ?></p>
 

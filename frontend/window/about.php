@@ -8,7 +8,7 @@ $_th_about_css = dirname(__DIR__, 1) . DIRECTORY_SEPARATOR . 'css' . DIRECTORY_S
 $_th_about_css_version = is_file($_th_about_css) ? (string) filemtime($_th_about_css) : '1';
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru"<?php echo th_ui_html_class_attr() !== '' ? ' class="' . trim(th_ui_html_class_attr()) . '"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
@@ -18,8 +18,10 @@ $_th_about_css_version = is_file($_th_about_css) ? (string) filemtime($_th_about
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/frontend/css/pages/about.css?v=<?php echo htmlspecialchars($_th_about_css_version, ENT_QUOTES, 'UTF-8'); ?>">
     <?php include __DIR__ . '/../../backend/components/design_system_head.php'; ?>
+    <?php th_ui_shell_stylesheets_fini(); ?>
+
     </head>
-<body class="text-slate-900">
+<body class="text-slate-900<?php echo th_ui_body_class_attr(); ?>">
     <?php 
     $current_page = 'about';
     include __DIR__ . '/../../backend/components/header.php'; 

@@ -682,7 +682,16 @@ html.th-yandex-mobile #th-tour-booking-modal {
     padding: 0 !important;
 }
 
+html.th-yandex-mobile.th-kb-open #th-tour-booking-modal.th-qbm-modal,
+html.th-yandex-mobile.th-kb-open #quick-booking-modal.th-qbm-modal {
+    top: var(--th-vv-offset-top, 0px) !important;
+    height: var(--th-vvh, 100vh) !important;
+    max-height: var(--th-vvh, 100vh) !important;
+    bottom: auto !important;
+}
+
 html.th-yandex-mobile #quick-booking-modal > div,
+html.th-yandex-mobile #th-tour-booking-modal .th-qbm-modal__panel,
 html.th-yandex-mobile #th-tour-booking-modal .th-tour-booking-modal__panel,
 html.th-yandex-mobile .tv-nights-modal-card {
     width: 100% !important;

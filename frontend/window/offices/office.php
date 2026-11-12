@@ -70,11 +70,11 @@ if ($slug === 'samara-funsun') {
 $photos = $office['photos'] ?? [];
 $cover = $office['cover'] ?? '';
 $maxHref = $thc['max_url'];
-$mapQuery = rawurlencode((string) ($office['geo'] ?? $office['address']));
-$yandex_map_open_url = th_map_widget_url_for_geo((string) ($office['geo'] ?? $office['address']));
+$yandex_map_open_url = th_map_widget_url_for_office($office);
+$yandex_maps_page_url = th_yandex_maps_page_url_for_office($office);
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru"<?php echo th_ui_html_class_attr() !== '' ? ' class="' . trim(th_ui_html_class_attr()) . '"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
@@ -84,8 +84,10 @@ $yandex_map_open_url = th_map_widget_url_for_geo((string) ($office['geo'] ?? $of
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/frontend/css/th-offices.css?v=4">
     <?php include __DIR__ . '/../../../backend/components/design_system_head.php'; ?>
+<?php th_ui_shell_stylesheets_fini(); ?>
+
 </head>
-<body class="th-off-page text-slate-900">
+<body class="th-off-page text-slate-900<?php echo th_ui_body_class_attr(); ?>">
     <?php include __DIR__ . '/../../../backend/components/header.php'; ?>
 
     <header class="th-off-hero th-off-hero--detail">
@@ -206,7 +208,7 @@ $yandex_map_open_url = th_map_widget_url_for_geo((string) ($office['geo'] ?? $of
                                 data-office-name="<?php echo htmlspecialchars($office['name'], ENT_QUOTES, 'UTF-8'); ?>">
                             Заявка в этот офис
                         </button>
-                        <a class="th-off-card__more" href="https://yandex.ru/maps/?text=<?php echo $mapQuery; ?>" target="_blank" rel="noopener noreferrer">
+                        <a class="th-off-card__more" href="<?php echo htmlspecialchars($yandex_maps_page_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">
                             Открыть на карте
                         </a>
                     </div>

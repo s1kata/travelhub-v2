@@ -2,11 +2,12 @@
 declare(strict_types=1);
 http_response_code(404);
 header('Content-Type: text/html; charset=utf-8');
+require_once __DIR__ . '/../../backend/config/config.php';
 require_once __DIR__ . '/../../backend/config/contacts.php';
 $thc = th_contacts();
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru"<?php echo th_ui_html_class_attr() !== '' ? ' class="' . trim(th_ui_html_class_attr()) . '"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -14,8 +15,9 @@ $thc = th_contacts();
     <link rel="icon" type="image/svg+xml" href="/frontend/favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <?php include __DIR__ . '/../../backend/components/design_system_head.php'; ?>
+    <?php th_ui_shell_stylesheets_fini(); ?>
 </head>
-<body class="min-h-screen text-slate-800" style="background:linear-gradient(180deg,#eef6f5 0%,#fff 45%);">
+<body class="min-h-screen text-slate-800<?php echo th_ui_body_class_attr(); ?>" style="background:linear-gradient(180deg,#eef6f5 0%,#fff 45%);">
     <?php
     $current_page = '';
     include __DIR__ . '/../../backend/components/header.php';

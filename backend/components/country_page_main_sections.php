@@ -78,9 +78,17 @@ if (!function_exists('th_country_page_image_src')) {
         return htmlspecialchars('/frontend/window/' . ltrim($p, '/'), ENT_QUOTES, 'UTF-8');
     }
 }
+if (!defined('TH_COUNTRY_SHELL_CSS_LINKED')) {
+    define('TH_COUNTRY_SHELL_CSS_LINKED', true);
+    if (!defined('TH_ASSET_VERSION')) {
+        require_once dirname(__DIR__) . '/config/asset_version.php';
+    }
+    $thCountryShellCssVer = defined('TH_ASSET_VERSION') ? TH_ASSET_VERSION : '1';
+    echo '<link rel="stylesheet" href="/frontend/css/pages/country-shell.css?v=' . htmlspecialchars($thCountryShellCssVer, ENT_QUOTES, 'UTF-8') . '">';
+}
 ?>
-    <!-- Hero: название + фон-фото -->
-    <section class="th-country-hero relative min-h-[44vh] md:min-h-[50vh] flex items-center py-16 md:py-24 overflow-hidden text-white">
+<div class="th-country-page">
+    <section class="th-country-hero relative flex items-center overflow-hidden text-white">
         <div class="absolute inset-0 z-0">
             <?php if ($heroImg !== ''): ?>
             <img src="<?php echo th_country_page_image_src($heroImg); ?>"
@@ -114,7 +122,78 @@ if (!function_exists('th_country_page_image_src')) {
         </div>
     </section>
 
+    <section class="th-country-page__actions" aria-label="Быстрые действия">
+        <div class="th-country-page__actions-inner">
+            <a href="<?php echo htmlspecialchars($country_promo_listing_url, ENT_QUOTES, 'UTF-8'); ?>"
+               data-th-promo-cta="1"
+               data-th-country-slug="<?php echo htmlspecialchars((string) $countrySlug, ENT_QUOTES, 'UTF-8'); ?>"
+               data-th-country-name="<?php echo htmlspecialchars((string) ($countryData['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+               class="th-country-page__btn th-country-page__btn--primary">
+                <i class="fas fa-fire-alt" aria-hidden="true"></i>
+                Акции и туры
+            </a>
+            <a href="/frontend/window/offices.php" class="th-country-page__btn th-country-page__btn--secondary">
+                <i class="fas fa-building" aria-hidden="true"></i>
+                Офисы
+            </a>
+            <button type="button"
+                    id="th-country-page-lead-btn"
+                    data-th-country-name="<?php echo htmlspecialchars((string) ($countryData['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                    class="th-country-page__btn th-country-page__btn--ghost th-country-page__action--full">
+                <i class="fas fa-headset" aria-hidden="true"></i>
+                Оставить заявку
+            </button>
+        </div>
+    </section>
+
     <?php include __DIR__ . '/country_promo_tours.php'; ?>
+
+    <?php
+    $hasFacts = $bioSnippet !== ''
+        || !empty($countryData['bestTime'])
+        || !empty($countryData['visa'])
+        || !empty($countryData['currency'])
+        || !empty($countryData['highlights']);
+    if ($hasFacts):
+    ?>
+    <section class="th-country-page__facts" aria-label="Кратко о стране">
+        <div class="th-container mx-auto px-6">
+            <div class="th-country-page__facts-grid">
+                <?php if ($bioSnippet !== ''): ?>
+                <div class="th-country-page__fact-card th-country-page__fact-card--wide">
+                    <h3>О направлении</h3>
+                    <p><?php echo htmlspecialchars($bioSnippet, ENT_QUOTES, 'UTF-8'); ?></p>
+                    <?php if (!empty($countryData['highlights']) && is_array($countryData['highlights'])): ?>
+                    <div class="th-country-page__highlights">
+                        <?php foreach (array_slice($countryData['highlights'], 0, 6) as $hl): ?>
+                        <span class="th-country-page__highlight"><?php echo htmlspecialchars((string) $hl, ENT_QUOTES, 'UTF-8'); ?></span>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+                <?php if (!empty($countryData['bestTime'])): ?>
+                <div class="th-country-page__fact-card">
+                    <h3>Лучшее время</h3>
+                    <p><?php echo htmlspecialchars((string) $countryData['bestTime'], ENT_QUOTES, 'UTF-8'); ?></p>
+                </div>
+                <?php endif; ?>
+                <?php if (!empty($countryData['visa'])): ?>
+                <div class="th-country-page__fact-card">
+                    <h3>Виза</h3>
+                    <p><?php echo htmlspecialchars((string) $countryData['visa'], ENT_QUOTES, 'UTF-8'); ?></p>
+                </div>
+                <?php endif; ?>
+                <?php if (!empty($countryData['currency'])): ?>
+                <div class="th-country-page__fact-card">
+                    <h3>Валюта</h3>
+                    <p><?php echo htmlspecialchars((string) $countryData['currency'], ENT_QUOTES, 'UTF-8'); ?></p>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </section>
+    <?php endif; ?>
 
     <?php if (($countryData['slug'] ?? '') === 'turkey'): ?>
     <section class="py-8 md:py-10 bg-gradient-to-br from-amber-50/80 via-white to-indigo-50/60 border-b border-amber-100/80" id="turkey-vip-hotels-banner" aria-label="VIP отели Турции">
@@ -136,34 +215,28 @@ if (!function_exists('th_country_page_image_src')) {
     <?php endif; ?>
 
     <?php if (!empty($countryData['images']) && is_array($countryData['images'])): ?>
-    <!-- Фотогалерея -->
-    <section class="py-12 md:py-14 bg-white border-b border-slate-100" id="country-photo-gallery" aria-label="Фотогалерея">
+    <section class="th-country-page__gallery" id="country-photo-gallery" aria-label="Фотогалерея">
         <div class="th-container mx-auto px-6">
-            <div class="max-w-6xl mx-auto">
-                <h2 class="heading-font text-2xl md:text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
-                    <i class="fas fa-images text-sky-500" aria-hidden="true"></i>
-                    Фотогалерея <?php echo htmlspecialchars($countryData['name'], ENT_QUOTES, 'UTF-8'); ?>
-                </h2>
-                <p class="text-slate-600 text-sm md:text-base mb-6">Нажмите на фото, чтобы открыть полноэкранный просмотр</p>
-                <div class="overflow-x-auto pb-4 -mx-2 px-2 md:mx-0 md:px-0">
-                    <div class="flex gap-4 min-w-max md:min-w-0 md:flex-wrap">
+            <header class="th-section-head mb-4">
+                <div>
+                    <h2 class="heading-font">Фото <?php echo htmlspecialchars($countryData['name'], ENT_QUOTES, 'UTF-8'); ?></h2>
+                    <p>Нажмите на снимок для полноэкранного просмотра</p>
+                </div>
+            </header>
+                <div class="th-country-gallery__grid">
                         <?php foreach ($countryData['images'] as $index => $image): ?>
                         <?php $imgSrc = th_country_page_image_src((string) $image); ?>
-                        <div class="flex-shrink-0 w-[280px] sm:w-80 h-56 sm:h-64 rounded-2xl overflow-hidden shadow-lg relative cursor-pointer gallery-image group"
-                             data-image="<?php echo $imgSrc !== '' ? $imgSrc : 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800'; ?>"
+                        <?php $fallback = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800'; ?>
+                        <div class="th-country-gallery__item gallery-image group"
+                             data-image="<?php echo $imgSrc !== '' ? $imgSrc : $fallback; ?>"
                              data-index="<?php echo (int) $index; ?>">
-                            <img src="<?php echo $imgSrc !== '' ? $imgSrc : 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800'; ?>"
+                            <img src="<?php echo $imgSrc !== '' ? $imgSrc : $fallback; ?>"
                                  alt="<?php echo htmlspecialchars($countryData['name'] . ' — фото ' . ($index + 1), ENT_QUOTES, 'UTF-8'); ?>"
-                                 class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                                  loading="lazy"
                                  decoding="async"
-                                 onerror="this.src='https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800'">
-                            <div class="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                                <span class="text-white text-xs font-medium">Фото <?php echo (int) $index + 1; ?> из <?php echo count($countryData['images']); ?></span>
-                            </div>
+                                 onerror="this.src='<?php echo $fallback; ?>'">
                         </div>
                         <?php endforeach; ?>
-                    </div>
                 </div>
 
                 <div id="gallery-lightbox" class="fixed inset-0 bg-black/90 z-[60] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Просмотр фото">
@@ -181,39 +254,9 @@ if (!function_exists('th_country_page_image_src')) {
                     </div>
                     <div class="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/90 text-sm" id="image-counter"></div>
                 </div>
-            </div>
         </div>
     </section>
     <?php endif; ?>
-
-    <!-- CTA после галереи: акционный поиск (страница акций), офисы, обратная связь -->
-    <section class="py-8 md:py-10 bg-slate-50/80 border-b border-slate-100" aria-label="Действия">
-        <div class="th-container mx-auto px-6">
-            <div class="max-w-xl mx-auto flex flex-col items-stretch gap-3">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <a href="<?php echo htmlspecialchars($country_promo_listing_url, ENT_QUOTES, 'UTF-8'); ?>"
-                       data-th-promo-cta="1"
-                       data-th-country-slug="<?php echo htmlspecialchars((string) $countrySlug, ENT_QUOTES, 'UTF-8'); ?>"
-                       data-th-country-name="<?php echo htmlspecialchars((string) ($countryData['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
-                       class="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:opacity-95 hover:shadow-xl min-h-[52px]"
-                       style="background: linear-gradient(135deg, #0c4a6e 0%, #366360 45%, #5DA9A4 100%);">
-                        <i class="fas fa-search" aria-hidden="true"></i>
-                        Поиск туров
-                    </a>
-                    <a href="/frontend/window/offices.php"
-                       class="inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-sky-200 bg-white px-5 py-3.5 font-semibold text-slate-800 shadow-sm transition hover:border-sky-400 hover:text-sky-800 min-h-[52px]">
-                        <i class="fas fa-building text-sky-700" aria-hidden="true"></i>
-                        Наши офисы
-                    </a>
-                </div>
-                <button type="button" data-th-site-feedback
-                   class="inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-sky-200 bg-white px-5 py-3.5 font-semibold text-slate-800 shadow-sm transition hover:border-sky-400 hover:text-sky-800 min-h-[52px] sm:max-w-md sm:mx-auto sm:w-full cursor-pointer">
-                    <i class="fas fa-envelope text-sky-700" aria-hidden="true"></i>
-                    Форма обратной связи
-                </button>
-            </div>
-        </div>
-    </section>
 
     <script>
     (function () {
@@ -244,6 +287,44 @@ if (!function_exists('th_country_page_image_src')) {
         window.addEventListener('th-departure-saved', function () { apply(); });
     })();
     </script>
+    <script>
+    (function () {
+        'use strict';
+        function openCountryLead() {
+            var btn = document.getElementById('th-country-page-lead-btn');
+            if (!btn) return;
+            var country = String(btn.getAttribute('data-th-country-name') || '').trim();
+            var tourLink = '';
+            try {
+                tourLink = window.location.origin + '/frontend/window/tour-detail.php?country='
+                    + encodeURIComponent(country || 'Подбор тура');
+            } catch (e) {}
+            if (window.THTourBookingModal && typeof window.THTourBookingModal.open === 'function') {
+                window.THTourBookingModal.open({
+                    country: country || 'Подбор тура',
+                    hotel_name: country ? ('Подбор тура: ' + country) : 'Подбор тура',
+                    tour_link: tourLink,
+                    departure_city: (typeof localStorage !== 'undefined' && localStorage.getItem('th_departure_name'))
+                        ? String(localStorage.getItem('th_departure_name')) : 'Самара'
+                });
+            } else if (window.openQuickLeadModalWithIntent) {
+                window.openQuickLeadModalWithIntent('home_quick_modal');
+            } else if (typeof window.openSiteFeedbackModal === 'function') {
+                window.openSiteFeedbackModal({ source: 'country_page' });
+            }
+        }
+        function bind() {
+            var btn = document.getElementById('th-country-page-lead-btn');
+            if (!btn || btn.__thCountryLeadBound) return;
+            btn.__thCountryLeadBound = true;
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                openCountryLead();
+            });
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
+        else bind();
+    })();
+    </script>
 
-    <!-- Поиск туров по стране -->
-    <?php include __DIR__ . '/country_tour_search.php'; ?>
+</div>

@@ -840,7 +840,10 @@
         lastPopupPhase = readPhase().phase;
         clearPromoCardPatches(document.body);
         startPromoTicker();
-        /* Автопопап и таб по сессии отключены — промокод выдаём по кнопке на главной. */
+        ensurePromoSheetOnLoad();
+        if (promoUiShouldShow() && isFirstVisit && lsGet(LS_POPUP_SHOWN) !== '1') {
+            showPromoModal({ markShown: true, expand: !shouldDeferPromoExpand() });
+        }
 
         document.addEventListener('th:wizard-step', function (e) {
             if (!e || !e.detail) return;

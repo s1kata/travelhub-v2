@@ -73,6 +73,10 @@ function th_promo_speed_night_windows(int $countryId = 0): array
     if ($countryId === th_promo_sochi_country_id()) {
         return [[5, 14]];
     }
+    /* Абхазия: короткие туры/гостевые дома — узкое 7–14 на прогреве давало 0 отелей */
+    if ($countryId === 46) {
+        return [[1, 11], [12, 22], [23, 28]];
+    }
     if (th_promo_speed_uses_live_search($countryId)) {
         if ($countryId === 12 || $countryId === 16 || th_promo_is_vietnam_promo_country_id($countryId)) {
             return [[6, 14], [1, 11], [15, 21]];
@@ -487,12 +491,17 @@ function th_promo_speed_promo_search_hybrid(
                         false
                     );
                 }
+                $filePackages = th_promo_speed_packages_from_cache_payload($file);
+                if ($filePackages !== []) {
+                    $hotels = th_promo_speed_merge_packages_into_hotels($hotels, $filePackages);
+                }
 
                 return [
                     'hotels' => $hotels,
                     'source' => $fresh ? 'promo_search_live_file' : 'promo_search_live_file_stale',
                     'fromCache' => true,
                     'flightsByTourId' => th_promo_speed_flights_from_cache_payload($file),
+                    'packagesByTourId' => $filePackages,
                 ];
             }
             th_promo_speed_log('promo_search_hybrid_file_empty_after_prepare', [
@@ -531,14 +540,42 @@ function th_promo_speed_promo_search_hybrid(
                         false
                     );
                 }
+                $filePackagesSoft = th_promo_speed_packages_from_cache_payload($file);
+                if ($filePackagesSoft !== []) {
+                    $hotels = th_promo_speed_merge_packages_into_hotels($hotels, $filePackagesSoft);
+                }
 
                 return [
                     'hotels' => $hotels,
                     'source' => $fresh ? 'promo_search_live_file_soft' : 'promo_search_live_file_stale_soft',
                     'fromCache' => true,
                     'flightsByTourId' => th_promo_speed_flights_from_cache_payload($file),
+                    'packagesByTourId' => $filePackagesSoft,
                 ];
             }
+        }
+    }
+    if (
+        !$cacheOnly
+        && in_array($countryId, th_promo_speed_nearest_fallback_country_ids(), true)
+    ) {
+        $mergedFb = th_promo_speed_finalize_merged([], $countryId, $departureId, $promoDates, $adults, $childs, $dispatch);
+        $hotelsFb = th_promo_speed_prepare_live_search_hotels($mergedFb, $countryId, $departureId, $promoDates);
+        if ($hotelsFb !== []) {
+            th_promo_speed_cache_set($countryId, $departureId, $hotelsFb, $promoDates);
+            th_promo_speed_log('promo_search_hybrid_finalize_blend', [
+                'countryId' => $countryId,
+                'departureId' => $departureId,
+                'hotels' => count($hotelsFb),
+            ]);
+
+            return [
+                'hotels' => $hotelsFb,
+                'source' => 'promo_search_hybrid_finalize_blend',
+                'fromCache' => false,
+                'flightsByTourId' => [],
+                'packagesByTourId' => [],
+            ];
         }
     }
     if ($cacheOnly) {
@@ -552,6 +589,7 @@ function th_promo_speed_promo_search_hybrid(
             'source' => 'promo_search_live_cache_miss',
             'fromCache' => true,
             'flightsByTourId' => [],
+            'packagesByTourId' => [],
         ];
     }
     $hotels = th_promo_speed_promo_search_live(
@@ -562,21 +600,29 @@ function th_promo_speed_promo_search_hybrid(
         $childs,
         $dispatch
     );
+    $liveFlights = [];
+    $livePackages = [];
     if ($hotels !== []) {
         th_promo_speed_cache_set($countryId, $departureId, $hotels, $promoDates);
+        $liveRaw = th_promo_speed_cache_read_raw($countryId, $departureId);
+        $liveFlights = th_promo_speed_flights_from_cache_payload($liveRaw);
+        $livePackages = th_promo_speed_packages_from_cache_payload($liveRaw);
     }
     th_promo_speed_log('promo_search_hybrid_live', [
         'countryId' => $countryId,
         'departureId' => $departureId,
         'hotels' => count($hotels),
         'cached_written' => $hotels !== [],
+        'flights' => count($liveFlights),
+        'packages' => count($livePackages),
     ]);
 
     return [
         'hotels' => $hotels,
         'source' => 'promo_search_live',
         'fromCache' => false,
-        'flightsByTourId' => [],
+        'flightsByTourId' => $liveFlights,
+        'packagesByTourId' => $livePackages,
     ];
 }
 
@@ -951,6 +997,83 @@ function th_promo_speed_finalize_merged(
         th_departure_filter_hotels_for_departure($combined, $departureId),
         $countryId
     );
+}
+
+/**
+ * Финализация ответа promo-search: серверный blend при пустоте, on-demand tour-package, merge в туры.
+ *
+ * @param array<int, array<string, mixed>> $hotels
+ * @param array<string, array<string, mixed>> $flightsByTourId
+ * @param array<string, array<string, mixed>> $packagesByTourId
+ * @param callable(array<string, string>): array $dispatch
+ * @return array{hotels: array<int, array<string, mixed>>, flightsByTourId: array<string, array<string, mixed>>, packagesByTourId: array<string, array<string, mixed>>}
+ */
+function th_promo_speed_attach_enrichment_to_promo_search(
+    array $hotels,
+    array $flightsByTourId,
+    array $packagesByTourId,
+    int $countryId,
+    int $departureId,
+    array $promoDates,
+    int $adults,
+    ?string $childs,
+    callable $dispatch,
+    bool $cacheOnly = false
+): array {
+    if (
+        !$cacheOnly
+        && $hotels === []
+        && in_array($countryId, th_promo_speed_nearest_fallback_country_ids(), true)
+    ) {
+        $merged = th_promo_speed_finalize_merged([], $countryId, $departureId, $promoDates, $adults, $childs, $dispatch);
+        $hotels = th_promo_speed_prepare_live_search_hotels($merged, $countryId, $departureId, $promoDates);
+        th_promo_speed_log('promo_search_server_finalize_empty', [
+            'countryId' => $countryId,
+            'departureId' => $departureId,
+            'hotels' => count($hotels),
+        ]);
+    }
+
+    if ($hotels !== [] && $packagesByTourId !== []) {
+        $hotels = th_promo_speed_merge_packages_into_hotels($hotels, $packagesByTourId);
+    }
+
+    $needWarm = !$cacheOnly
+        && $hotels !== []
+        && count($packagesByTourId) < 3;
+
+    if ($needWarm) {
+        $warmMax = min(th_promo_speed_warm_flights_max(), 12);
+        $tourIds = th_promo_speed_collect_tour_ids_from_hotels($hotels, $warmMax);
+        if ($tourIds !== []) {
+            $warm = th_promo_speed_warm_packages_for_tour_ids($tourIds, $dispatch);
+            if ($warm['packagesByTourId'] !== []) {
+                $packagesByTourId = array_merge($packagesByTourId, $warm['packagesByTourId']);
+                $flightsByTourId = array_merge($flightsByTourId, $warm['flightsByTourId']);
+                $hotels = th_promo_speed_merge_packages_into_hotels($hotels, $warm['packagesByTourId']);
+                th_promo_speed_log('promo_search_on_demand_warm', [
+                    'countryId' => $countryId,
+                    'departureId' => $departureId,
+                    'tours' => count($tourIds),
+                    'packages' => count($packagesByTourId),
+                ]);
+                if ($countryId > 0 && $departureId > 0) {
+                    th_promo_speed_cache_set($countryId, $departureId, $hotels, [
+                        'dateFrom' => (string) ($promoDates['dateFrom'] ?? ''),
+                        'dateTo' => (string) ($promoDates['dateTo'] ?? ''),
+                        'flightsByTourId' => $flightsByTourId,
+                        'packagesByTourId' => $packagesByTourId,
+                    ]);
+                }
+            }
+        }
+    }
+
+    return [
+        'hotels' => $hotels,
+        'flightsByTourId' => $flightsByTourId,
+        'packagesByTourId' => $packagesByTourId,
+    ];
 }
 
 /**
@@ -1471,6 +1594,17 @@ function th_promo_speed_flights_from_cache_payload(?array $file): array
     return is_array($flights) ? $flights : [];
 }
 
+/** @return array<string, array<string, mixed>> */
+function th_promo_speed_packages_from_cache_payload(?array $file): array
+{
+    if ($file === null) {
+        return [];
+    }
+    $packages = $file['packagesByTourId'] ?? null;
+
+    return is_array($packages) ? $packages : [];
+}
+
 /** @return array{results?: array, flightsByTourId?: array}|null */
 function th_promo_speed_cache_read_raw(int $countryId, int $departureId): ?array
 {
@@ -1496,10 +1630,17 @@ function th_promo_speed_collect_tour_ids_from_hotels(array $hotels, int $max = 2
     $max = max(1, min(50, $max));
     $seen = [];
     foreach ($hotels as $hotel) {
+        if (count($seen) >= $max) {
+            break;
+        }
         if (!is_array($hotel)) {
             continue;
         }
-        foreach (($hotel['tours'] ?? []) as $t) {
+        $tours = $hotel['tours'] ?? [];
+        if (!is_array($tours) || $tours === []) {
+            continue;
+        }
+        foreach ($tours as $t) {
             if (!is_array($t)) {
                 continue;
             }
@@ -1508,9 +1649,7 @@ function th_promo_speed_collect_tour_ids_from_hotels(array $hotels, int $max = 2
                 continue;
             }
             $seen[$id] = true;
-            if (count($seen) >= $max) {
-                return array_keys($seen);
-            }
+            break;
         }
     }
 
@@ -1525,10 +1664,119 @@ function th_promo_speed_warm_skip_flights(): bool
 
 function th_promo_speed_warm_flights_max(): int
 {
-    $raw = getenv('PROMO_WARM_FLIGHTS_MAX') ?: ($_ENV['PROMO_WARM_FLIGHTS_MAX'] ?? '12');
+    $raw = getenv('PROMO_WARM_FLIGHTS_MAX') ?: ($_ENV['PROMO_WARM_FLIGHTS_MAX'] ?? '30');
     $n = (int) $raw;
 
-    return max(0, min(25, $n));
+    return max(0, min(50, $n));
+}
+
+/**
+ * @param array<string, mixed> $packageRes ответ type=tour-package
+ * @return array<string, mixed>|null
+ */
+function th_promo_speed_slim_package_for_cache(array $packageRes): ?array
+{
+    if ($packageRes === []) {
+        return null;
+    }
+    $slim = ['success' => true];
+    if (!empty($packageRes['flights']) && is_array($packageRes['flights'])) {
+        $slim['flights'] = $packageRes['flights'];
+        $slim['info'] = $packageRes['info'] ?? null;
+    }
+    $tourRaw = $packageRes['tour'] ?? null;
+    if (is_array($tourRaw)) {
+        $tourData = $tourRaw;
+        if (isset($tourData['data']) && is_array($tourData['data'])) {
+            $tourData = $tourData['data'];
+        }
+        if (isset($tourData[0]) && is_array($tourData[0])) {
+            $tourData = $tourData[0];
+        }
+        if (isset($tourData['tour']) && is_array($tourData['tour'])) {
+            $tourData = $tourData['tour'];
+        }
+        $slim['tour'] = array_filter([
+            'id' => $tourData['id'] ?? $tourData['tourId'] ?? null,
+            'date' => $tourData['date'] ?? $tourData['flydate'] ?? null,
+            'nights' => $tourData['nights'] ?? null,
+            'roomType' => $tourData['roomType'] ?? $tourData['room'] ?? null,
+            'roomId' => $tourData['roomId'] ?? $tourData['roomid'] ?? $tourData['room_id'] ?? null,
+            'operatorName' => $tourData['operatorName'] ?? null,
+            'operator' => $tourData['operator'] ?? null,
+            'meal' => is_array($tourData['meal'] ?? null) ? $tourData['meal'] : null,
+        ], static fn($v) => $v !== null && $v !== '');
+    }
+    if (!empty($packageRes['rooms']) && is_array($packageRes['rooms'])) {
+        $roomsSlim = [];
+        foreach (array_slice($packageRes['rooms'], 0, 8) as $room) {
+            if (!is_array($room)) {
+                continue;
+            }
+            $roomsSlim[] = array_filter([
+                'id' => $room['id'] ?? null,
+                'name' => $room['name'] ?? null,
+                'russianName' => $room['russianName'] ?? null,
+            ], static fn($v) => $v !== null && $v !== '');
+        }
+        if ($roomsSlim !== []) {
+            $slim['rooms'] = $roomsSlim;
+        }
+    }
+    $hasData = !empty($slim['flights']) || !empty($slim['tour']) || !empty($slim['rooms']);
+    if (!$hasData) {
+        return null;
+    }
+
+    return $slim;
+}
+
+/**
+ * Дополняет туры в hotels данными из прогретого tour-package (номер, оператор, дата).
+ *
+ * @param array<int, array<string, mixed>> $hotels
+ * @param array<string, array<string, mixed>> $packagesByTourId
+ * @return array<int, array<string, mixed>>
+ */
+function th_promo_speed_merge_packages_into_hotels(array $hotels, array $packagesByTourId): array
+{
+    if ($hotels === [] || $packagesByTourId === []) {
+        return $hotels;
+    }
+    foreach ($hotels as $hi => $hotel) {
+        if (!is_array($hotel) || !is_array($hotel['tours'] ?? null)) {
+            continue;
+        }
+        foreach ($hotel['tours'] as $ti => $t) {
+            if (!is_array($t)) {
+                continue;
+            }
+            $id = isset($t['id']) ? trim((string) $t['id']) : '';
+            if ($id === '' || !isset($packagesByTourId[$id])) {
+                continue;
+            }
+            $pkg = $packagesByTourId[$id];
+            $tourLive = $pkg['tour'] ?? null;
+            if (!is_array($tourLive)) {
+                continue;
+            }
+            foreach (['date', 'flydate', 'nights', 'roomType', 'roomId', 'operatorName'] as $key) {
+                if (!isset($tourLive[$key]) || $tourLive[$key] === '' || $tourLive[$key] === null) {
+                    continue;
+                }
+                if (empty($t[$key])) {
+                    $t[$key] = $tourLive[$key];
+                }
+            }
+            if (empty($t['operator']) && !empty($tourLive['operator'])) {
+                $t['operator'] = $tourLive['operator'];
+            }
+            $hotel['tours'][$ti] = $t;
+        }
+        $hotels[$hi] = $hotel;
+    }
+
+    return $hotels;
 }
 
 /** Пропуск комбо при свежем promo_cache_* (для дозапуска после обрыва SSH). */
@@ -1553,8 +1801,15 @@ function th_promo_speed_warm_combo_is_fresh(int $countryId, int $departureId): b
     if (!is_array($d) || !is_array($d['results'] ?? null)) {
         return false;
     }
+    if (count($d['results']) <= 0) {
+        return false;
+    }
+    $pkg = th_promo_speed_packages_from_cache_payload($d);
+    if (count($pkg) >= 3) {
+        return true;
+    }
 
-    return count($d['results']) > 0;
+    return false;
 }
 
 /**
@@ -1564,43 +1819,62 @@ function th_promo_speed_warm_combo_is_fresh(int $countryId, int $departureId): b
  * @param callable(array<string, string>): array $dispatch
  * @return array<string, array<string, mixed>>
  */
-function th_promo_speed_warm_flights_for_tour_ids(array $tourIds, callable $dispatch): array
+/**
+ * Прогрев tour-package (рейсы + тур + номера) для карточек акций.
+ *
+ * @param string[] $tourIds
+ * @param callable(array<string, string>): array $dispatch
+ * @return array{flightsByTourId: array<string, array<string, mixed>>, packagesByTourId: array<string, array<string, mixed>>}
+ */
+function th_promo_speed_warm_packages_for_tour_ids(array $tourIds, callable $dispatch): array
 {
+    $empty = ['flightsByTourId' => [], 'packagesByTourId' => []];
     if (th_promo_speed_warm_skip_flights()) {
-        return [];
+        return $empty;
     }
     $max = th_promo_speed_warm_flights_max();
     if (count($tourIds) > $max) {
         $tourIds = array_slice($tourIds, 0, $max);
     }
-    $out = [];
+    $flightsByTourId = [];
+    $packagesByTourId = [];
     foreach ($tourIds as $tourId) {
         $tourId = trim((string) $tourId);
         if ($tourId === '') {
             continue;
         }
         $res = $dispatch([
-            'type' => 'tour-flights',
+            'type' => 'tour-package',
             'tourId' => $tourId,
             'currency' => 'RUB',
+            'includeFlights' => '1',
+            'includeTour' => '1',
         ]);
-        $flights = null;
-        if (is_array($res['flights'] ?? null)) {
-            $flights = $res['flights'];
-        } elseif (is_array($res['data']['flights'] ?? null)) {
-            $flights = $res['data']['flights'];
+        $slim = th_promo_speed_slim_package_for_cache(is_array($res) ? $res : []);
+        if ($slim === null) {
+            usleep(120000);
+            continue;
         }
-        if (!empty($res['success']) && is_array($flights) && $flights !== []) {
-            $out[$tourId] = [
+        $packagesByTourId[$tourId] = $slim;
+        if (!empty($slim['flights']) && is_array($slim['flights'])) {
+            $flightsByTourId[$tourId] = [
                 'success' => true,
-                'flights' => $flights,
-                'info' => $res['info'] ?? ($res['data']['info'] ?? null),
+                'flights' => $slim['flights'],
+                'info' => $slim['info'] ?? null,
             ];
         }
-        usleep(120000);
+        usleep(150000);
     }
 
-    return $out;
+    return ['flightsByTourId' => $flightsByTourId, 'packagesByTourId' => $packagesByTourId];
+}
+
+/** @deprecated используйте th_promo_speed_warm_packages_for_tour_ids */
+function th_promo_speed_warm_flights_for_tour_ids(array $tourIds, callable $dispatch): array
+{
+    $warm = th_promo_speed_warm_packages_for_tour_ids($tourIds, $dispatch);
+
+    return $warm['flightsByTourId'];
 }
 
 /** @param array<int, array<string, mixed>> $hotels */
@@ -1618,13 +1892,25 @@ function th_promo_speed_cache_set(int $countryId, int $departureId, array $hotel
         'dateFrom' => (string) ($meta['dateFrom'] ?? $dates['dateFrom']),
         'dateTo' => (string) ($meta['dateTo'] ?? $dates['dateTo']),
     ];
+    $existingFile = null;
     if (!empty($meta['flightsByTourId']) && is_array($meta['flightsByTourId'])) {
         $payload['flightsByTourId'] = $meta['flightsByTourId'];
     } else {
-        $existing = th_promo_speed_cache_read_raw($countryId, $departureId);
-        $prevFlights = th_promo_speed_flights_from_cache_payload($existing);
+        $existingFile = th_promo_speed_cache_read_raw($countryId, $departureId);
+        $prevFlights = th_promo_speed_flights_from_cache_payload($existingFile);
         if ($prevFlights !== []) {
             $payload['flightsByTourId'] = $prevFlights;
+        }
+    }
+    if (!empty($meta['packagesByTourId']) && is_array($meta['packagesByTourId'])) {
+        $payload['packagesByTourId'] = $meta['packagesByTourId'];
+    } else {
+        if ($existingFile === null) {
+            $existingFile = th_promo_speed_cache_read_raw($countryId, $departureId);
+        }
+        $prevPackages = th_promo_speed_packages_from_cache_payload($existingFile);
+        if ($prevPackages !== []) {
+            $payload['packagesByTourId'] = $prevPackages;
         }
     }
     @file_put_contents(

@@ -136,6 +136,27 @@ function tvSearchCacheTtlSeconds(bool $onlyPromo): int {
     return (int)($GLOBALS['tv_search_cache_ttl'] ?? (14 * 24 * 3600));
 }
 
+/**
+ * География на страницах стран — те же правила, что в акциях (Стамбул, Сочи, Фукуок и т.д.).
+ *
+ * @param list<array<string, mixed>> $hotels
+ * @param array<string, mixed> $sp
+ * @return list<array<string, mixed>>
+ */
+function tvFilterCountryPageSearchHotels(array $hotels, array $sp): array
+{
+    if (trim((string) ($_GET['cacheScope'] ?? '')) !== 'country_page') {
+        return $hotels;
+    }
+    $countryId = (int) ($sp['countryId'] ?? 0);
+    if ($countryId <= 0 || $hotels === []) {
+        return $hotels;
+    }
+    require_once __DIR__ . '/../promo_sochi_filter.php';
+
+    return th_promo_filter_hotels_for_promo_country($hotels, $countryId);
+}
+
 require_once __DIR__ . '/../tourvisor_search_cover.php';
 $GLOBALS['tv_search_cover_enabled'] = filter_var(
     getenv('TH_SEARCH_COVER_ENABLED') ?: ($_ENV['TH_SEARCH_COVER_ENABLED'] ?? '1'),
@@ -1851,6 +1872,27 @@ function tourvisor_proxy_dispatch(): array
         $promoLiveHotels = $hybrid['hotels'];
         $promoSource = (string) ($hybrid['source'] ?? 'promo_search_live');
         $fromCache = !empty($hybrid['fromCache']);
+        $promoFlightsByTourId = is_array($hybrid['flightsByTourId'] ?? null) ? $hybrid['flightsByTourId'] : [];
+        $promoPackagesByTourId = is_array($hybrid['packagesByTourId'] ?? null) ? $hybrid['packagesByTourId'] : [];
+        if (!$promoCacheOnly) {
+            $attached = th_promo_speed_attach_enrichment_to_promo_search(
+                $promoLiveHotels,
+                $promoFlightsByTourId,
+                $promoPackagesByTourId,
+                $promoCntId,
+                $promoDepId,
+                $promoDates,
+                $promoAdults,
+                $promoChilds,
+                $promoDispatch,
+                false
+            );
+            $promoLiveHotels = $attached['hotels'];
+            $promoFlightsByTourId = $attached['flightsByTourId'];
+            $promoPackagesByTourId = $attached['packagesByTourId'];
+        } elseif ($promoPackagesByTourId !== [] && $promoLiveHotels !== []) {
+            $promoLiveHotels = th_promo_speed_merge_packages_into_hotels($promoLiveHotels, $promoPackagesByTourId);
+        }
         $promoHotsFallbackCountries = [1, 4, 13];
         if (
             $promoLiveHotels !== []
@@ -1869,7 +1911,9 @@ function tourvisor_proxy_dispatch(): array
                 'data' => $promoLiveHotels,
                 'fromCache' => $fromCache,
                 'promoSearchSource' => $promoSource,
-                'flightsByTourId' => is_array($hybrid['flightsByTourId'] ?? null) ? $hybrid['flightsByTourId'] : [],
+                'flightsByTourId' => $promoFlightsByTourId,
+                'packagesByTourId' => $promoPackagesByTourId,
+                'serverFinalized' => !$promoCacheOnly,
             ];
             if ($promoLiveHotels === []) {
                 $r['empty'] = true;
@@ -1931,6 +1975,7 @@ function tourvisor_proxy_dispatch(): array
                 'fromCache' => true,
                 'promoSearchSource' => $stale ? 'promo_speed_file_stale' : 'promo_speed_file',
                 'flightsByTourId' => th_promo_speed_flights_from_cache_payload($promoFile),
+                'packagesByTourId' => th_promo_speed_packages_from_cache_payload($promoFile),
             ];
         };
         if (!$promoBypassFile) {
@@ -2715,6 +2760,7 @@ function tourvisor_proxy_dispatch(): array
         if ($type === 'search-cached' && !$onlyPromo && !$GLOBALS['tv_bypass_cache'] && $sp['dateFrom'] !== '' && $sp['dateTo'] !== '') {
             $cachedFull = tvGetSearchResultsCacheForScope($sp, 'main', $ttlSearch);
             if (is_array($cachedFull) && $cachedFull !== []) {
+                $cachedFull = tvFilterCountryPageSearchHotels($cachedFull, $sp);
                 $GLOBALS['tv_cache_hit'] = true;
                 header('X-Tourvisor-Search-Mode: cache');
                 header('X-Tourvisor-Cache-Read: exact');
@@ -2728,6 +2774,7 @@ function tourvisor_proxy_dispatch(): array
                 $coverHit = th_search_cover_find(array_merge($sp, ['currency' => 'RUB']), $ttlSearch);
                 if (is_array($coverHit) && !empty($coverHit['hotels'])) {
                     $coverFiltered = tvFilterToursByParams($coverHit['hotels'], $sp);
+                    $coverFiltered = tvFilterCountryPageSearchHotels($coverFiltered, $sp);
                     if ($coverFiltered !== []) {
                         $GLOBALS['tv_cache_hit'] = true;
                         $GLOBALS['tv_cache_layer'] = 'L2-cover';
@@ -2982,6 +3029,9 @@ function tourvisor_proxy_dispatch(): array
                 ]);
             } else {
                 tvLog('search_api_ok', ['searchId' => $sid, 'tours_count' => count($liveData), 'saved_to_cache' => false, 'reason' => 'missing_dates']);
+            }
+            if (!$onlyPromo) {
+                $dataToReturn = tvFilterCountryPageSearchHotels($dataToReturn, $sp);
             }
             $r = [
                 'success' => true,

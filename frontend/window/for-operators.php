@@ -6,7 +6,7 @@ $page_title = 'Для туроператоров';
 $current_page = 'for-operators';
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru"<?php echo th_ui_html_class_attr() !== '' ? ' class="' . trim(th_ui_html_class_attr()) . '"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
@@ -16,8 +16,10 @@ $current_page = 'for-operators';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         <link rel="stylesheet" href="/frontend/css/pages/for-operators.css?v=1">
     <?php include __DIR__ . '/../../backend/components/design_system_head.php'; ?>
+    <?php th_ui_shell_stylesheets_fini(); ?>
+
     </head>
-<body class="min-h-screen">
+<body class="min-h-screen<?php echo th_ui_body_class_attr(); ?>">
     <?php include __DIR__ . '/../../backend/components/header.php'; ?>
 
     <main class="relative z-10 pt-20 md:pt-24 pb-8 md:pb-12">

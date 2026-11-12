@@ -1,5 +1,9 @@
 <?php
 declare(strict_types=1);
+if (!function_exists('security_csrf_token')) {
+    require_once __DIR__ . '/security_helper.php';
+}
+$th_booking_csrf = security_csrf_token();
 /** @var array{modal_worktime_sub: string, modal_submit_label: string} $_th_tbm_copy */
 $_th_tbm_copy = require dirname(__DIR__) . '/config/lead_copy.php';
 $th_lm_prefix = 'th-tb';
@@ -17,9 +21,15 @@ $th_lm_callback_note = false;
         <p id="th-tour-booking-summary" class="th-qbm-modal__summary hidden" hidden></p>
         <p class="th-qbm-modal__sub"><?php echo htmlspecialchars((string) ($_th_tbm_copy['modal_worktime_sub'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
         <form id="th-tour-booking-form" class="th-qbm-modal__form">
+            <input type="hidden" id="th-csrf-token" name="_csrf_token" value="<?php echo htmlspecialchars($th_booking_csrf, ENT_QUOTES, 'UTF-8'); ?>">
             <?php include __DIR__ . '/th_lead_modal_form_body.php'; ?>
             <p id="th-tour-booking-msg" class="th-qbm-modal__msg hidden" hidden></p>
             <button type="submit" id="th-tb-submit" class="th-qbm-modal__submit"><?php echo htmlspecialchars((string) ($_th_tbm_copy['modal_submit_label'] ?? 'Отправить заявку менеджеру'), ENT_QUOTES, 'UTF-8'); ?></button>
         </form>
     </div>
 </div>
+<?php
+$_th_tbm_js = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'frontend' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'th-tour-booking-modal.js';
+$_th_tbm_js_v = is_file($_th_tbm_js) ? (string) filemtime($_th_tbm_js) : '1';
+?>
+<script src="/frontend/js/th-tour-booking-modal.js?v=<?php echo htmlspecialchars($_th_tbm_js_v, ENT_QUOTES, 'UTF-8'); ?>" defer></script>

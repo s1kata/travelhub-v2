@@ -326,44 +326,19 @@
     'search-error': { title: 'Не удалось загрузить туры', sub: 'Оставьте телефон — поможем с подбором. Звонок с +7 (846) 254-16-56.', submit: 'Оставить заявку', phoneOnly: true },
     'results-toolbar': { title: 'Помочь с выбором?', sub: 'Позвоним с +7 (846) 254-16-56 в рабочее время. Неудобно — MAX внизу экрана.', submit: 'Оставить заявку', phoneOnly: true },
     'results-sticky': { title: 'Нужна помощь с туром?', sub: 'Оставьте телефон и удобное время для звонка.', submit: 'Оставить заявку', phoneOnly: true },
-    'home_quick_modal': { title: 'Подберём тур для вас', sub: 'Звонок с +7 (846) 254-16-56. Сохраните номер — так чаще удаётся дозвониться.', submit: 'Отправить заявку', phoneOnly: false },
+    'home_quick_modal': { title: 'Заявка на тур', sub: '', submit: '✈ Отправить заявку менеджеру', phoneOnly: false },
+    'promo_lead_bar': { title: 'Заявка на акционный тур', sub: '', submit: '✈ Отправить заявку менеджеру', phoneOnly: false },
     'promo_country_callback': { title: 'Заявка по акциям', sub: 'Подберём горящие туры по выбранной стране.', submit: 'Оставить заявку', phoneOnly: true },
     'flight-stub-lead': { title: 'Подберём перелёт', sub: 'Рейс не успел загрузиться — оставьте телефон, менеджер уточнит варианты вылета.', submit: 'Жду звонка', phoneOnly: true }
   };
 
   function applyIntent(source) {
-    var cfg = INTENT[source] || INTENT.home_quick_modal;
-    var modal = document.getElementById('quick-booking-modal');
-    if (!modal) return cfg;
-    var title = modal.querySelector('.th-qbm-modal__title');
-    var sub = modal.querySelector('.th-qbm-modal__sub');
-    var submit = document.getElementById('qbm-submit');
-    var nameRow = modal.querySelector('#qbm-name') || modal.querySelector('[name="name"]');
-    if (title) title.textContent = cfg.title;
-    if (sub) sub.textContent = cfg.sub;
-    if (submit) submit.textContent = cfg.submit;
-    if (nameRow) {
-      var wrap = nameRow.closest('.th-qbm-modal__field') || nameRow.parentElement;
-      if (cfg.phoneOnly) {
-        nameRow.removeAttribute('required');
-        if (wrap) wrap.style.display = 'none';
-      } else {
-        nameRow.setAttribute('required', 'required');
-        if (wrap) wrap.style.display = '';
-      }
-    }
-    modal.dataset.thLeadSource = source || 'home_quick_modal';
-    modal.dataset.thPhoneOnly = cfg.phoneOnly ? '1' : '0';
-    return cfg;
+    return INTENT[source] || INTENT.home_quick_modal;
   }
 
   function bindQuickModalIntent() {
-    global.openQuickLeadModalWithIntent = function (source) {
-      applyIntent(source || 'home_quick_modal');
-      if (typeof global.openQuickLeadModal === 'function') {
-        global.openQuickLeadModal(source);
-      }
-    };
+    global.THConversionBoost = global.THConversionBoost || {};
+    global.THConversionBoost.applyIntent = applyIntent;
     document.addEventListener('click', function (e) {
       var t = e.target && e.target.closest ? e.target.closest('[data-open-lead-modal]') : null;
       if (!t) return;
@@ -379,14 +354,15 @@
       e.stopPropagation();
       var country = btn.getAttribute('data-country-name') || '';
       var msg = country ? ('Страна: ' + country + '. Заявка по горящим акциям.') : 'Заявка по горящим акциям.';
-      if (typeof global.openSiteFeedbackModal === 'function') {
-        global.openSiteFeedbackModal({
-          source: 'promo_country_callback',
-          title: 'Заявка по акциям',
-          sub: 'Менеджер ответит в рабочее время · ' + (country || 'выбранное направление'),
-          message: msg,
-          focusPhone: true,
-          phoneOnly: true
+      if (global.THTourBookingModal && typeof global.THTourBookingModal.open === 'function') {
+        global.THTourBookingModal.open({
+          from_promo: '1',
+          lead_source: 'promo_country_callback',
+          country: country || '',
+          hotel_name: country ? ('Акции: ' + country) : 'Горящие туры',
+          lead_message: msg,
+          modal_title: 'Заявка на акционный тур',
+          phone_only: true
         });
       } else if (global.openQuickLeadModalWithIntent) {
         global.openQuickLeadModalWithIntent('promo_country_callback');

@@ -33,7 +33,7 @@ try {
 }
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru"<?php echo th_ui_html_class_attr() !== '' ? ' class="' . trim(th_ui_html_class_attr()) . '"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
@@ -43,8 +43,10 @@ try {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         <link rel="stylesheet" href="/frontend/css/pages/video-tutorials.css?v=1">
     <?php include __DIR__ . '/../../backend/components/design_system_head.php'; ?>
+    <?php th_ui_shell_stylesheets_fini(); ?>
+
     </head>
-<body class="ds-page text-slate-900 antialiased">
+<body class="ds-page text-slate-900 antialiased<?php echo th_ui_body_class_attr(); ?>">
     <?php 
     $current_page = 'video-tutorials';
     include __DIR__ . '/../../backend/components/header.php'; 

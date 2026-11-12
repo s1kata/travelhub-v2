@@ -678,6 +678,56 @@
         thFlightPackagesStore()[String(tourId)] = payload;
     }
 
+    /**
+     * Пакет перелёта из кэша применим только для того же города вылета / departureId.
+     */
+    function thFlightPackagesMatchesDeparture(store, depCity, departureId) {
+        if (!store || !Array.isArray(store.flights) || !store.flights.length) return false;
+        var dep = String(depCity || '').trim();
+        if (store.depCity && norm(store.depCity) !== norm(dep)) return false;
+        if (store.departureId != null && departureId != null
+            && String(store.departureId) !== String(departureId)) {
+            return false;
+        }
+        return true;
+    }
+
+    function thFlightsCacheClearTour(tourId) {
+        var prefix = String(tourId || '') + '@';
+        if (!prefix || prefix === '@') return;
+        var stores = [
+            global.__thFlightsByTourId,
+            global.__promoFlightsByTourId,
+            global.__countryFlightsByTourId,
+            global.__mainFlightsByTourId
+        ];
+        stores.forEach(function (store) {
+            if (!store) return;
+            Object.keys(store).forEach(function (key) {
+                if (key.indexOf(prefix) === 0) delete store[key];
+            });
+        });
+    }
+
+    /** Сброс кэша перелёта по туру (устаревший tourId / смена вылета). */
+    function thFlightPackagesClear(tourId) {
+        var tid = String(tourId || '');
+        if (!tid) return;
+        delete thFlightPackagesStore()[tid];
+        delete thTourFlightsFailMemo[thTourFlightsFailKey(tid)];
+        thFlightsCacheClearTour(tid);
+    }
+
+    var TH_FLIGHT_MANAGER_HINT = 'Наличие авиабилетов уточните у менеджера. Мы подберём перелёт при оформлении заявки.';
+
+    function thNotifyTourGone(tourId) {
+        var tid = String(tourId || '');
+        if (!tid) return;
+        try {
+            document.dispatchEvent(new CustomEvent('th:tour-gone', { detail: { tourId: tid } }));
+        } catch (eEv) {}
+    }
+
     var TH_FLIGHT_PACKAGE_NAV_KEY = 'th-flight-package-navigation-v1';
     function thFlightPackagesSaveForDetail(tourId) {
         var store = thFlightPackagesGet(tourId);
@@ -766,6 +816,7 @@
         });
         var meta = thFlightMetaFromPackage(pkg, depCity);
         if (meta) thFlightsCacheSet(tourId, meta, depCity || meta.city);
+        thFlightPackagesSaveForDetail(tourId);
         return meta;
     }
 
@@ -956,10 +1007,10 @@
 
     function thTourPackageNeeds(hotel, tourId, depCity) {
         var dep = String(depCity || (global.TH_DEPARTURE && global.TH_DEPARTURE.name) || 'Самара').trim();
+        var depIdHint = global.TH_DEPARTURE && global.TH_DEPARTURE.id;
         var needFlights = !thFlightMetaReady(tourId, dep);
         var flights = thFlightPackagesGet(tourId);
-        if (needFlights && flights && Array.isArray(flights.flights) && flights.flights.length) {
-            var depIdHint = global.TH_DEPARTURE && global.TH_DEPARTURE.id;
+        if (needFlights && thFlightPackagesMatchesDeparture(flights, dep, depIdHint)) {
             thFlightsCacheFromJson(tourId, {
                 success: true,
                 flights: flights.flights.slice(),
@@ -977,13 +1028,26 @@
         var cachedPackage = thTourPackageCache()[String(tourId)] || {};
         var roomDetail = roomId ? thRoomDetailsCache()[roomId] : null;
         var hasRoomLabel = !!roomType || !!(roomDetail && (roomDetail.russianName || roomDetail.name || roomDetail.title));
-        var needTour = !cachedPackage.tour && (!roomId || !hasRoomLabel || !(price > 0));
         var roomIds = thTourRoomIds(hotel);
         var roomCache = thRoomDetailsCache();
         var attempted = thRoomDetailsAttempted();
         var needRoomIds = roomIds.filter(function (id) {
             return !roomCache[id] && !attempted[id];
         });
+        var genericRoom = !roomType
+            || roomType === 'Стандарт'
+            || roomType === 'Вариант номера'
+            || (roomType.length < 4)
+            || (!/[А-Яа-яЁё]/.test(roomType));
+        var needTour = needRoomIds.length > 0
+            || !cachedPackage.tour
+            || (roomId && genericRoom)
+            || (!roomId && !hasRoomLabel)
+            || (!(price > 0) && roomId);
+        var tours = hotel && Array.isArray(hotel.tours) ? hotel.tours : [];
+        if (tours.length > 1 && (!cachedPackage.tour || needRoomIds.length > 0)) {
+            needTour = true;
+        }
         return {
             needFlights: needFlights,
             needTour: needTour,
@@ -1064,7 +1128,8 @@
             + '|t' + (includeTour ? '1' : '0')
             + '|r' + roomIds.slice().sort().join(',');
         if (!opts.force && includeFlights && !includeTour && !roomIds.length
-            && pkgStore && Array.isArray(pkgStore.flights) && pkgStore.flights.length) {
+            && thFlightPackagesMatchesDeparture(pkgStore, opts.departureCity || (global.TH_DEPARTURE && global.TH_DEPARTURE.name) || 'Самара',
+                opts.departureId != null ? opts.departureId : (global.TH_DEPARTURE && global.TH_DEPARTURE.id))) {
             var depCache = opts.departureCity || (global.TH_DEPARTURE && global.TH_DEPARTURE.name) || 'Самара';
             var depIdCache = opts.departureId != null ? opts.departureId : (global.TH_DEPARTURE && global.TH_DEPARTURE.id);
             if (!thFlightMetaReady(tid, depCache)) {
@@ -1180,7 +1245,7 @@
                     success: false,
                     error: reason,
                     flights: [],
-                    _operatorNoFlights: true,
+                    _operatorNoFlights: !!(j && (j.operatorNoFlights || j.tourGone)),
                     _tvError: tvErr
                 };
             }
@@ -1236,6 +1301,26 @@
         }
     }
 
+  /**
+   * Прогресс догрузки перелётов/номеров для лоадера на главной.
+   *
+   * @param {number} total
+   * @param {number} done
+   * @param {string} [phase]
+   */
+    function thFlightsProgressPublish(total, done, phase) {
+        total = Math.max(0, parseInt(String(total), 10) || 0);
+        done = Math.max(0, parseInt(String(done), 10) || 0);
+        if (!total) return;
+        var detail = { total: total, done: Math.min(done, total), phase: phase || 'flights', ts: Date.now() };
+        global.__thFlightsLoadProgress = detail;
+        try {
+            if (typeof document !== 'undefined') {
+                document.dispatchEvent(new CustomEvent('th:flights-load-progress', { detail: detail }));
+            }
+        } catch (ePub) {}
+    }
+
     function thLoadTourFlightsForHotels(hotels, opts) {
         opts = opts || {};
         var base = thResolveTvApiBase(opts);
@@ -1267,8 +1352,8 @@
             tourHotelsById[tid] = tourHotelsById[tid] || [];
             tourHotelsById[tid].push(h);
         });
-        var packageNeedsById = Object.create(null);
-        tourIds.forEach(function (tid) {
+        function thMergePackageNeeds(tid, mergeOpts) {
+            mergeOpts = mergeOpts || opts;
             var hotelRows = tourHotelsById[tid] || [];
             var needs = { needFlights: false, needTour: false, roomIds: [], needed: false };
             hotelRows.forEach(function (hotel) {
@@ -1280,12 +1365,42 @@
                 });
                 needs.needed = needs.needed || rowNeeds.needed;
             });
-            if (opts.fullPackage) {
+            if (mergeOpts.fullPackage) {
                 needs.needFlights = true;
                 needs.needTour = true;
                 needs.needed = true;
+                return needs;
             }
-            packageNeedsById[tid] = needs;
+            var flightsPending = needs.needFlights || !thFlightMetaReady(tid, depCity);
+            var roomsPending = needs.needTour || needs.roomIds.length > 0;
+            var flightsFirst = mergeOpts.flightsFirst !== false && !mergeOpts._enrichPass;
+            if (flightsFirst) {
+                if (flightsPending) {
+                    needs.needFlights = true;
+                    needs.needTour = false;
+                    needs.roomIds = [];
+                    needs.needed = true;
+                } else {
+                    needs.needed = false;
+                }
+                return needs;
+            }
+            if (mergeOpts.combinedPackage === true && (flightsPending || roomsPending)) {
+                needs.needFlights = flightsPending;
+                needs.needTour = roomsPending || flightsPending;
+                needs.needed = true;
+            } else if (flightsPending) {
+                needs.needFlights = true;
+                needs.needed = true;
+            } else if (roomsPending) {
+                needs.needTour = true;
+                needs.needed = true;
+            }
+            return needs;
+        }
+        var packageNeedsById = Object.create(null);
+        tourIds.forEach(function (tid) {
+            packageNeedsById[tid] = thMergePackageNeeds(tid);
         });
         if (opts.priorityTourIds) {
             tourIds.sort(function (a, b) {
@@ -1294,18 +1409,106 @@
                 return pa - pb;
             });
         }
+        var allInputTourIds = tourIds.slice();
+        var stale = function () {
+            return loadGen != null && loadGen !== global.__thFlightsLoadGen;
+        };
         tourIds = tourIds.filter(function (tid) { return packageNeedsById[tid].needed; });
         /* maxTours=0 → все туры в выдаче; иначе обрезка */
         if (maxTours > 0 && tourIds.length > maxTours) {
             tourIds = tourIds.slice(0, maxTours);
         }
-        if (!tourIds.length) {
-            if (onDone) onDone();
-            return Promise.resolve();
+
+        function thNeedsEnrich(tid) {
+            var n = thMergePackageNeeds(tid, Object.assign({}, opts, {
+                flightsFirst: false,
+                _enrichPass: true
+            }));
+            return n.needTour || n.roomIds.length > 0;
         }
-        /* Пока грузим tour-flights — не стартуем type=hotel / verybig (иначе flights «ожидает» в Network). */
-        thFlightsNetworkBusyInc();
+
+        function runEnrichThen(completeLoad) {
+            if (stale()
+                || opts.flightsFirst === false
+                || opts._enrichPass
+                || opts.skipEnrich) {
+                completeLoad();
+                return;
+            }
+            var enrichHotels = [];
+            allInputTourIds.forEach(function (tid) {
+                if (!thNeedsEnrich(tid)) return;
+                (tourHotelsById[tid] || []).forEach(function (h) {
+                    enrichHotels.push(h);
+                });
+            });
+            if (!enrichHotels.length) {
+                completeLoad();
+                return;
+            }
+            if (typeof releaseBusy === 'function') {
+                releaseBusy();
+            }
+            var enrichMax = opts.roomEnrichMaxTours != null ? parseInt(String(opts.roomEnrichMaxTours), 10) : 0;
+            if (enrichMax > 0 && enrichHotels.length > enrichMax) {
+                var seenEnrich = {};
+                enrichHotels = enrichHotels.filter(function (h) {
+                    var tid = typeof opts.getTourId === 'function' ? opts.getTourId(h) : '';
+                    if (!tid || seenEnrich[tid]) return false;
+                    seenEnrich[tid] = true;
+                    return true;
+                }).slice(0, enrichMax);
+            }
+            thLoadTourFlightsForHotels(enrichHotels, Object.assign({}, opts, {
+                flightsFirst: false,
+                combinedPackage: false,
+                skipEnrich: true,
+                skipNetworkBusy: true,
+                _enrichPass: true,
+                maxConcurrent: Math.min(3, maxConcurrent),
+                waveSize: 0,
+                loadGen: loadGen,
+                onDone: completeLoad
+            }));
+        }
+
+        if (!tourIds.length) {
+            return new Promise(function (resolve) {
+                var userDone = onDone;
+                function completeLoad() {
+                    if (!stale()
+                        && global.THTourCard
+                        && typeof global.THTourCard.patchDatesInContainer === 'function') {
+                        try {
+                            global.THTourCard.patchDatesInContainer(opts.patchContainer || document);
+                        } catch (eDatePatch) {}
+                    }
+                    if (!stale()
+                        && global.THTourCard
+                        && typeof global.THTourCard.patchRoomsInContainer === 'function') {
+                        try {
+                            global.THTourCard.patchRoomsInContainer(opts.patchContainer || document);
+                        } catch (eRoomPatch) {}
+                    }
+                    if (!stale()
+                        && global.THTourCard
+                        && typeof global.THTourCard.resumeCarouselHydrate === 'function') {
+                        try {
+                            global.THTourCard.resumeCarouselHydrate(opts.patchContainer || document);
+                        } catch (eCar) {}
+                    }
+                    if (typeof userDone === 'function') userDone();
+                    resolve();
+                }
+                runEnrichThen(completeLoad);
+            });
+        }
+        var holdNetworkBusy = opts.skipNetworkBusy !== true;
+        if (holdNetworkBusy) {
+            thFlightsNetworkBusyInc();
+        }
         var allIds = tourIds.slice();
+        thFlightsProgressPublish(allIds.length, 0, opts._enrichPass ? 'rooms' : 'flights');
         var waveIndex = 0;
         var queue = [];
         var retryQueue = [];
@@ -1315,20 +1518,19 @@
         var inRetryPhase = false;
         var busyReleased = false;
         var releaseBusy = function () {
-            if (busyReleased) return;
+            if (busyReleased || !holdNetworkBusy) return;
             busyReleased = true;
             thFlightsNetworkBusyDec();
-        };
-        var stale = function () {
-            return loadGen != null && loadGen !== global.__thFlightsLoadGen;
         };
 
         function patchFlightsNow() {
             if (stale()) return;
-            if (opts.patchContainer && global.THTourCard && typeof global.THTourCard.patchFlightsInContainer === 'function') {
-                global.THTourCard.patchFlightsInContainer(opts.patchContainer);
-            } else if (global.THTourCard && typeof global.THTourCard.patchFlightsInContainer === 'function') {
-                global.THTourCard.patchFlightsInContainer(document);
+            var patchRoot = opts.patchContainer || document;
+            if (global.THTourCard && typeof global.THTourCard.patchFlightsInContainer === 'function') {
+                global.THTourCard.patchFlightsInContainer(patchRoot);
+            }
+            if (global.THTourCard && typeof global.THTourCard.patchRoomsInContainer === 'function') {
+                global.THTourCard.patchRoomsInContainer(patchRoot);
             }
         }
 
@@ -1381,7 +1583,7 @@
                 return;
             }
             retryQueue.forEach(function (tid) {
-                if (!thFlightMetaReady(tid, depCity)) thFlightLoadMarkFailed(tid);
+                if (!thFlightMetaReady(tid, depCity)) thFlightLoadMarkNoData(tid);
             });
             patchFlightsNow();
             if (onDone) onDone();
@@ -1389,7 +1591,9 @@
 
         function noteTourFlightResult(tourId, j) {
             if (j && j.tourGone) {
-                thFlightLoadMarkFailed(tourId);
+                thFlightPackagesClear(tourId);
+                thFlightLoadMarkNoData(tourId);
+                thNotifyTourGone(tourId);
                 return;
             }
             if (thFlightMetaReady(tourId, depCity)) {
@@ -1443,19 +1647,40 @@
             finishAll();
         }
 
+        function thFetchRoomsIfNeeded(tourId, afterFlightsCache) {
+            if (opts.flightsFirst !== false && !opts._enrichPass) {
+                return Promise.resolve(afterFlightsCache || null);
+            }
+            var postNeeds = thMergePackageNeeds(tourId);
+            if (!postNeeds.needTour && !postNeeds.roomIds.length) {
+                return Promise.resolve(afterFlightsCache || null);
+            }
+            return thFetchTourFlightsJson(tourId, {
+                apiBase: base,
+                departureCity: depCity,
+                departureId: departureIdHint,
+                force: true,
+                needFlights: false,
+                needTour: true,
+                roomIds: postNeeds.roomIds,
+                hotels: tourHotelsById[tourId] || []
+            });
+        }
+
         function drain() {
             if (stale()) return;
             while (active < maxConcurrent && queue.length) {
                 (function (tourId) {
                     active++;
                     var forceRetry = retryPass > 0;
-                    var packageNeeds = packageNeedsById[tourId] || { needFlights: true, needTour: false, roomIds: [] };
+                    var packageNeeds = thMergePackageNeeds(tourId);
+                    var needFlightsFetch = packageNeeds.needFlights || !thFlightMetaReady(tourId, depCity);
                     thFetchTourFlightsJson(tourId, {
                         apiBase: base,
                         departureCity: depCity,
                         departureId: departureIdHint,
                         force: forceRetry,
-                        needFlights: packageNeeds.needFlights,
+                        needFlights: needFlightsFetch,
                         needTour: packageNeeds.needTour,
                         roomIds: packageNeeds.roomIds,
                         hotels: tourHotelsById[tourId] || []
@@ -1463,12 +1688,34 @@
                         .then(function (j) {
                             if (j && j._fromPackagesCache) {
                                 noteTourFlightResult(tourId, j);
+                                if (stale()) return j;
+                                return thFetchRoomsIfNeeded(tourId, j).then(function (j2) {
+                                    packageNeedsById[tourId] = thMergePackageNeeds(tourId);
+                                    if (j2 && !j2._fromPackagesCache && !j2._roomOnly) {
+                                        if (!stale() && thFlightsCacheFromJson(tourId, j2, depCity, departureIdHint)) {
+                                            /* rooms stored in thStoreTourPackage */
+                                        }
+                                    }
+                                    if (j2 && j2._roomOnly) {
+                                        noteTourFlightResult(tourId, j2);
+                                    }
+                                    return j2 || j;
+                                });
+                            }
+                            if (j && j._roomOnly) {
+                                packageNeedsById[tourId] = thMergePackageNeeds(tourId);
+                                noteTourFlightResult(tourId, j);
+                                if (!stale() && !thFlightMetaReady(tourId, depCity)) {
+                                    retryQueue.push(tourId);
+                                }
                                 return;
                             }
                             if (!j || j._memoFail || j.tourGone || j._operatorNoFlights || j.operatorNoFlights) {
+                                packageNeedsById[tourId] = thMergePackageNeeds(tourId);
                                 noteTourFlightResult(tourId, j);
                                 return;
                             }
+                            packageNeedsById[tourId] = thMergePackageNeeds(tourId);
                             if (!stale()) thFlightsCacheFromJson(tourId, j, depCity, departureIdHint);
                             noteTourFlightResult(tourId, j);
                         })
@@ -1478,6 +1725,9 @@
                         .finally(function () {
                             active--;
                             loaded++;
+                            if (!stale()) {
+                                thFlightsProgressPublish(allIds.length, loaded, opts._enrichPass ? 'rooms' : 'flights');
+                            }
                             if (!stale() && (loaded % patchEvery === 0 || !queue.length)) {
                                 patchFlightsNow();
                             }
@@ -1493,10 +1743,34 @@
 
         return new Promise(function (resolve) {
             var userDone = onDone;
-            onDone = function () {
+            function completeLoad() {
                 releaseBusy();
+                if (!stale()
+                    && global.THTourCard
+                    && typeof global.THTourCard.patchDatesInContainer === 'function') {
+                    try {
+                        global.THTourCard.patchDatesInContainer(opts.patchContainer || document);
+                    } catch (eDateEnd) {}
+                }
+                if (!stale()
+                    && global.THTourCard
+                    && typeof global.THTourCard.patchRoomsInContainer === 'function') {
+                    try {
+                        global.THTourCard.patchRoomsInContainer(opts.patchContainer || document);
+                    } catch (eRoomEnd) {}
+                }
+                if (!stale()
+                    && global.THTourCard
+                    && typeof global.THTourCard.resumeCarouselHydrate === 'function') {
+                    try {
+                        global.THTourCard.resumeCarouselHydrate(opts.patchContainer || document);
+                    } catch (eCar) {}
+                }
                 if (typeof userDone === 'function') userDone();
                 resolve();
+            }
+            onDone = function () {
+                runEnrichThen(completeLoad);
             };
             opts.onDone = onDone;
             startNextWave();
@@ -1556,6 +1830,97 @@
         }));
     }
 
+    /**
+     * Прямой рейс: один сегмент «туда», не более одного «обратно».
+     *
+     * @param {object|null} pkg
+     */
+    function thTourvisorPackageIsDirect(pkg) {
+        if (!pkg) return false;
+        var fw = pkg.forward;
+        var bw = pkg.backward || pkg.back;
+        if (!Array.isArray(fw) || fw.length !== 1) return false;
+        if (Array.isArray(bw) && bw.length > 1) return false;
+        return true;
+    }
+
+    /**
+     * Оставляет отели, у которых выбранный тур с прямым перелётом (после tour-flights / кэша).
+     *
+     * @param {Array<object>} hotels
+     * @param {{apiBase?: string, departureCity?: string, departureId?: number, getTourId?: function, limit?: number}} opts
+     * @return {Promise<Array<object>>}
+     */
+    function thFilterHotelsKeepDirectOnly(hotels, opts) {
+        opts = opts || {};
+        var list = Array.isArray(hotels) ? hotels.slice() : [];
+        if (!list.length) return Promise.resolve(list);
+        var base = thResolveTvApiBase(opts);
+        if (!base) return Promise.resolve(list);
+        var depNm = opts.departureCity || thFlightDefaultDepCity();
+        var depId = opts.departureId;
+        var getTourId = typeof opts.getTourId === 'function' ? opts.getTourId : function (h) {
+            var t = (h && h.tours && h.tours[0]) ? h.tours[0] : (h && h._tour) ? h._tour : null;
+            return (t && t.id != null && t.id !== '') ? String(t.id) : '';
+        };
+        var ids = [];
+        var seen = {};
+        list.forEach(function (h) {
+            var tid = getTourId(h);
+            if (!tid || seen[tid]) return;
+            seen[tid] = true;
+            ids.push(tid);
+        });
+        if (!ids.length) return Promise.resolve(list);
+        var limit = opts.limit != null ? opts.limit : 5;
+        var concurrency = opts.maxConcurrent != null ? opts.maxConcurrent : 4;
+        var active = 0;
+        var next = 0;
+        var flags = {};
+        return new Promise(function (resolve) {
+            function finishOne(tid, isDirect) {
+                flags[tid] = isDirect === true;
+                active--;
+                pump();
+            }
+            function pump() {
+                while (active < concurrency && next < ids.length) {
+                    var tid = ids[next++];
+                    active++;
+                    var cached = thFlightsCacheGet(tid, depNm);
+                    if (cached && typeof cached.direct === 'boolean') {
+                        finishOne(tid, cached.direct);
+                        continue;
+                    }
+                    thFetchTourFlightsJson(tid, {
+                        apiBase: base,
+                        departureCity: depNm,
+                        departureId: depId,
+                        needFlights: true,
+                        needTour: false
+                    }).then(function (j) {
+                        var flights = (j && Array.isArray(j.flights)) ? j.flights
+                            : (j && j.data && Array.isArray(j.data.flights)) ? j.data.flights : [];
+                        var pick = pickTourvisorFlightPackage(flights, depNm, depId);
+                        finishOne(tid, thTourvisorPackageIsDirect(pick));
+                    }).catch(function () {
+                        finishOne(tid, false);
+                    });
+                }
+                if (active === 0 && next >= ids.length) {
+                    var out = list.filter(function (h) {
+                        var tid = getTourId(h);
+                        return tid && flags[tid] === true;
+                    });
+                    resolve(out);
+                }
+            }
+            pump();
+        });
+    }
+
+    global.thTourvisorPackageIsDirect = thTourvisorPackageIsDirect;
+    global.thFilterHotelsKeepDirectOnly = thFilterHotelsKeepDirectOnly;
     global.thPickTourvisorFlightPackage = pickTourvisorFlightPackage;
     global.thFlightMetaFromPackage = thFlightMetaFromPackage;
     global.thFlightMetaNormalize = thFlightMetaNormalize;
@@ -1573,9 +1938,13 @@
     global.thFlightLoadMarkFailed = thFlightLoadMarkFailed;
     global.thFlightLoadResetAll = thFlightLoadResetAll;
     global.thFlightPackagesGet = thFlightPackagesGet;
+    global.thFlightPackagesMatchesDeparture = thFlightPackagesMatchesDeparture;
+    global.thFlightMetaReady = thFlightMetaReady;
     global.thFlightPackagesSet = thFlightPackagesSet;
     global.thFlightPackagesSaveForDetail = thFlightPackagesSaveForDetail;
     global.thFlightPackagesRestoreForDetail = thFlightPackagesRestoreForDetail;
+    global.thFlightPackagesClear = thFlightPackagesClear;
+    global.TH_FLIGHT_MANAGER_HINT = TH_FLIGHT_MANAGER_HINT;
     global.thFlightPackagePriceNum = thFlightPackagePriceNum;
     global.thFlightPackageOptionLabel = thFlightPackageOptionLabel;
     global.thFlightPackageSummary = thFlightPackageSummary;

@@ -10,6 +10,7 @@
  *   ...
  */
 require_once __DIR__ . '/page_cache.php';
-if (isset($_COOKIE[session_name()]) && $_COOKIE[session_name()] !== '') {
+require_once __DIR__ . '/session_bootstrap.php';
+if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }

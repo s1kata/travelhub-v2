@@ -10,13 +10,13 @@ session_start();
 $page_title = 'Пример оплаты';
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru"<?php echo th_ui_html_class_attr() !== '' ? ' class="' . trim(th_ui_html_class_attr()) . '"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?php echo htmlspecialchars($page_title); ?> | Travel Hub</title>
 </head>
-<body class="bg-slate-50 min-h-screen p-6">
+<body class="bg-slate-50 min-h-screen p-6<?php echo th_ui_body_class_attr(); ?>">
     <div class="max-w-md mx-auto bg-white rounded-2xl shadow-lg p-6">
         <h1 class="text-xl font-semibold text-slate-800 mb-4">Оплата через Альфа-Банк</h1>
 

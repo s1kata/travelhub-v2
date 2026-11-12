@@ -63,7 +63,14 @@ class PageCache {
             $assetVer = TH_ASSET_VERSION;
         }
         
-        $key = md5($uri . '|' . $query . '|' . $lang . '|' . $assetVer);
+        if (!function_exists('th_ui_variant_is_airbnb')) {
+            $uiVariantFile = dirname(__DIR__) . '/components/th_ui_variant.php';
+            if (is_file($uiVariantFile)) {
+                require_once $uiVariantFile;
+            }
+        }
+        $uiShell = (function_exists('th_ui_variant_is_airbnb') && th_ui_variant_is_airbnb()) ? 'v3' : 'classic';
+        $key = md5($uri . '|' . $query . '|' . $lang . '|' . $assetVer . '|ui' . $uiShell);
         return self::$cacheDir . DIRECTORY_SEPARATOR . $key . '.html';
     }
     
@@ -116,22 +123,60 @@ class PageCache {
         header('Last-Modified: ' . $lastMod);
         header('ETag: ' . $etag);
 
-        $ifNoneMatch = $_SERVER['HTTP_IF_NONE_MATCH'] ?? '';
-        $ifModifiedSince = $_SERVER['HTTP_IF_MODIFIED_SINCE'] ?? '';
-        if (trim($ifNoneMatch) === $etag || ($ifModifiedSince && strtotime($ifModifiedSince) >= $mtime)) {
-            header('HTTP/1.1 304 Not Modified');
-            return true;
-        }
-
+        // Не отдаём 304: в HTML вшит window.TH_CSRF — при 304 браузер держит чужой токен и заявки падают с CSRF.
         $content = file_get_contents($cacheFile);
         $content = preg_replace('/<script>window\.__CACHE_DEBUG[^<]*<\/script>\s*/', '', $content);
         $content = preg_replace('/<script[^>]*src="[^"]*cache-debug\.js"[^>]*><\/script>\s*/i', '', $content);
+        $content = self::refreshCachedCsrfToken($content);
 
         header('Content-Length: ' . strlen($content));
         echo $content;
         return true;
     }
     
+    /**
+     * Подменяет CSRF в отданном из кэша HTML на токен текущей сессии посетителя.
+     */
+    private static function refreshCachedCsrfToken(string $content): string
+    {
+        if (strpos($content, 'TH_CSRF') === false && strpos($content, 'csrf-token') === false) {
+            return $content;
+        }
+        if (!defined('TH_SESSION_BOOTSTRAP')) {
+            require_once __DIR__ . '/session_bootstrap.php';
+        }
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (!function_exists('security_csrf_token')) {
+            require_once __DIR__ . '/security_helper.php';
+        }
+        $token = security_csrf_token();
+        $tokenEsc = htmlspecialchars($token, ENT_QUOTES, 'UTF-8');
+        $meta = '<meta name="csrf-token" content="' . $tokenEsc . '">';
+        if (strpos($content, 'name="csrf-token"') !== false) {
+            $content = preg_replace(
+                '/<meta\s+name="csrf-token"\s+content="[^"]*"\s*\/?>/i',
+                $meta,
+                $content,
+                1
+            ) ?? $content;
+        } elseif (stripos($content, '</head>') !== false) {
+            $content = preg_replace('/<\/head>/i', $meta . "\n</head>", $content, 1) ?? $content;
+        }
+        $replacement = 'window.TH_CSRF = ' . json_encode($token, JSON_UNESCAPED_UNICODE) . ';';
+        $updated = preg_replace('/window\.TH_CSRF\s*=\s*[^;]+;/', $replacement, $content);
+        if (strpos($content, 'id="th-csrf-token"') !== false) {
+            $updated = preg_replace(
+                '/id="th-csrf-token"[^>]*value="[^"]*"/',
+                'id="th-csrf-token" value="' . $tokenEsc . '"',
+                $updated ?? $content,
+                1
+            ) ?? $updated;
+        }
+        return is_string($updated) ? $updated : $content;
+    }
+
     /**
      * Сохранить страницу в кэш
      */

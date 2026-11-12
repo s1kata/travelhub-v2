@@ -33,26 +33,7 @@ $nullLogDevice = (stripos(PHP_OS, 'WIN') === 0) ? 'NUL' : '/dev/null';
 ini_set('log_errors', '0');
 ini_set('error_log', $nullLogDevice);
 
-// Безопасность сессии: защита от кражи cookie и перехвата (до любого session_start())
-if (php_sapi_name() !== 'cli') {
-    ini_set('session.cookie_httponly', '1');
-    ini_set('session.use_strict_mode', '1');
-    ini_set('session.cookie_samesite', 'Lax');
-    $sessionSecure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
-    if ($sessionSecure) {
-        ini_set('session.cookie_secure', '1');
-    }
-    if (function_exists('session_set_cookie_params')) {
-        session_set_cookie_params([
-            'lifetime' => 0,
-            'path' => '/',
-            'domain' => '',
-            'secure' => $sessionSecure,
-            'httponly' => true,
-            'samesite' => 'Lax',
-        ]);
-    }
-}
+require_once dirname(__DIR__) . '/components/session_bootstrap.php';
 
 /**
  * Lightweight .env loader (supports KEY=VALUE, comments with #, and quoted values)
@@ -143,4 +124,7 @@ if (!defined('TRAVELHUB_MAX_BOT_URL')) {
         trim((string) (getenv('MAX_BOT_URL') ?: ($_ENV['MAX_BOT_URL'] ?? 'https://max.ru/id631219827328_bot')))
     );
 }
+
+require_once dirname(__DIR__) . '/components/th_ui_variant.php';
+require_once dirname(__DIR__) . '/components/th_shell_ui.php';
 ?>

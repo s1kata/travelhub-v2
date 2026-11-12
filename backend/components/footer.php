@@ -3,6 +3,10 @@
  * Единый футер Travel Hub — подключать в конце <body> перед скриптами.
  * Требует Tailwind (CDN) на странице.
  */
+if (!function_exists('th_ui_shell_main_close')) {
+    require_once __DIR__ . '/th_ui_variant.php';
+}
+th_ui_shell_main_close();
 require_once dirname(__DIR__) . '/config/contacts.php';
 $thc = th_contacts();
 ?>
@@ -50,6 +54,7 @@ $thc = th_contacts();
                     <h3 class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500">Туры и цены</h3>
                     <ul class="space-y-2.5 text-sm">
                         <li><a href="/frontend/window/promotions.php" class="text-slate-400 transition hover:text-white">Акции</a></li>
+                        <li><a href="/frontend/window/posts.php" class="text-slate-400 transition hover:text-white">Посты</a></li>
                         <li><a href="/frontend/window/countries-list.php" class="text-slate-400 transition hover:text-white">Страны</a></li>
                         <li><a href="/frontend/window/popular-hotels.php" class="text-slate-400 transition hover:text-white">Отели</a></li>
                         <li><a href="/frontend/window/offices.php" class="text-slate-400 transition hover:text-white">Офисы</a></li>

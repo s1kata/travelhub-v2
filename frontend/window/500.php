@@ -4,15 +4,17 @@ http_response_code(500);
 header('Content-Type: text/html; charset=utf-8');
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru"<?php echo th_ui_html_class_attr() !== '' ? ' class="' . trim(th_ui_html_class_attr()) . '"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Ошибка сервера — Travel Hub</title>
     <link rel="icon" type="image/svg+xml" href="/frontend/favicon.svg">
     <?php include __DIR__ . '/../../backend/components/design_system_head.php'; ?>
+<?php th_ui_shell_stylesheets_fini(); ?>
+
 </head>
-<body class="min-h-screen bg-gradient-to-b from-slate-50 to-white text-slate-800 flex flex-col items-center justify-center px-4">
+<body class="min-h-screen bg-gradient-to-b from-slate-50 to-white text-slate-800 flex flex-col items-center justify-center px-4<?php echo th_ui_body_class_attr(); ?>">
     <div class="text-center max-w-md">
         <p class="text-6xl font-bold text-amber-400 mb-2">500</p>
         <h1 class="text-2xl font-semibold text-slate-900 mb-3">Ошибка сервера</h1>

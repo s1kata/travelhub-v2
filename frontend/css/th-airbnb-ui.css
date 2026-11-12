@@ -1,0 +1,141 @@
+/**
+ * Travel Hub — Airbnb-inspired shell (туры). Логотип «Travel Hub» не меняем.
+ * Вкл: TH_UI_VARIANT=airbnb или ?ui=airbnb
+ */
+body.th-ui-airbnb {
+  --th-airbnb-radius: 14px;
+  --th-airbnb-shadow: 0 6px 20px rgba(18, 18, 46, 0.08);
+  background: #fff;
+}
+
+/* Header: светлая плашка, тонкая граница */
+body.th-ui-airbnb #site-header.header {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(18, 18, 46, 0.08);
+  box-shadow: none;
+}
+
+body.th-ui-airbnb #site-header .header__logo {
+  color: #12122e;
+}
+
+body.th-ui-airbnb #site-header .header__nav > a,
+body.th-ui-airbnb #site-header .header__more-toggle {
+  color: #334155;
+  font-weight: 600;
+}
+
+body.th-ui-airbnb #site-header .header__nav > a.is-active {
+  color: #12122e;
+  box-shadow: inset 0 -2px 0 #5da9a4;
+}
+
+/* Главная: поиск не по центру hero, а внизу hero — карточка на всю ширину контейнера */
+@media (min-width: 1024px) {
+  body.th-ui-airbnb.th-search-ui-wizard .home-hero-section {
+    min-height: 52vh;
+    align-items: flex-end;
+    padding-bottom: 0;
+  }
+
+  body.th-ui-airbnb .home-hero-inner {
+    align-items: stretch !important;
+    max-width: 1120px;
+  }
+
+  body.th-ui-airbnb .home-hero-inner .hero-content {
+    text-align: left;
+    margin-left: 0;
+    margin-right: auto;
+    max-width: 520px;
+  }
+
+  body.th-ui-airbnb #tour-search-section.th-wizard {
+    margin-top: 1.25rem;
+    max-width: 100%;
+    border-radius: var(--th-airbnb-radius);
+    box-shadow: var(--th-airbnb-shadow);
+    border: 1px solid rgba(18, 18, 46, 0.06);
+    background: #fff;
+    padding: 1rem 1.15rem 1.1rem;
+  }
+}
+
+body.th-ui-airbnb .th-coral-wizard__rail {
+  gap: 0.35rem;
+}
+
+body.th-ui-airbnb .th-coral-wizard__rail-item {
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fafafa;
+}
+
+body.th-ui-airbnb .th-coral-wizard__rail-item.is-active {
+  border-color: #5da9a4;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(93, 169, 164, 0.35);
+}
+
+/* Скрыть альтернативные режимы поиска на главной */
+body.th-ui-airbnb.th-search-ui-wizard .th-search-tv__form,
+body.th-ui-airbnb .th-search-mode + .th-search-tv__form {
+  display: none !important;
+}
+
+/* Footer: светлый, ровные отступы */
+body.th-ui-airbnb .site-footer {
+  background: #f7f7f7 !important;
+  border-top: 1px solid #e5e7eb;
+  color: #334155 !important;
+}
+
+body.th-ui-airbnb .site-footer .text-slate-300,
+body.th-ui-airbnb .site-footer .text-slate-400,
+body.th-ui-airbnb .site-footer .text-slate-500 {
+  color: #64748b !important;
+}
+
+body.th-ui-airbnb .site-footer .heading-font,
+body.th-ui-airbnb .site-footer h3 {
+  color: #12122e !important;
+}
+
+/* Посты в том же стиле */
+body.th-ui-airbnb.th-posts .th-posts-promo {
+  background: linear-gradient(160deg, #fafafa 0%, #eef6f5 100%);
+  color: #12122e;
+}
+
+body.th-ui-airbnb.th-posts .th-posts-promo__lead {
+  color: #475569;
+}
+
+body.th-ui-airbnb.th-posts .th-posts-promo__btn--ghost {
+  background: #fff;
+  color: #12122e;
+  border: 1px solid #e2e8f0;
+}
+
+body.th-ui-airbnb .th-ui-preview-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: #12122e;
+  color: #e2e8f0;
+  text-align: center;
+}
+
+body.th-ui-airbnb .th-ui-preview-bar a {
+  color: #7fd4cf;
+  text-decoration: underline;
+}

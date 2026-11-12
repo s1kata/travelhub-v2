@@ -1,7 +1,7 @@
 <?php
 /**
  * Прогрев кэша горящих туров: promo-search live → data/promo_cache_{countryId}_{departureId}.json
- * + tour-flights для топ-N туров (flightsByTourId в том же файле).
+ * + tour-package (рейсы + тур + номера) для топ-N туров на страну (в promo_cache_*).
  * Питает витрину главной (home_showcase_shelves) — страны из popular_countries.php.
  *
  * Cron (2 раза в сутки, минимум 1× ночью):
@@ -65,6 +65,9 @@ $popular = is_file($popularFile) ? require $popularFile : [];
 if (!is_array($popular) || $popular === []) {
     $popular = [['id' => 4, 'name' => 'Турция']];
 }
+$promoExcludedFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'promo_excluded_country_ids.php';
+$promoExcludedIds = is_file($promoExcludedFile) ? array_map('intval', (array) require $promoExcludedFile) : [];
+$promoExcludedMap = array_fill_keys($promoExcludedIds, true);
 
 $proxyBase = get_tourvisor_proxy_http_base_url();
 $departures = th_promo_speed_warm_departures();
@@ -95,7 +98,7 @@ foreach ($departures as $depRow) {
 
     foreach ($popular as $row) {
         $countryId = (int) (isset($row['id']) ? $row['id'] : 0);
-        if ($countryId <= 0) {
+        if ($countryId <= 0 || isset($promoExcludedMap[$countryId])) {
             continue;
         }
         $comboKey = $departureId . '_' . $countryId;
@@ -146,25 +149,13 @@ foreach ($departures as $depRow) {
         ]);
         $hotels = (!empty($res['success']) && is_array(isset($res['data']) ? $res['data'] : null)) ? $res['data'] : [];
 
-        if (
-            count($hotels) > 0
-            && in_array($countryId, th_promo_speed_tr_eg_star_boost_country_ids(), true)
-        ) {
-            $hotels = th_promo_speed_finalize_merged(
-                $hotels,
-                $countryId,
-                $departureId,
-                $dates,
-                2,
-                null,
-                $cronDispatch
-            );
-            th_promo_speed_log('cron_promo_tr_eg_finalize', [
-                'countryId' => $countryId,
-                'departureId' => $departureId,
-                'hotels' => count($hotels),
-            ]);
-        }
+        $merged = th_promo_speed_finalize_merged($hotels, $countryId, $departureId, $dates, 2, null, $cronDispatch);
+        $hotels = th_promo_speed_prepare_live_search_hotels($merged, $countryId, $departureId, $dates);
+        th_promo_speed_log('cron_promo_finalize_prepare', [
+            'countryId' => $countryId,
+            'departureId' => $departureId,
+            'hotels' => count($hotels),
+        ]);
 
         if (count($hotels) === 0 && $countryId === th_promo_phuquoc_virtual_country_id()) {
             $arrays = th_promo_speed_fetch_regular_window_arrays(
@@ -204,17 +195,23 @@ foreach ($departures as $depRow) {
             ]);
             $tourIds = th_promo_speed_collect_tour_ids_from_hotels($hotels, th_promo_speed_warm_flights_max());
             $flightsByTourId = [];
+            $packagesByTourId = [];
             if ($tourIds !== []) {
-                $flightsByTourId = th_promo_speed_warm_flights_for_tour_ids($tourIds, $cronDispatch);
+                $warm = th_promo_speed_warm_packages_for_tour_ids($tourIds, $cronDispatch);
+                $flightsByTourId = $warm['flightsByTourId'];
+                $packagesByTourId = $warm['packagesByTourId'];
+                $hotels = th_promo_speed_merge_packages_into_hotels($hotels, $packagesByTourId);
                 th_promo_speed_log('cron_flights_warm', [
                     'countryId' => $countryId,
                     'departureId' => $departureId,
                     'tours' => count($tourIds),
-                    'warmed' => count($flightsByTourId),
+                    'flights' => count($flightsByTourId),
+                    'packages' => count($packagesByTourId),
                 ]);
             }
             th_promo_speed_cache_set($countryId, $departureId, $hotels, array_merge($dates, [
                 'flightsByTourId' => $flightsByTourId,
+                'packagesByTourId' => $packagesByTourId,
             ]));
         }
 

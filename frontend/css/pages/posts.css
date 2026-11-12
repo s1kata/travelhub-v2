@@ -1,0 +1,385 @@
+/* Лента постов — раскрывающиеся карточки, продающий hero */
+.th-posts {
+    --th-posts-radius: 18px;
+    --th-posts-teal: #5da9a4;
+    --th-posts-navy: #12122e;
+    --th-posts-coral: #ff6b6b;
+    --th-posts-muted: #64748b;
+    background: #f4f6f8;
+    min-height: 60vh;
+}
+
+/* Hero */
+.th-posts-promo {
+    background: linear-gradient(155deg, #12122e 0%, #1a1a42 42%, #234e4b 100%);
+    color: #fff;
+    padding: 2.25rem 1rem 2.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.th-posts-promo::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 70% 80% at 100% 0%, rgba(93, 169, 164, 0.35), transparent 55%);
+    pointer-events: none;
+}
+
+.th-posts-promo__inner {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.th-posts-promo__eyebrow {
+    margin: 0 0 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.th-posts-promo__title {
+    margin: 0 0 0.75rem;
+    font-size: clamp(1.65rem, 4.5vw, 2.35rem);
+    font-weight: 700;
+    line-height: 1.15;
+}
+
+.th-posts-promo__lead {
+    margin: 0 0 1.35rem;
+    font-size: 1.02rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.th-posts-promo__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.th-posts-promo__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.72rem 1.2rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.92rem;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.th-posts-promo__btn--primary {
+    background: var(--th-posts-coral);
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.35);
+}
+
+.th-posts-promo__btn--primary:hover {
+    transform: translateY(-1px);
+    opacity: 0.96;
+}
+
+.th-posts-promo__btn--ghost {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.th-posts-promo__btn--ghost:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+/* Feed */
+.th-posts-feed {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+}
+
+.th-posts-empty {
+    text-align: center;
+    color: var(--th-posts-muted);
+    padding: 2rem;
+}
+
+.th-post-card {
+    background: #fff;
+    border-radius: var(--th-posts-radius);
+    box-shadow: 0 2px 8px rgba(18, 18, 46, 0.06), 0 12px 32px rgba(18, 18, 46, 0.06);
+    overflow: hidden;
+    border: 1px solid rgba(18, 18, 46, 0.06);
+    transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.th-post-card.is-open {
+    border-color: rgba(93, 169, 164, 0.45);
+    box-shadow: 0 4px 16px rgba(18, 18, 46, 0.08), 0 16px 40px rgba(93, 169, 164, 0.12);
+}
+
+.th-post-card__visual {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: #e2e8f0;
+}
+
+.th-post-card__visual img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.th-post-card__country {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.94);
+    color: var(--th-posts-navy);
+    backdrop-filter: blur(8px);
+}
+
+.th-post-card__read {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.35rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: rgba(18, 18, 46, 0.72);
+    color: #fff;
+}
+
+.th-post-card__summary {
+    padding: 1.15rem 1.2rem 1.1rem;
+}
+
+.th-post-card__date {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--th-posts-muted);
+    margin-bottom: 0.35rem;
+}
+
+.th-post-card__title {
+    margin: 0 0 0.5rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--th-posts-navy);
+}
+
+.th-post-card__excerpt {
+    margin: 0 0 0.85rem;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: #475569;
+}
+
+.th-post-card__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0;
+    border: none;
+    background: none;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--th-posts-teal);
+    cursor: pointer;
+}
+
+.th-post-card__toggle:hover {
+    color: #4a928d;
+}
+
+.th-post-card__chevron {
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+    margin-top: -3px;
+}
+
+.th-post-card.is-open .th-post-card__chevron {
+    transform: rotate(-135deg);
+    margin-top: 3px;
+}
+
+.th-post-card__panel {
+    padding: 0 1.2rem 1.25rem;
+    border-top: 1px solid #f1f5f9;
+    animation: thPostPanelIn 0.28s ease;
+}
+
+@keyframes thPostPanelIn {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.th-post-card__gallery {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin: 1rem 0 1.1rem;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.th-post-card__gallery img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    display: block;
+}
+
+@media (max-width: 480px) {
+    .th-post-card__gallery {
+        grid-template-columns: 1fr 1fr;
+    }
+    .th-post-card__gallery img:last-child {
+        display: none;
+    }
+}
+
+.th-post-card__prose {
+    font-size: 1rem;
+    line-height: 1.68;
+    color: #334155;
+}
+
+.th-post-card__prose p {
+    margin: 0 0 1rem;
+}
+
+.th-post-card__prose p:last-child {
+    margin-bottom: 0;
+}
+
+.th-post-card__sell {
+    margin-top: 1.35rem;
+    padding: 1.1rem 1.15rem;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(93, 169, 164, 0.14), rgba(255, 107, 107, 0.08));
+    border: 1px solid rgba(93, 169, 164, 0.22);
+}
+
+.th-post-card__sell-title {
+    margin: 0 0 0.35rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--th-posts-navy);
+}
+
+.th-post-card__sell-text {
+    margin: 0 0 0.85rem;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: #475569;
+}
+
+.th-post-card__sell-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+}
+
+.th-post-card__sell-actions .th-posts-promo__btn--primary {
+    color: #fff;
+}
+
+.th-post-card__sell-actions .th-posts-promo__btn--ghost {
+    color: var(--th-posts-navy);
+    background: #fff;
+    border: 1px solid #e2e8f0;
+}
+
+.th-post-card__sell-actions .th-posts-promo__btn--ghost:hover {
+    border-color: var(--th-posts-teal);
+}
+
+/* Bottom CTA */
+.th-posts-bottom-cta {
+    padding: 2rem 1rem 3.5rem;
+    background: #fff;
+    border-top: 1px solid #e2e8f0;
+}
+
+.th-posts-bottom-cta__inner {
+    max-width: 520px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.th-posts-bottom-cta__title {
+    margin: 0 0 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--th-posts-navy);
+}
+
+.th-posts-bottom-cta__text {
+    margin: 0 0 1.1rem;
+    font-size: 0.95rem;
+    color: var(--th-posts-muted);
+    line-height: 1.5;
+}
+
+.th-posts-bottom-cta .th-posts-promo__actions,
+.th-posts-bottom-cta__inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+/* Детальная страница (редирект / legacy) */
+.th-post-detail {
+    background: #f4f6f8;
+}
+
+.th-post-detail-shell {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3rem;
+}
+
+.th-post-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    color: var(--th-posts-teal);
+    text-decoration: none;
+    margin-bottom: 1rem;
+}

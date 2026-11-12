@@ -39,6 +39,24 @@ addUrl($urls, $base, $pathPrefix, 'frontend/window/countries-list.php', '0.9', '
 addUrl($urls, $base, $pathPrefix, 'frontend/window/tours.php', '0.9', 'weekly');
 addUrl($urls, $base, $pathPrefix, 'frontend/window/offices.php', '0.8', 'monthly');
 addUrl($urls, $base, $pathPrefix, 'frontend/window/promotions.php', '0.7', 'weekly');
+addUrl($urls, $base, $pathPrefix, 'frontend/window/posts.php', '0.75', 'weekly');
+require_once __DIR__ . '/backend/components/posts_helper.php';
+foreach (th_posts_demo_list() as $thPostRow) {
+    $thPostSlug = trim((string) ($thPostRow['slug'] ?? ''));
+    if ($thPostSlug === '') {
+        continue;
+    }
+    $thPostLm = trim((string) ($thPostRow['published_at'] ?? ''));
+    addUrl(
+        $urls,
+        $base,
+        $pathPrefix,
+        'frontend/window/post.php?slug=' . rawurlencode($thPostSlug),
+        '0.7',
+        'monthly',
+        $thPostLm !== '' ? $thPostLm : null
+    );
+}
 addUrl($urls, $base, $pathPrefix, 'frontend/window/consent.php', '0.4', 'yearly');
 addUrl($urls, $base, $pathPrefix, 'frontend/window/privacy.php', '0.4', 'yearly');
 addUrl($urls, $base, $pathPrefix, 'frontend/window/terms.php', '0.4', 'yearly');

@@ -1429,6 +1429,17 @@ html {
     box-sizing: border-box;
 }
 
+.tv-card-prepare-pool {
+    position: fixed;
+    left: -120vw;
+    top: 0;
+    width: min(420px, 100vw);
+    visibility: hidden;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0;
+}
+
 .tv-search-results-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);

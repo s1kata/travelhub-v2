@@ -5,7 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $current_page = $current_page ?? '';
 $more_menu_active = in_array($current_page, [
-    'about', 'services', 'tour-calendar', 'video-tutorials', 'contacts',
+    'about', 'services', 'tour-calendar', 'video-tutorials', 'contacts', 'posts',
     'privacy', 'terms', 'consent', 'advertising', 'vip-hotels', 'banks_rekvesit',
 ], true);
 $hotels_nav_active = in_array($current_page, ['popular-hotels', 'vip-hotels'], true);
@@ -23,7 +23,36 @@ $th_tv_image_proxy_base = get_tourvisor_image_proxy_base_url();
 $th_departure_id = th_departure_default_id();
 $th_departure_name = th_departure_default_name();
 $th_csrf_token = security_csrf_token();
+if (!function_exists('th_ui_variant_is_airbnb')) {
+    require_once __DIR__ . '/th_ui_variant.php';
+}
+th_ui_shell_stylesheets_tag();
 ?>
+<?php if (th_ui_variant_is_airbnb()): ?>
+<script>
+(function () {
+  var cls = ['th-ui-airbnb', 'th-global-shell-v3'];
+  document.documentElement.classList.add('th-global-shell-v3', 'th-ui-airbnb');
+  function apply() { if (document.body) cls.forEach(function (c) { document.body.classList.add(c); }); }
+  apply();
+  document.addEventListener('DOMContentLoaded', apply);
+})();
+</script>
+<?php
+    $th_ui_classic_path = strtok((string) ($_SERVER['REQUEST_URI'] ?? '/'), '?') ?: '/';
+    $th_ui_classic_qs = $_GET;
+    $th_ui_classic_qs['ui'] = 'classic';
+    $th_ui_classic_href = $th_ui_classic_path . '?' . http_build_query($th_ui_classic_qs);
+?>
+<div class="th-ui-preview-bar" role="status">
+    Новый интерфейс на всём сайте ·
+    <a href="<?php echo htmlspecialchars($th_ui_classic_href, ENT_QUOTES, 'UTF-8'); ?>">Вернуть старый вид</a>
+    ·
+    <a href="/">Главная с поиском</a>
+    ·
+    <a href="/frontend/window/posts.php">Посты</a>
+</div>
+<?php endif; ?>
 <?php if (!defined('TRAVELHUB_HEADER_FALLBACK_STYLES')): ?>
 <?php define('TRAVELHUB_HEADER_FALLBACK_STYLES', true); ?>
 <?php /* v2: тема и микровзаимодействия на всех страницах (header подключается везде) */ ?>
@@ -592,6 +621,7 @@ $th_csrf_token = security_csrf_token();
             </button>
             <div class="header__more-menu" id="site-header-more-menu" role="menu" aria-label="Дополнительные разделы">
                 <a href="/frontend/window/about.php">О нас</a>
+                <a href="/frontend/window/posts.php">Посты</a>
                 <a href="/frontend/window/services.php">Услуги</a>
                 <a href="/frontend/window/tour-calendar.php">Календарь выгодных дат</a>
                 <a href="/frontend/window/turkey-vip-hotels.php">VIP отели Турции</a>
@@ -651,6 +681,7 @@ $th_csrf_token = security_csrf_token();
             <a href="/frontend/window/offices.php" class="<?php echo $current_page === 'offices' ? 'is-active' : ''; ?>">Офисы</a>
             <span class="site-header-mobile-muted">Ещё</span>
             <a href="/frontend/window/about.php" class="<?php echo $current_page === 'about' ? 'is-active' : ''; ?>">О нас</a>
+            <a href="/frontend/window/posts.php" class="<?php echo $current_page === 'posts' ? 'is-active' : ''; ?>">Посты</a>
             <a href="/frontend/window/services.php" class="<?php echo $current_page === 'services' ? 'is-active' : ''; ?>">Услуги</a>
             <a href="/frontend/window/tour-calendar.php" class="<?php echo $current_page === 'tour-calendar' ? 'is-active' : ''; ?>">Календарь выгодных дат</a>
             <a href="/frontend/window/turkey-vip-hotels.php" class="<?php echo $current_page === 'vip-hotels' ? 'is-active' : ''; ?>">VIP отели Турции</a>
@@ -786,8 +817,6 @@ $_th_tc_hdr = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'frontend' . DIRECTORY
 $_th_tc_hdr_v = is_file($_th_tc_hdr) ? (string) filemtime($_th_tc_hdr) : '1';
 $_th_tpf_hdr = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'frontend' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'th-tour-post-filters.js';
 $_th_tpf_hdr_v = is_file($_th_tpf_hdr) ? (string) filemtime($_th_tpf_hdr) : '1';
-$_th_tbm_hdr = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'frontend' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'th-tour-booking-modal.js';
-$_th_tbm_hdr_v = is_file($_th_tbm_hdr) ? (string) filemtime($_th_tbm_hdr) : '1';
 $_th_sm_hdr = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'frontend' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'session-manager.js';
 $_th_sm_hdr_v = is_file($_th_sm_hdr) ? (string) filemtime($_th_sm_hdr) : '1';
 ?>
@@ -795,7 +824,6 @@ $_th_sm_hdr_v = is_file($_th_sm_hdr) ? (string) filemtime($_th_sm_hdr) : '1';
 <script src="/frontend/js/th-tour-card.js?v=<?php echo htmlspecialchars($_th_tc_hdr_v, ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <script src="/frontend/js/session-manager.js?v=<?php echo htmlspecialchars($_th_sm_hdr_v, ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <script src="/frontend/js/th-tour-post-filters.js?v=<?php echo htmlspecialchars($_th_tpf_hdr_v, ENT_QUOTES, 'UTF-8'); ?>" defer></script>
-<script src="/frontend/js/th-tour-booking-modal.js?v=<?php echo htmlspecialchars($_th_tbm_hdr_v, ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <?php
 require_once __DIR__ . '/legal_consent_label.php';
 th_legal_consents_assets();
@@ -820,3 +848,4 @@ if (!defined('TH_COOKIE_CONSENT_STYLES')) {
 </style>
 <?php } ?>
 <script src="/frontend/js/cookie-consent.js?v=<?php echo htmlspecialchars($_th_cc_hdr_v, ENT_QUOTES, 'UTF-8'); ?>" defer></script>
+<?php th_ui_shell_main_open(); ?>

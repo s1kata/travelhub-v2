@@ -21,17 +21,24 @@ $tvImageProxy = get_tourvisor_image_proxy_base_url();
 $countryPromoDepartureId = th_departure_default_id();
 $countryPromoDepartureName = th_departure_default_name();
 
+/** Как warm_home_search_cache / cover: today+3 … +42, ночи 5–10. */
+$countryPromoSearchNightsFrom = 5;
+$countryPromoSearchNightsTo = 10;
+$countryPromoDateOffsetDays = 3;
+$countryPromoHorizonDays = 42;
+
 $country_promo_listing_url = $country_promo_listing_url ?? '/frontend/window/promotions.php';
+$_th_promo_css = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'frontend' . DIRECTORY_SEPARATOR . 'css' . DIRECTORY_SEPARATOR . 'pages' . DIRECTORY_SEPARATOR . 'promotions.css';
+$_th_promo_css_v = is_file($_th_promo_css) ? (string) filemtime($_th_promo_css) : '7';
 ?>
-<section class="py-8 md:py-12 bg-white border-b border-slate-100" id="country-promo-tours">
-    <div class="container mx-auto px-6">
-        <div class="max-w-7xl mx-auto">
-            <div class="rounded-2xl overflow-hidden shadow-sm border border-sky-100">
-            <div class="bg-white px-4 py-6 sm:px-6 sm:py-8">
-            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+<link rel="stylesheet" href="/frontend/css/pages/promotions.css?v=<?php echo htmlspecialchars($_th_promo_css_v, ENT_QUOTES, 'UTF-8'); ?>">
+<section class="py-8 md:py-10" id="country-promo-tours">
+    <div class="th-container mx-auto px-6">
+        <div class="max-w-6xl mx-auto">
+            <header class="th-section-head">
                 <div>
-                    <h2 class="heading-font text-2xl md:text-3xl font-bold text-slate-900">Туры из <?php echo htmlspecialchars($countryNameResolved); ?></h2>
-                    <p class="text-slate-600 mt-2 text-sm md:text-base">Актуальные предложения на ближайший месяц. Цены за число взрослых из фильтра на главной.</p>
+                    <h2 class="heading-font">Актуальные туры</h2>
+                    <p>Цены на ближайший месяц · <?php echo htmlspecialchars($countryNameResolved); ?></p>
                 </div>
                 <button type="button"
                         id="country-promo-pick-btn"
@@ -40,17 +47,48 @@ $country_promo_listing_url = $country_promo_listing_url ?? '/frontend/window/pro
                     <i class="fas fa-fire-alt" aria-hidden="true"></i>
                     Подобрать тур
                 </button>
-            </div>
+            </header>
 
             <div id="country-promo-stars-wrap" class="mb-6 hidden">
-                <div id="country-promo-filters-row">
-                    <span class="th-filter-stars-label">Выберите категорию отеля</span>
-                    <div class="country-star-filters__buttons" role="group" aria-label="Категория отеля">
-                        <button type="button" class="promo-star-btn country-star-btn country-star-btn--all is-active" data-country-star="" aria-pressed="true">Все</button>
-                        <button type="button" class="promo-star-btn country-star-btn country-star-btn--3" data-country-star="3" aria-pressed="false">3★</button>
-                        <button type="button" class="promo-star-btn country-star-btn country-star-btn--4" data-country-star="4" aria-pressed="false">4★</button>
-                        <button type="button" class="promo-star-btn country-star-btn country-star-btn--5" data-country-star="5" aria-pressed="false">5★</button>
+                <div id="country-promo-filters-row" class="mt-2">
+                    <button type="button" id="country-promo-stars-trigger" class="promo-stars-trigger" aria-haspopup="dialog" aria-expanded="false">
+                        <span class="promo-stars-trigger__badge" aria-hidden="true">
+                            <i class="fas fa-sliders-h"></i>
+                        </span>
+                        <span class="promo-stars-trigger__inner">
+                            <span class="promo-stars-trigger__title">Категория отеля</span>
+                            <span id="country-promo-stars-label" class="promo-stars-trigger__hint" aria-live="polite">Необязательно — можно смотреть все туры</span>
+                        </span>
+                        <span class="promo-stars-trigger__chev" aria-hidden="true">
+                            <i class="fas fa-chevron-down promo-stars-trigger__icon"></i>
+                        </span>
+                    </button>
+                </div>
+                <div id="country-promo-stars-backdrop" class="promo-stars-backdrop" style="display:none" aria-hidden="true"></div>
+                <div id="country-promo-stars-popup" role="dialog" aria-modal="true" aria-label="Выбор категории отеля" style="display:none" class="promo-stars-popup">
+                    <div class="promo-stars-popup__header">
+                        <span class="promo-stars-popup__title">Категория отеля</span>
+                        <button type="button" id="country-promo-stars-close" class="promo-stars-popup__close" aria-label="Закрыть">✕</button>
                     </div>
+                    <div class="promo-stars-popup__list">
+                        <label class="promo-stars-popup__item">
+                            <input type="checkbox" class="promo-star-cb country-promo-star-cb" value="3">
+                            <span class="promo-stars-popup__item-face"><span>★★★</span><small>3 звезды</small></span>
+                        </label>
+                        <label class="promo-stars-popup__item">
+                            <input type="checkbox" class="promo-star-cb country-promo-star-cb" value="4">
+                            <span class="promo-stars-popup__item-face"><span>★★★★</span><small>4 звезды</small></span>
+                        </label>
+                        <label class="promo-stars-popup__item">
+                            <input type="checkbox" class="promo-star-cb country-promo-star-cb" value="5">
+                            <span class="promo-stars-popup__item-face"><span>★★★★★</span><small>5 звёзд</small></span>
+                        </label>
+                        <label class="promo-stars-popup__item">
+                            <input type="checkbox" class="promo-star-cb country-promo-star-cb" value="all" checked>
+                            <span class="promo-stars-popup__item-face"><span>Все</span><small>любая категория</small></span>
+                        </label>
+                    </div>
+                    <button type="button" id="country-promo-stars-apply" class="promo-stars-popup__apply">Показать туры</button>
                 </div>
             </div>
 
@@ -65,8 +103,6 @@ $country_promo_listing_url = $country_promo_listing_url ?? '/frontend/window/pro
                     Горящие туры <i class="fas fa-arrow-right"></i>
                 </a>
             </div>
-            </div><!-- white inner -->
-            </div><!-- rounded card -->
         </div>
     </div>
 </section>
@@ -91,6 +127,10 @@ $_th_fp_cp_v = is_file($_th_fp_cp) ? (string) filemtime($_th_fp_cp) : '1';
     var COUNTRY_SLUG = <?php echo json_encode($countrySlug); ?>;
     var COUNTRY_ALIASES = <?php echo json_encode($countryAliasMap); ?>;
     var COUNTRY_ID_FALLBACK = <?php echo (int) $countryFallbackId; ?>;
+    var COUNTRY_SEARCH_NIGHTS_FROM = <?php echo (int) $countryPromoSearchNightsFrom; ?>;
+    var COUNTRY_SEARCH_NIGHTS_TO = <?php echo (int) $countryPromoSearchNightsTo; ?>;
+    var COUNTRY_DATE_OFFSET_DAYS = <?php echo (int) $countryPromoDateOffsetDays; ?>;
+    var COUNTRY_HORIZON_DAYS = <?php echo (int) $countryPromoHorizonDays; ?>;
     var PROMO_DEPARTURE_ID = <?php echo (int) $countryPromoDepartureId; ?>;
     var PROMO_DEPARTURE_NAME = <?php echo json_encode($countryPromoDepartureName, JSON_UNESCAPED_UNICODE); ?>;
     try {
@@ -358,9 +398,33 @@ $_th_fp_cp_v = is_file($_th_fp_cp) ? (string) filemtime($_th_fp_cp) : '1';
 
     function tourStartYmdFromSearch(tour) {
         if (!tour) return '';
-        var raw = String(tour.date || tour.startDate || tour.departureDate || tour.flydate || tour.flyDate || '').trim();
+        var raw = String(tour.date || tour.startDate || tour.departureDate || tour.departuredate
+            || tour.flydate || tour.flyDate || tour.checkIn || tour.checkin || '').trim();
+        if (!raw) return '';
         var m = raw.match(/^(\d{4}-\d{2}-\d{2})/);
-        return m ? m[1] : '';
+        if (m) return m[1];
+        var dm = raw.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})/);
+        if (dm) {
+            var d0 = parseInt(dm[1], 10);
+            var mo = parseInt(dm[2], 10);
+            var y0 = parseInt(dm[3], 10);
+            if (d0 >= 1 && d0 <= 31 && mo >= 1 && mo <= 12 && y0 >= 2000) {
+                return y0 + '-' + String(mo).padStart(2, '0') + '-' + String(d0).padStart(2, '0');
+            }
+        }
+        try {
+            var d = new Date(raw);
+            if (!isNaN(d.getTime())) return formatLocalYMD(d);
+        } catch (e0) {}
+        return '';
+    }
+    function countryTourOperatorLabel(tour) {
+        if (!tour) return '';
+        if (tour.operatorName) return String(tour.operatorName);
+        var op = tour.operator;
+        if (typeof op === 'string') return op;
+        if (op && typeof op === 'object') return String(op.name || op.russianName || op.fullName || '');
+        return '';
     }
     function tourReturnYmdFromStart(startYmd, nightsNum) {
         if (!startYmd || !nightsNum) return '';
@@ -375,7 +439,7 @@ $_th_fp_cp_v = is_file($_th_fp_cp) ? (string) filemtime($_th_fp_cp) : '1';
         return d.getFullYear() + '-' + mo + '-' + da;
     }
 
-    function fetchRegularSearchCached(countryId, df, dt, forceLive) {
+    function fetchRegularSearchCached(countryId, df, dt, cacheOnly) {
         var q = [
             'type=search-cached',
             'cacheScope=country_page',
@@ -384,11 +448,11 @@ $_th_fp_cp_v = is_file($_th_fp_cp) ? (string) filemtime($_th_fp_cp) : '1';
             'countryName=' + encodeURIComponent(COUNTRY_NAME || ''),
             'dateFrom=' + encodeURIComponent(df),
             'dateTo=' + encodeURIComponent(dt),
-            'nightsFrom=5',
-            'nightsTo=14',
+            'nightsFrom=' + encodeURIComponent(String(COUNTRY_SEARCH_NIGHTS_FROM)),
+            'nightsTo=' + encodeURIComponent(String(COUNTRY_SEARCH_NIGHTS_TO)),
             'adults=' + encodeURIComponent(String(countryPromoAdultsCount()))
         ];
-        if (forceLive) q.push('live=1');
+        if (cacheOnly) q.push('cacheOnly=1');
         var url = TV_BASE + baseSep + q.join('&');
         return fetch(url, { cache: 'no-store' })
             .then(function(r) { return r.text().then(function(t) { return { ok: r.ok, text: t }; }); })
@@ -420,6 +484,7 @@ $_th_fp_cp_v = is_file($_th_fp_cp) ? (string) filemtime($_th_fp_cp) : '1';
     }
 
     window.__countryPromoStarFilter = '';
+    window.__countryPromoStarSet = null;
 
     function countryPromoToursHaveAnyStarRating(list) {
         if (!list || !list.length) return false;
@@ -431,6 +496,14 @@ $_th_fp_cp_v = is_file($_th_fp_cp) ? (string) filemtime($_th_fp_cp) : '1';
 
     function getFilteredCountryPromoHotels() {
         var list = (window.__countryPromoAllHotels || []).slice();
+        var starSet = window.__countryPromoStarSet;
+        if (starSet && starSet.size > 0) {
+            if (!countryPromoToursHaveAnyStarRating(list)) return list;
+            return list.filter(function (h) {
+                var c = getHotelStarCategory(h);
+                return c !== null && starSet.has(c);
+            });
+        }
         var starRaw = (typeof window.__countryPromoStarFilter === 'string') ? window.__countryPromoStarFilter.trim() : '';
         if (starRaw === '') return list;
         var want = parseInt(starRaw, 10);
@@ -441,31 +514,80 @@ $_th_fp_cp_v = is_file($_th_fp_cp) ? (string) filemtime($_th_fp_cp) : '1';
         });
     }
 
-    var __countryPromoStarButtonsBound = false;
-    function syncCountryPromoStarButtons() {
-        var row = document.getElementById('country-promo-filters-row');
-        if (!row) return;
-        var cur = (typeof window.__countryPromoStarFilter === 'string') ? window.__countryPromoStarFilter.trim() : '';
-        row.querySelectorAll('[data-country-star]').forEach(function (btn) {
-            var v = btn.getAttribute('data-country-star') || '';
-            var on = (v === cur);
-            btn.classList.toggle('is-active', on);
-            btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-        });
-    }
-    function initCountryPromoStarButtons() {
-        if (__countryPromoStarButtonsBound) return;
-        var row = document.getElementById('country-promo-filters-row');
-        if (!row) return;
-        __countryPromoStarButtonsBound = true;
-        row.querySelectorAll('[data-country-star]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                window.__countryPromoStarFilter = btn.getAttribute('data-country-star') || '';
-                syncCountryPromoStarButtons();
-                renderCountryPromoResults();
+    var __countryPromoStarPopupInited = false;
+    function initCountryPromoStarFilterPopup() {
+        if (__countryPromoStarPopupInited) return;
+        var trigger = document.getElementById('country-promo-stars-trigger');
+        var popup = document.getElementById('country-promo-stars-popup');
+        var backdrop = document.getElementById('country-promo-stars-backdrop');
+        var closeBtn = document.getElementById('country-promo-stars-close');
+        var applyBtn = document.getElementById('country-promo-stars-apply');
+        var label = document.getElementById('country-promo-stars-label');
+        if (!trigger || !popup) return;
+        __countryPromoStarPopupInited = true;
+
+        function getStarLabel(set) {
+            if (!set || set.size === 0) return '';
+            var vals = Array.from(set).sort(function (a, b) { return a - b; });
+            if (vals.length === 1) return vals[0] + '★';
+            if (vals.length === 2 && vals[0] + 1 === vals[1]) return vals[0] + '–' + vals[1] + '★';
+            return vals.join(', ') + '★';
+        }
+        function syncTrigger() {
+            if (!label) return;
+            var sel = getStarLabel(window.__countryPromoStarSet);
+            label.textContent = sel ? ('Сейчас: ' + sel) : 'Необязательно — можно смотреть все туры';
+            trigger.classList.toggle('has-selection', !!sel);
+        }
+        function openPopup() {
+            var cur = window.__countryPromoStarSet;
+            popup.querySelectorAll('.country-promo-star-cb').forEach(function (cb) {
+                if (cb.value === 'all') cb.checked = (!cur || cur.size === 0);
+                else cb.checked = !!(cur && cur.has(parseInt(cb.value, 10)));
+            });
+            popup.style.display = '';
+            if (backdrop) backdrop.style.display = '';
+            trigger.setAttribute('aria-expanded', 'true');
+        }
+        function closePopup() {
+            popup.style.display = 'none';
+            if (backdrop) backdrop.style.display = 'none';
+            trigger.setAttribute('aria-expanded', 'false');
+        }
+
+        trigger.addEventListener('click', openPopup);
+        if (closeBtn) closeBtn.addEventListener('click', closePopup);
+        if (backdrop) backdrop.addEventListener('click', closePopup);
+        popup.querySelectorAll('.country-promo-star-cb').forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                if (cb.value === 'all' && cb.checked) {
+                    popup.querySelectorAll('.country-promo-star-cb:not([value="all"])').forEach(function (c) { c.checked = false; });
+                } else if (cb.value !== 'all' && cb.checked) {
+                    var allCb = popup.querySelector('.country-promo-star-cb[value="all"]');
+                    if (allCb) allCb.checked = false;
+                }
             });
         });
-        syncCountryPromoStarButtons();
+        if (applyBtn) applyBtn.addEventListener('click', function () {
+            var newSet = new Set();
+            var allChecked = false;
+            popup.querySelectorAll('.country-promo-star-cb').forEach(function (cb) {
+                if (!cb.checked) return;
+                if (cb.value === 'all') allChecked = true;
+                else newSet.add(parseInt(cb.value, 10));
+            });
+            if (allChecked || newSet.size === 0) {
+                window.__countryPromoStarSet = null;
+                window.__countryPromoStarFilter = '';
+            } else {
+                window.__countryPromoStarSet = newSet;
+                window.__countryPromoStarFilter = Array.from(newSet).sort(function (a, b) { return a - b; }).join(',');
+            }
+            syncTrigger();
+            closePopup();
+            renderCountryPromoResults();
+        });
+        syncTrigger();
     }
 
     function renderCountryPromoResults() {
@@ -519,7 +641,9 @@ $_th_fp_cp_v = is_file($_th_fp_cp) ? (string) filemtime($_th_fp_cp) : '1';
                     departure_city: PROMO_DEPARTURE_NAME, date_from: startY || '', date_to: retY || '',
                     image: strClip(img, 2000), description: desc, rating: String(h.rating || ''),
                     category: strClip(String(h.category || ''), 80),
-                    room_category: roomCategory, tour_id: tourId, adults: String(adultsN)
+                    room_category: roomCategory, tour_id: tourId, adults: String(adultsN),
+                    tour_operator: countryTourOperatorLabel(tour),
+                    from_promo: '1'
                 };
                 if (h.country && h.country.id != null) tourDetailParams.country_id = String(h.country.id);
                 if (tour.meal && typeof tour.meal === 'object' && tour.meal.code != null) {
@@ -556,7 +680,8 @@ $_th_fp_cp_v = is_file($_th_fp_cp) ? (string) filemtime($_th_fp_cp) : '1';
                         adults: adultsN, dateFrom: startY, dateTo: retY, price: priceNum, meal: meal,
                         departureCity: PROMO_DEPARTURE_NAME, departureId: PROMO_DEPARTURE_ID,
                         carousel: true, image: img,
-                        flightMeta: flightMetaCp
+                        flightMeta: flightMetaCp,
+                        onlyDirect: true
                     });
                 }
                 var flightHtmlCp = (window.THTourCard && typeof window.THTourCard.buildFlightBlockHtml === 'function')
@@ -595,19 +720,32 @@ $_th_fp_cp_v = is_file($_th_fp_cp) ? (string) filemtime($_th_fp_cp) : '1';
             var promoFlightOpts = {
                 apiBase: TV_BASE.replace(/\/$/, ''),
                 departureCity: PROMO_DEPARTURE_NAME,
+                departureId: PROMO_DEPARTURE_ID,
                 maxConcurrent: 6,
+                flightsFirst: true,
+                combinedPackage: false,
+                skipEnrich: false,
                 getTourId: function (h) {
                     var t = (h.tours && h.tours[0]) ? h.tours[0] : {};
                     return (t.id != null && t.id !== '') ? String(t.id) : '';
                 },
                 patchContainer: results
             };
+            var afterFlights = function () {
+                if (window.THTourCard && typeof window.THTourCard.patchDatesInContainer === 'function') {
+                    window.THTourCard.patchDatesInContainer(results);
+                }
+                if (window.THTourCard && typeof window.THTourCard.patchRoomsInContainer === 'function') {
+                    window.THTourCard.patchRoomsInContainer(results);
+                }
+            };
             if (typeof thLoadFlightsVisibleThenAll === 'function' && TV_BASE) {
-                thLoadFlightsVisibleThenAll(filtered, Object.assign({}, promoFlightOpts, { maxTours: 0 }));
+                thLoadFlightsVisibleThenAll(filtered, Object.assign({}, promoFlightOpts, { maxTours: 0, onDone: afterFlights }));
             } else if (typeof thLoadTourFlightsForHotels === 'function' && TV_BASE) {
-                thLoadTourFlightsForHotels(filtered, Object.assign({}, promoFlightOpts, { maxTours: filtered.length }));
+                thLoadTourFlightsForHotels(filtered, Object.assign({}, promoFlightOpts, { maxTours: filtered.length, onDone: afterFlights }));
             } else if (window.THTourCard && typeof window.THTourCard.patchFlightsInContainer === 'function') {
                 window.THTourCard.patchFlightsInContainer(results);
+                afterFlights();
             }
             if (window.THTourCard && typeof window.THTourCard.ensureCarouselsInContainer === 'function') {
                 window.THTourCard.ensureCarouselsInContainer(results);
@@ -632,6 +770,36 @@ $_th_fp_cp_v = is_file($_th_fp_cp) ? (string) filemtime($_th_fp_cp) : '1';
         } catch (eSync) {}
     }
 
+    function countryPromoSearchDateFromYmd() {
+        var dFrom = new Date();
+        dFrom.setDate(dFrom.getDate() + (COUNTRY_DATE_OFFSET_DAYS || 0));
+        return formatLocalYMD(dFrom);
+    }
+    function countryPromoSearchDateToYmd() {
+        var dTo = new Date();
+        dTo.setDate(dTo.getDate() + (COUNTRY_HORIZON_DAYS || 42));
+        return formatLocalYMD(dTo);
+    }
+    function fetchCountryPromoCachedTours(countryId) {
+        var df1 = countryPromoSearchDateFromYmd();
+        var dt1 = countryPromoSearchDateToYmd();
+        promoDateFromStr = df1;
+        promoDateToStr = dt1;
+        return fetchRegularSearchCached(countryId, df1, dt1, true);
+    }
+    function resolveCountryPromoId() {
+        if (COUNTRY_ID_FALLBACK > 0) {
+            return Promise.resolve(COUNTRY_ID_FALLBACK);
+        }
+        return resolveCountryIdShared(function() {
+            return safeFetchJson(TV_BASE + baseSep + 'type=countries');
+        }).then(function(id) {
+            var n = Number(id) || 0;
+            if (n > 0) return n;
+            throw new Error('Country id not resolved');
+        });
+    }
+
     function loadCountryPromoBlock() {
         syncPromoDepartureFromStorage(null);
         var loading = document.getElementById('country-promo-loading');
@@ -649,32 +817,19 @@ $_th_fp_cp_v = is_file($_th_fp_cp) ? (string) filemtime($_th_fp_cp) : '1';
         if (empty) empty.classList.add('hidden');
         if (starsWrap) starsWrap.classList.add('hidden');
 
-        resolveCountryIdShared(function() {
-                return safeFetchJson(TV_BASE + baseSep + 'type=countries');
-            })
+        if (!TV_BASE || typeof TV_BASE !== 'string' || !String(TV_BASE).trim()) {
+            console.error('[country-promo] TV_BASE пуст — нет URL tourvisor-proxy');
+            if (loading) loading.classList.add('hidden');
+            if (empty) {
+                empty.querySelector('p').textContent = 'Не удалось загрузить туры. Попробуйте позже.';
+                empty.classList.remove('hidden');
+            }
+            return;
+        }
+
+        resolveCountryPromoId()
             .then(function(resolvedCountryId) {
-                resolvedCountryId = Number(resolvedCountryId) || null;
-                if (!resolvedCountryId) throw new Error('Country id not resolved');
-                var dFrom = new Date();
-                var dTo = new Date(); dTo.setDate(dTo.getDate() + 30);
-                var df1 = formatLocalYMD(dFrom);
-                var dt1 = formatLocalYMD(dTo);
-                return fetchRegularSearchCached(resolvedCountryId, df1, dt1, false).then(function(j) {
-                    var data = extractHotelList(j);
-                    if (data.length > 0 && j && j.success !== false) {
-                        promoDateFromStr = df1;
-                        promoDateToStr = dt1;
-                        return j;
-                    }
-                    /* Фоллбэк: +60 дней, живой поиск */
-                    var dTo2 = new Date(); dTo2.setDate(dTo2.getDate() + 60);
-                    var dt2 = formatLocalYMD(dTo2);
-                    return fetchRegularSearchCached(resolvedCountryId, df1, dt2, true).then(function(j2) {
-                        promoDateFromStr = df1;
-                        promoDateToStr = dt2;
-                        return j2;
-                    });
-                });
+                return fetchCountryPromoCachedTours(resolvedCountryId);
             })
             .then(function(j) {
                 var loadingEl = document.getElementById('country-promo-loading');
@@ -699,12 +854,15 @@ $_th_fp_cp_v = is_file($_th_fp_cp) ? (string) filemtime($_th_fp_cp) : '1';
                 data.sort(function (a, b) {
                     return countryPromoHotelListPrice(a) - countryPromoHotelListPrice(b);
                 });
-                window.__countryPromoAllHotels = data;
-                window.__countryPromoStarFilter = '';
-                if (starsWrapEl) starsWrapEl.classList.remove('hidden');
-                initCountryPromoStarButtons();
-                syncCountryPromoStarButtons();
-                renderCountryPromoResults();
+                var finish = function (prepared) {
+                    window.__countryPromoAllHotels = prepared;
+                    window.__countryPromoStarFilter = '';
+                    window.__countryPromoStarSet = null;
+                    if (starsWrapEl) starsWrapEl.classList.remove('hidden');
+                    initCountryPromoStarFilterPopup();
+                    renderCountryPromoResults();
+                };
+                finish(data);
             })
             .catch(function(err) {
                 console.error('[country-promo] Загрузка:', err);
@@ -715,7 +873,14 @@ $_th_fp_cp_v = is_file($_th_fp_cp) ? (string) filemtime($_th_fp_cp) : '1';
             });
     }
 
-    loadCountryPromoBlock();
+    function bootCountryPromoBlock() {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadCountryPromoBlock);
+        } else {
+            loadCountryPromoBlock();
+        }
+    }
+    bootCountryPromoBlock();
     window.addEventListener('th-departure-saved', function (ev) {
         syncPromoDepartureFromStorage(ev && ev.detail ? ev.detail : null);
         loadCountryPromoBlock();

@@ -171,16 +171,25 @@
             });
         }
 
+        document.addEventListener('th:wizard-dates-applied', function () {
+            setTimeout(function () {
+                self.refreshSummary();
+                if (self.step === 3 && self.validateCurrent()) {
+                    if (self.isHotelMode()) return;
+                    self.go(4, true);
+                }
+            }, 60);
+        });
+
         document.addEventListener('click', function (e) {
             if (e.target && (e.target.id === 'tv-sc-dates-apply' || (e.target.closest && e.target.closest('#tv-sc-dates-apply')))) {
                 setTimeout(function () {
                     self.refreshSummary();
                     if (self.step === 3 && self.validateCurrent()) {
                         if (self.isHotelMode()) return;
-                        /* Только смена этапа — модалку ночей не открываем */
                         self.go(4, true);
                     }
-                }, 80);
+                }, 120);
             }
             if (e.target && (e.target.id === 'tv-nights-apply' || (e.target.closest && e.target.closest('#tv-nights-apply')))) {
                 setTimeout(function () {

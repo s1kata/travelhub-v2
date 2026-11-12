@@ -8,7 +8,11 @@
 require_once __DIR__ . '/../../backend/config/config.php';
 require_once __DIR__ . '/../../backend/components/tourvisor_proxy_url.php';
 require_once __DIR__ . '/../../backend/components/th_feature_flags.php';
-session_start();
+require_once __DIR__ . '/../../backend/components/security_helper.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+$th_promo_csrf = security_csrf_token();
 $current_page = 'promotions';
 $tv_api_base = get_tourvisor_proxy_base_url();
 $tv_image_proxy = get_tourvisor_image_proxy_base_url();
@@ -173,6 +177,10 @@ $promo_no_star_filters = ($country_id === 46);
 require_once __DIR__ . '/../../backend/components/yandex_metrika.php';
 $th_ym_id = th_yandex_metrika_counter_id();
 
+$_th_countries_list_cards = is_file(__DIR__ . '/../../backend/config/countries_list_cards.php')
+    ? (require __DIR__ . '/../../backend/config/countries_list_cards.php')
+    : ['images' => [], 'iso' => []];
+
 $th_promo_page_config = [
     'step' => 'unified',
     'countryId' => $country_id,   /* pre-selected country (if came from direct URL) */
@@ -187,6 +195,10 @@ $th_promo_page_config = [
     'countryName' => $country_name,
     'countryNameAcc' => $country_name_acc,
     'localCountryImages' => $local_country_images,
+    'countryIdToSlug' => $country_id_to_slug,
+    'countryListCardImages' => is_array($_th_countries_list_cards['images'] ?? null)
+        ? $_th_countries_list_cards['images']
+        : [],
     'promoCountryFallbackImages' => $promo_country_fallback_images,
     'departureCityImages' => $departure_city_images ?? [],
     'promoRegionsSupplement' => $promo_regions_supplement ?? [],
@@ -223,19 +235,21 @@ $th_promo_page_config = [
 
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru"<?php echo th_ui_html_class_attr() !== '' ? ' class="' . trim(th_ui_html_class_attr()) . '"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($th_promo_csrf, ENT_QUOTES, 'UTF-8'); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
     <title><?php echo ($country_id && $departure_id) ? htmlspecialchars('Туры со скидкой в ' . $country_name_acc . ' из ' . ($departure_name_gen ?: $departure_name)) : ($departure_id ? htmlspecialchars('Горящие туры из ' . ($departure_name_gen ?: $departure_name) . ' — выбор страны') : 'Горящие туры — выберите город вылета'); ?> - Travel Hub</title>
     <meta name="description" content="<?php echo ($country_id && $departure_id) ? htmlspecialchars('Акционные туры в ' . $country_name_acc . ' из ' . ($departure_name_gen ?: $departure_name) . '. Специальные цены от туроператоров.') : ($departure_id ? 'Выберите страну для акционных туров из ' . ($departure_name_gen ?: $departure_name) . '.' : 'Выберите город вылета для просмотра акционных туров.'); ?>">
     <link rel="icon" type="image/svg+xml" href="/frontend/favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+    <link rel="stylesheet" href="/frontend/css/pages/promotions.css?v=7">
     <?php include __DIR__ . '/../../backend/components/design_system_head.php'; ?>
-    <link rel="stylesheet" href="/frontend/css/pages/promotions.css?v=6">
+    <?php th_ui_shell_stylesheets_fini(); ?>
     <script>window.__TH_YM_ID=<?php echo json_encode((string)$th_ym_id, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script></head>
-<body class="th-promo-page pb-24 md:pb-28">
+<body class="th-promo-page pb-24 md:pb-28<?php echo th_ui_body_class_attr(); ?>">
     <?php include __DIR__ . '/../../backend/components/header.php'; ?>
 
     <?php if (!$departure_id): ?>
@@ -375,7 +389,7 @@ $th_promo_page_config = [
                         Обновить список
                     </button>
                     <button type="button" class="mt-3 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 font-semibold text-white bg-[#FF6B6B] hover:opacity-95"
-                            data-th-site-feedback data-th-track="lead_bar">
+                            data-open-lead-modal="promo_lead_bar" data-th-track="lead_bar">
                         Заявка менеджеру
                     </button>
                 </div>
@@ -536,11 +550,20 @@ $th_promo_page_config = [
     })();
     </script>
     <?php
+    if (!defined('TH_ASSET_VERSION')) {
+        require_once __DIR__ . '/../../backend/config/asset_version.php';
+    }
+    $_th_promo_asset = defined('TH_ASSET_VERSION') ? TH_ASSET_VERSION : '1';
     $_th_promo_js_path = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'promotions-page.js';
-    $_th_promo_js_ver = is_file($_th_promo_js_path) ? (string) filemtime($_th_promo_js_path) : '1';
+    $_th_promo_js_ver = $_th_promo_asset . '-' . (is_file($_th_promo_js_path) ? (string) filemtime($_th_promo_js_path) : '1');
     $_th_fp_pick_path = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'tourvisor-flight-pick.js';
-    $_th_fp_pick_v = is_file($_th_fp_pick_path) ? (string) filemtime($_th_fp_pick_path) : '1';
+    $_th_fp_pick_v = $_th_promo_asset . '-' . (is_file($_th_fp_pick_path) ? (string) filemtime($_th_fp_pick_path) : '1');
     ?>
+    <?php
+    $_th_tc_promo = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'th-tour-card.js';
+    $_th_tc_promo_v = $_th_promo_asset . '-' . (is_file($_th_tc_promo) ? (string) filemtime($_th_tc_promo) : '1');
+    ?>
+    <script src="/frontend/js/th-tour-card.js?v=<?php echo htmlspecialchars($_th_tc_promo_v, ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="/frontend/js/tourvisor-flight-pick.js?v=<?php echo htmlspecialchars($_th_fp_pick_v, ENT_QUOTES, 'UTF-8'); ?>"></script>
     <?php
     $_th_promo_lead_path = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'th-promo-lead.js';

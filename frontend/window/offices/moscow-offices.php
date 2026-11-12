@@ -11,7 +11,7 @@ $current_page = 'offices';
 $heroCover = $offices[0]['cover'] ?? '/frontend/window/img/hero/e978c0767c0fe7bc778596c86b2b54f3%201.png';
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru"<?php echo th_ui_html_class_attr() !== '' ? ' class="' . trim(th_ui_html_class_attr()) . '"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
@@ -22,8 +22,10 @@ $heroCover = $offices[0]['cover'] ?? '/frontend/window/img/hero/e978c0767c0fe7bc
     <link rel="stylesheet" href="/frontend/css/th-offices.css?v=4">
     <?php include __DIR__ . '/../../../backend/components/design_system_head.php'; ?>
     <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+<?php th_ui_shell_stylesheets_fini(); ?>
+
 </head>
-<body class="th-off-page text-slate-900">
+<body class="th-off-page text-slate-900<?php echo th_ui_body_class_attr(); ?>">
     <?php include __DIR__ . '/../../../backend/components/header.php'; ?>
 
     <header class="th-off-hero">

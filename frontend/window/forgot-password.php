@@ -9,7 +9,7 @@ $current_page = "forgot-password";
 $base_path = dirname(dirname(dirname(__FILE__))); // Поднимаемся на 3 уровня вверх
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru"<?php echo th_ui_html_class_attr() !== '' ? ' class="' . trim(th_ui_html_class_attr()) . '"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -43,8 +43,10 @@ $base_path = dirname(dirname(dirname(__FILE__))); // Поднимаемся на
             }
         }
     </script>
+    <?php th_ui_shell_stylesheets_fini(); ?>
+
     </head>
-<body class="gradient-bg min-h-screen">
+<body class="gradient-bg min-h-screen<?php echo th_ui_body_class_attr(); ?>">
     <?php require_once __DIR__ . '/../../backend/components/header.php'; ?>
 
     <!-- Main Content -->

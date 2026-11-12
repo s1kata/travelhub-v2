@@ -17,12 +17,14 @@
 ```cron
 # Акции: только promo_cache (страница акций / витрина). Календарь этот кэш не пишет.
 # Минимум 2×/сутки — даты «горящих» всегда от сегодня (иначе на главной висят августовские вылеты).
+# После деплоя конвейера карточек (packagesByTourId): один раз PROMO_WARM_FORCE=1 (см. warm_promotions_cache.sh).
 5 0,12 * * * cd /path/to/travelhub-v2 && PHP_BIN=/usr/bin/php8.1 flock -n data/promo_warm.lock bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1
 
 # Доп. страховочный прогрев горящих (вс 03:15) — если дневной cron срывался.
 15 3 * * 0 cd /path/to/travelhub-v2 && PHP_BIN=/usr/bin/php8.1 flock -n data/promo_warm.lock bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1
 
 # Обычный поиск: exact/cover cache, Самара+Москва, популярные страны (~42 дня, near-first).
+# В т.ч. cacheScope=country_page — блок «Актуальные туры» на страницах стран (без live=1).
 30 0,8,14,20 * * * cd /path/to/travelhub-v2 && flock -n data/search_warm.lock bash backend/cron/warm_home_search_cache.sh >> data/home_search_warm.log 2>&1
 
 # Ночной поэтапный прогрев cover (все страны из popular_countries.php, горизонт ~30 дней).
@@ -165,12 +167,58 @@ YANDEX_LEGACY_OFFERS_TABLE_SYNC=0
 
 ## После деплоя
 
+Все команды — **из корня сайта** (`public_html`). Сначала: `mkdir -p data`.
+
 ```bash
-cd /path/to/travelhub-v2
-PHP_BIN=/usr/bin/php8.1 bash backend/cron/warm_promotions_cache.sh
-bash backend/cron/warm_home_search_cache.sh
+cd ~/hub63_ru/public_html
+mkdir -p data
+```
+
+### Если `warm_*.sh`: `$'\r': command not found` (CRLF после заливки с Windows)
+
+```bash
+cd ~/hub63_ru/public_html
+sed -i 's/\r$//' backend/cron/*.sh
+chmod +x backend/cron/*.sh
+```
+
+Либо прогрев **напрямую PHP** (обходит `.sh`):
+
+```bash
+cd ~/hub63_ru/public_html
+mkdir -p data
+nohup /usr/bin/php8.1 backend/cron/warm_home_search_cache.php >> data/home_search_warm.log 2>&1 &
+nohup env PROMO_WARM_FORCE=1 /usr/bin/php8.1 backend/cron/update_promotions_cache.php >> data/promo_warm.log 2>&1 &
+tail -f data/home_search_warm.log
+# в другом SSH: tail -f ~/hub63_ru/public_html/data/promo_warm.log
+```
+
+### Через оболочки (после `sed` или заливки LF из git)
+
+```bash
+cd ~/hub63_ru/public_html
+mkdir -p data
+
+# 1) Страницы стран («Актуальные туры») + cover search ~42 дня, cacheScope=country_page
+nohup env PHP_BIN=/usr/bin/php8.1 bash backend/cron/warm_home_search_cache.sh >> data/home_search_warm.log 2>&1 &
+tail -f data/home_search_warm.log
+
+# 2) Акции (Сочи/Абхазия/Турция…) — promo_cache_* + tour-package, без SKIP_FLIGHTS
+nohup env PHP_BIN=/usr/bin/php8.1 PROMO_WARM_FORCE=1 bash backend/cron/warm_promotions_cache.sh >> data/promo_warm.log 2>&1 &
+tail -f data/promo_warm.log
+
+# 3) Календарь (после search warm)
 PHP_BIN=/usr/bin/php8.1 bash backend/cron/warm_calendar_cache.sh
 ```
+
+Одной строкой (без nohup, дождаться окончания):
+
+```bash
+cd ~/hub63_ru/public_html && PHP_BIN=/usr/bin/php8.1 bash backend/cron/warm_home_search_cache.sh && PHP_BIN=/usr/bin/php8.1 PROMO_WARM_FORCE=1 bash backend/cron/warm_promotions_cache.sh
+```
+
+**Частая ошибка:** `tail -f data/promo_warm.log` из `~` — файл в `~/hub63_ru/public_html/data/`.
+`tail` запускать только после `cd ~/hub63_ru/public_html` (или полный путь к логу).
 
 Проверка результата:
 

@@ -1439,6 +1439,44 @@ html.th-kb-open .th-results-sticky-lead {
         padding-bottom: calc(1.25rem + var(--th-safe-bottom, 0px)) !important;
     }
 
+    /* Клавиатура: sheet в пределах visualViewport, форма прокручивается */
+    html.th-kb-open #th-tour-booking-modal.th-qbm-modal,
+    html.th-kb-open #quick-booking-modal.th-qbm-modal,
+    html.th-kb-open #th-site-feedback-overlay:not(.hidden) {
+        top: var(--th-vv-offset-top, 0px) !important;
+        right: auto !important;
+        bottom: auto !important;
+        height: var(--th-vvh, 100vh) !important;
+        max-height: var(--th-vvh, 100vh) !important;
+        align-items: flex-end !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    html.th-kb-open #th-tour-booking-modal .th-qbm-modal__panel,
+    html.th-kb-open #quick-booking-modal .th-qbm-modal__panel,
+    html.th-kb-open #th-site-feedback-overlay .th-sf-card {
+        max-height: calc(var(--th-vvh, 100vh) - 4px) !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+
+    html.th-kb-open #th-tour-booking-modal .th-qbm-modal__panel,
+    html.th-kb-open #quick-booking-modal .th-qbm-modal__panel {
+        display: flex;
+        flex-direction: column;
+    }
+
+    html.th-kb-open #th-tour-booking-form,
+    html.th-kb-open #quick-booking-modal .th-qbm-modal__form {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 4px;
+    }
+
     /* Lightbox / gallery */
     #lightbox,
     #gallery-lightbox,

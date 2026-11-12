@@ -1,0 +1,391 @@
+/**
+ * Travel Hub shell v3 — все внутренние страницы (window/*, страны, ЛК, legal).
+ */
+body.th-global-shell-v3 {
+  background: #eef3f6 !important;
+}
+
+body.th-global-shell-v3.th-page-auth,
+body.th-global-shell-v3.gradient-bg,
+body.th-global-shell-v3.bg-gradient-to-b,
+body.th-global-shell-v3.bg-slate-50 {
+  background: linear-gradient(165deg, #e8f3f2 0%, #eef3f6 50%, #f4f0ec 100%) !important;
+}
+
+body.th-global-shell-v3.ds-page,
+body.th-global-shell-v3.th-promo-page,
+body.th-global-shell-v3.th-off-page,
+body.th-global-shell-v3.th-posts {
+  background: #eef3f6 !important;
+}
+
+body.th-global-shell-v3 .th-shell-main {
+  display: block;
+  min-height: 50vh;
+}
+
+/* Светлая шапка поверх fallback-стилей header.php */
+body.th-global-shell-v3 #site-header.header {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-bottom: 2px solid rgba(93, 169, 164, 0.35) !important;
+}
+
+body.th-global-shell-v3 #site-header .header__logo,
+body.th-global-shell-v3 #site-header .header__logo span {
+  color: #12122e !important;
+}
+
+body.th-global-shell-v3 #site-header .header__nav > a,
+body.th-global-shell-v3 #site-header .header__more-toggle,
+body.th-global-shell-v3 #site-header .header__account,
+body.th-global-shell-v3 #site-header .header__nav .header__more-toggle {
+  color: #334155 !important;
+}
+
+body.th-global-shell-v3 #site-header .header__nav > a.is-active {
+  color: #12122e !important;
+}
+
+/* Hero: about, legal, offices */
+body.th-global-shell-v3 .hero-section,
+body.th-global-shell-v3 .th-about-hero {
+  position: relative;
+  min-height: 46vh;
+  overflow: hidden;
+}
+
+body.th-global-shell-v3 .hero-section .hero-background,
+body.th-global-shell-v3 .hero-section .hero-background-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+body.th-global-shell-v3 .hero-section .hero-overlay {
+  background: linear-gradient(180deg, rgba(18, 18, 46, 0.5), rgba(18, 18, 46, 0.78)) !important;
+}
+
+/* Страны */
+body.th-global-shell-v3 .th-country-hero,
+body.th-global-shell-v3 section.th-country-hero {
+  min-height: 42vh;
+  color: #fff;
+}
+
+body.th-global-shell-v3 .th-country-hero .th-country-hero__overlay {
+  background: linear-gradient(180deg, rgba(18, 18, 46, 0.35), rgba(18, 18, 46, 0.82)) !important;
+}
+
+body.th-global-shell-v3 .th-country-hero h1,
+body.th-global-shell-v3 .th-country-hero p {
+  color: #fff !important;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.35);
+}
+
+body.th-global-shell-v3 section.bg-white,
+body.th-global-shell-v3 .bg-white {
+  background: #fff !important;
+}
+
+body.th-global-shell-v3 section.bg-slate-50,
+body.th-global-shell-v3 section.bg-gray-50,
+body.th-global-shell-v3 .from-sky-100 {
+  background: linear-gradient(180deg, #f6faf9 0%, #ffffff 100%) !important;
+}
+
+body.th-global-shell-v3 section.py-16,
+body.th-global-shell-v3 section.py-20 {
+  border-bottom: 1px solid rgba(18, 18, 46, 0.06);
+}
+
+body.th-global-shell-v3 .container,
+body.th-global-shell-v3 .th-container {
+  max-width: 1140px;
+}
+
+/* Карточки и плитки */
+body.th-global-shell-v3 .surface-card,
+body.th-global-shell-v3 .ds-card,
+body.th-global-shell-v3 .hotel-card,
+body.th-global-shell-v3 .ph-card,
+body.th-global-shell-v3 .th-off-card,
+body.th-global-shell-v3 .guest-card,
+body.th-global-shell-v3 .employee-card {
+  border-radius: 20px !important;
+  border: 1px solid rgba(18, 18, 46, 0.1) !important;
+  box-shadow: 0 8px 28px rgba(18, 18, 46, 0.07) !important;
+  background: #fff !important;
+}
+
+body.th-global-shell-v3 .th-off-card__badge {
+  background: #5da9a4 !important;
+  color: #fff !important;
+}
+
+body.th-global-shell-v3 .photo-gallery-strip img,
+body.th-global-shell-v3 .gallery-image {
+  border-radius: 16px !important;
+}
+
+/* Кнопки */
+body.th-global-shell-v3 .button,
+body.th-global-shell-v3 .btn-m-primary,
+body.th-global-shell-v3 a.rounded-xl.bg-amber-500 {
+  border-radius: 12px !important;
+}
+
+body.th-global-shell-v3 .button-primary,
+body.th-global-shell-v3 .btn-m-primary,
+body.th-global-shell-v3 .th-promo-cta {
+  background: linear-gradient(135deg, #ff6b6b, #f65252) !important;
+  border: none !important;
+  color: #fff !important;
+}
+
+body.th-global-shell-v3 .button-secondary,
+body.th-global-shell-v3 .btn-m-secondary {
+  background: #fff !important;
+  color: #12122e !important;
+  border: 1px solid rgba(18, 18, 46, 0.12) !important;
+}
+
+/* Tailwind legacy → бренд */
+body.th-global-shell-v3 .text-sky-500,
+body.th-global-shell-v3 .text-indigo-600,
+body.th-global-shell-v3 .text-indigo-500 {
+  color: #5da9a4 !important;
+}
+
+body.th-global-shell-v3 .bg-indigo-600,
+body.th-global-shell-v3 .from-indigo-600,
+body.th-global-shell-v3 .bg-sky-600 {
+  background-color: #12122e !important;
+}
+
+body.th-global-shell-v3 .from-indigo-500 {
+  --tw-gradient-from: #5da9a4 !important;
+}
+
+/* Акции */
+body.th-global-shell-v3.th-promo-page .promo-departure-card,
+body.th-global-shell-v3 .th-promo-country-card,
+body.th-global-shell-v3 .promo-city-chip {
+  border-radius: 16px !important;
+  border: 1px solid rgba(18, 18, 46, 0.1) !important;
+  box-shadow: 0 4px 18px rgba(18, 18, 46, 0.06) !important;
+}
+
+body.th-global-shell-v3 .promo-city-chip.is-active,
+body.th-global-shell-v3 .promo-departure-card.is-active {
+  border-color: #5da9a4 !important;
+  background: rgba(93, 169, 164, 0.12) !important;
+}
+
+/* Формы / ЛК */
+body.th-global-shell-v3 input[type="text"],
+body.th-global-shell-v3 input[type="email"],
+body.th-global-shell-v3 input[type="password"],
+body.th-global-shell-v3 input[type="tel"],
+body.th-global-shell-v3 select,
+body.th-global-shell-v3 textarea {
+  border-radius: 12px !important;
+  border-color: rgba(18, 18, 46, 0.15) !important;
+}
+
+body.th-global-shell-v3 input:focus,
+body.th-global-shell-v3 select:focus,
+body.th-global-shell-v3 textarea:focus {
+  border-color: #5da9a4 !important;
+  box-shadow: 0 0 0 3px rgba(93, 169, 164, 0.2) !important;
+}
+
+body.th-global-shell-v3 .card-shadow,
+body.th-global-shell-v3 .rounded-2xl.border {
+  border-radius: 20px !important;
+}
+
+/* Модалки / sheets */
+body.th-global-shell-v3 .th-sheet,
+body.th-global-shell-v3 .th-modal__dialog {
+  border-radius: 20px 20px 0 0 !important;
+}
+
+/* Посты */
+body.th-global-shell-v3.th-posts .th-posts-promo {
+  background: linear-gradient(135deg, #12122e, #2a5c55) !important;
+  color: #fff !important;
+}
+
+body.th-global-shell-v3.th-posts .th-posts-item,
+body.th-global-shell-v3 .th-posts-card {
+  background: #fff !important;
+  border-radius: 20px !important;
+}
+
+/* Countries list */
+body.th-global-shell-v3 .countries-grid a,
+body.th-global-shell-v3 .th-countries-card {
+  border-radius: 18px !important;
+  overflow: hidden;
+  box-shadow: 0 6px 22px rgba(18, 18, 46, 0.08) !important;
+}
+
+/* Типографика заголовков */
+body.th-global-shell-v3 h1.heading-font,
+body.th-global-shell-v3 h2.heading-font,
+body.th-global-shell-v3 .ds-h1,
+body.th-global-shell-v3 .ds-h2 {
+  color: #12122e;
+  letter-spacing: -0.02em;
+}
+
+body.th-global-shell-v3 .th-shell-main > section:first-of-type:not(.home-hero-section) {
+  padding-top: calc(var(--th-header-clearance, 72px) + 8px);
+}
+
+/* Шаблон country.php — hero с бледным фото */
+body.th-global-shell-v3 section.relative.bg-gradient-to-br.from-sky-100 {
+  background: #12122e !important;
+  color: #fff;
+  padding-top: 6rem;
+  padding-bottom: 3rem;
+}
+
+body.th-global-shell-v3 section.relative.bg-gradient-to-br.from-sky-100 img.opacity-20 {
+  opacity: 0.45 !important;
+}
+
+body.th-global-shell-v3 section.relative.bg-gradient-to-br.from-sky-100 h1,
+body.th-global-shell-v3 section.relative.bg-gradient-to-br.from-sky-100 p,
+body.th-global-shell-v3 section.relative.bg-gradient-to-br.from-sky-100 .text-slate-900 {
+  color: #fff !important;
+}
+
+body.th-global-shell-v3 section.relative.bg-gradient-to-br.from-sky-100 .from-white {
+  background: linear-gradient(to top, #12122e, transparent) !important;
+}
+
+/* Унифицированный hero (th_shell_page_hero) */
+body.th-global-shell-v3 .th-shell-page-hero {
+  position: relative;
+  padding: calc(var(--th-header-clearance, 80px) + 2rem) 1.25rem 2.5rem;
+  background: linear-gradient(135deg, #12122e 0%, #234649 55%, #2a5c55 100%);
+  color: #fff;
+  overflow: hidden;
+}
+
+body.th-global-shell-v3 .th-shell-page-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 80% at 100% 0%, rgba(255, 107, 107, 0.18), transparent 55%);
+  pointer-events: none;
+}
+
+body.th-global-shell-v3 .th-shell-page-hero__inner {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+body.th-global-shell-v3 .th-shell-page-hero__badge {
+  display: inline-block;
+  margin: 0 0 0.75rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+body.th-global-shell-v3 .th-shell-page-hero__title {
+  font-size: clamp(1.85rem, 4vw, 2.75rem);
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 0.65rem;
+}
+
+body.th-global-shell-v3 .th-shell-page-hero__lead {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+body.th-global-shell-v3 .th-page-hero-v2 {
+  padding: calc(var(--th-header-clearance, 80px) + 2rem) 1.5rem 2.75rem !important;
+  background: linear-gradient(145deg, #12122e, #1e4a4f 60%, #3d8f8a) !important;
+  min-height: 280px;
+}
+
+body.th-global-shell-v3 .countries-list-page-wrap section.py-14 {
+  background: #eef3f6 !important;
+}
+
+body.th-global-shell-v3 .country-card {
+  border-radius: 20px !important;
+  border: none !important;
+  box-shadow: 0 10px 32px rgba(18, 18, 46, 0.1) !important;
+}
+
+body.th-global-shell-v3 .th-section-accent {
+  width: 4px;
+  height: 1.75rem;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #5da9a4, #ff6b6b);
+}
+
+body.th-global-shell-v3.th-promo-page .promo-unified-hero {
+  background: linear-gradient(125deg, #12122e 0%, #1a3d45 45%, #2d6a62 100%) !important;
+  min-height: 42vh;
+}
+
+body.th-global-shell-v3.th-promo-page .promo-departure-bar {
+  background: #fff !important;
+  border-bottom: 1px solid rgba(18, 18, 46, 0.08) !important;
+  box-shadow: 0 8px 24px rgba(18, 18, 46, 0.06);
+}
+
+body.th-global-shell-v3.th-promo-page #promo-departures-grid > * {
+  border-radius: 16px !important;
+}
+
+body.th-global-shell-v3 .bg-sky-600,
+body.th-global-shell-v3 .hover\:bg-sky-700:hover {
+  background-color: #5da9a4 !important;
+}
+
+body.th-global-shell-v3 .th-page-tour-detail,
+body.th-global-shell-v3.thh,
+body.th-global-shell-v3.ph {
+  background: #eef3f6 !important;
+}
+
+body.th-global-shell-v3 .ds-page .container {
+  max-width: 1140px;
+}
+
+body.th-global-shell-v3 .ds-page-hero {
+  background: linear-gradient(135deg, #12122e, #2a5c55) !important;
+  color: #fff;
+}
+
+body.th-global-shell-v3 .ds-page-hero h1,
+body.th-global-shell-v3 .ds-page-hero p {
+  color: #fff !important;
+}
+
+body.th-global-shell-v3 .gradient-text {
+  background: linear-gradient(90deg, #9ee8e3, #ffb4b4);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}

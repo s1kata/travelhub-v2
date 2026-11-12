@@ -14,6 +14,9 @@
  * Cover warm нельзя тянуть на 3 месяца в один прогон — бюджет live кончается,
  * ближний кэш холодеет → поиск уходит в live (~1 мин).
  *
+ * SSH (без .sh — не ломается от CRLF при заливке с Windows):
+ *   cd ~/hub63_ru/public_html && nohup /usr/bin/php8.1 backend/cron/warm_home_search_cache.php >> data/home_search_warm.log 2>&1 &
+ *
  * Cron (днём — все страны, ближний приоритет):
  *   30 0,8,14,20 * * * cd /path/to/site && bash backend/cron/warm_home_search_cache.sh >> data/home_search_warm.log 2>&1
  *
@@ -62,6 +65,19 @@ $popular = $scopeApplied['popular'];
 $warmScope = $scopeApplied['scope'];
 $warmPhase = $scopeApplied['phase'];
 $warmPhaseCount = $scopeApplied['phaseCount'];
+
+if ($warmScope === 'nightly') {
+    foreach ([
+        'TH_HOME_COVER_DAYS' => '30',
+        'TH_HOME_COVER_PRIORITY_DAYS' => '30',
+        'TH_WARM_MAX_LIVE_CHUNKS' => '120',
+    ] as $key => $default) {
+        if (getenv($key) === false && !isset($_ENV[$key])) {
+            putenv($key . '=' . $default);
+            $_ENV[$key] = $default;
+        }
+    }
+}
 
 if ($popular === []) {
     $out = [

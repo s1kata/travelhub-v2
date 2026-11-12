@@ -12,14 +12,16 @@ $appDeepLink = $orderId !== '' ? 'travelhub://payment/fail?bookingId=' . rawurle
 $is_logged_in = isset($_SESSION['user_id']);
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru"<?php echo th_ui_html_class_attr() !== '' ? ' class="' . trim(th_ui_html_class_attr()) . '"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Ошибка оплаты | Travel Hub</title>
     <?php include __DIR__ . '/../../backend/components/design_system_head.php'; ?>
+<?php th_ui_shell_stylesheets_fini(); ?>
+
 </head>
-<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4<?php echo th_ui_body_class_attr(); ?>">
     <div class="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
         <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

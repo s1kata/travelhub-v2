@@ -35,7 +35,7 @@ function getServiceIcon($name, $iconMap, $default) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru"<?php echo th_ui_html_class_attr() !== '' ? ' class="' . trim(th_ui_html_class_attr()) . '"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
@@ -88,30 +88,22 @@ function getServiceIcon($name, $iconMap, $default) {
     <link rel="alternate icon" href="/frontend/favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <?php include __DIR__ . '/../../backend/components/design_system_head.php'; ?>
+<?php th_ui_shell_stylesheets_fini(); ?>
+
 </head>
-<body class="ds-page text-slate-900 antialiased bg-white">
+<body class="ds-page text-slate-900 antialiased bg-white<?php echo th_ui_body_class_attr(); ?>">
     <?php 
     $current_page = 'services';
     include __DIR__ . '/../../backend/components/header.php'; 
     ?>
 
-    <!-- Hero Section -->
-    <section class="ds-page-hero relative py-20 md:py-28 bg-gradient-to-br from-indigo-50 via-white to-slate-50">
-        <div class="th-container mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center max-w-4xl mx-auto">
-                <span class="pill-badge mb-6 inline-flex items-center gap-2">
-                    <i class="fas fa-star"></i>
-                    Наши услуги
-                </span>
-                <h1 class="heading-font text-4xl sm:text-5xl md:text-6xl font-bold text-slate-900 mb-6">
-                    Полный спектр <span class="gradient-text">туристических услуг</span>
-                </h1>
-                <p class="text-xl text-slate-700 mb-8 max-w-2xl mx-auto">
-                    От бронирования туров до оформления виз — мы позаботимся обо всех деталях вашего путешествия. Премиум-сервис без компромиссов.
-                </p>
-            </div>
-        </div>
-    </section>
+    <?php
+    th_shell_page_hero([
+        'badge' => 'Travel Hub · услуги',
+        'title' => 'Всё для поездки в одном месте',
+        'subtitle' => 'Туры, визы, страховка, трансферы — поможем на каждом шаге',
+    ]);
+    ?>
 
     <!-- Services Content -->
     <section class="py-16 sm:py-20 md:py-28 bg-white">

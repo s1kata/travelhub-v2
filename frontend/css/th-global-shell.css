@@ -1,0 +1,950 @@
+/**
+
+ * Travel Hub — глобальная оболочка v3.
+
+ * Логика wizard та же; меняем только оболочку и удобство rail-поиска.
+
+ */
+
+body.th-global-shell-v3 {
+
+  --th-shell-bg: #eef3f6;
+
+  --th-shell-bg-soft: linear-gradient(165deg, #e8f3f2 0%, #f4f0ec 48%, #eef1f8 100%);
+
+  --th-shell-bg-warm: #faf7f4;
+
+  --th-shell-border: rgba(18, 18, 46, 0.12);
+
+  --th-shell-radius: 16px;
+
+  --th-shell-radius-lg: 20px;
+
+  --th-shell-shadow: 0 12px 40px rgba(18, 18, 46, 0.12);
+
+  --th-shell-navy: #12122e;
+
+  --th-shell-teal: #5da9a4;
+
+  --th-shell-teal-deep: #3d8f8a;
+
+  --th-shell-coral: #ff6b6b;
+
+  --th-shell-text: #1e293b;
+
+  --th-shell-muted: #64748b;
+
+  --v2-radius: 16px;
+
+  --v2-shadow: var(--th-shell-shadow);
+
+  --ds-radius: 16px;
+
+  background: var(--th-shell-bg) !important;
+
+  color: var(--th-shell-text);
+
+}
+
+
+
+/* ── Header: лёгкий teal-оттенок ── */
+
+body.th-global-shell-v3 #site-header.header {
+
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(232, 245, 244, 0.92) 100%) !important;
+
+  backdrop-filter: blur(14px);
+
+  border-bottom: 2px solid rgba(93, 169, 164, 0.35) !important;
+
+  box-shadow: 0 4px 24px rgba(18, 18, 46, 0.06) !important;
+
+}
+
+
+
+body.th-global-shell-v3 #site-header .header__logo,
+
+body.th-global-shell-v3 #site-header .header__logo span {
+
+  color: var(--th-shell-navy) !important;
+
+}
+
+
+
+body.th-global-shell-v3 #site-header .header__nav > a,
+
+body.th-global-shell-v3 #site-header .header__more-toggle,
+
+body.th-global-shell-v3 #site-header .header__account {
+
+  color: #334155 !important;
+
+  font-weight: 600;
+
+}
+
+
+
+body.th-global-shell-v3 #site-header .header__nav > a.is-active {
+
+  color: var(--th-shell-teal-deep) !important;
+
+  box-shadow: inset 0 -3px 0 var(--th-shell-coral);
+
+}
+
+
+
+/* ── Hero: фото на весь экран + поиск поверх ── */
+
+body.th-global-shell-v3 .home-hero-section.th-global-hero--v3 {
+
+  position: relative;
+
+  min-height: min(100vh, 920px) !important;
+
+  min-height: min(100dvh, 920px) !important;
+
+  padding: var(--th-header-clearance, 88px) 0 2.5rem !important;
+
+  display: flex !important;
+
+  flex-direction: column;
+
+  justify-content: flex-end;
+
+  align-items: stretch;
+
+  overflow: hidden;
+
+  background: #1a2744 !important;
+
+}
+
+
+
+body.th-global-shell-v3 .home-hero-section.th-global-hero--v3 > .hero-background-img {
+
+  position: absolute !important;
+
+  inset: 0 !important;
+
+  z-index: 0;
+
+  width: 100% !important;
+
+  height: 100% !important;
+
+  max-width: none !important;
+
+  margin: 0 !important;
+
+  border-radius: 0 !important;
+
+  box-shadow: none !important;
+
+  object-fit: cover;
+
+  opacity: 1 !important;
+
+  order: 0;
+
+}
+
+
+
+body.th-global-shell-v3 .home-hero-section.th-global-hero--v3 > .hero-overlay {
+
+  display: block !important;
+
+  z-index: 1;
+
+  background: linear-gradient(
+
+    180deg,
+
+    rgba(18, 18, 46, 0.48) 0%,
+
+    rgba(61, 143, 138, 0.22) 35%,
+
+    rgba(18, 18, 46, 0.82) 100%
+
+  ) !important;
+
+}
+
+
+
+body.th-global-shell-v3 .home-hero-section.th-global-hero--v3 .home-hero-inner {
+
+  position: relative;
+
+  z-index: 2;
+
+  display: flex !important;
+
+  flex-direction: column;
+
+  gap: 1rem;
+
+  align-items: center !important;
+
+  justify-content: flex-end !important;
+
+  max-width: 1120px !important;
+
+  width: 100%;
+
+  margin: 0 auto;
+
+  padding-left: 1rem;
+
+  padding-right: 1rem;
+
+}
+
+
+
+body.th-global-shell-v3 .home-hero-section.th-global-hero--v3 .hero-content {
+
+  text-align: center !important;
+
+  width: 100%;
+
+  max-width: 640px !important;
+
+  margin: 0 auto 0.25rem !important;
+
+}
+
+
+
+body.th-global-shell-v3 .home-hero-section.th-global-hero--v3 .hero-content .heading-font {
+
+  color: rgba(255, 255, 255, 0.92) !important;
+
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.35) !important;
+
+  letter-spacing: 0.16em;
+
+}
+
+
+
+body.th-global-shell-v3 .home-hero-section.th-global-hero--v3 .hero-content h1,
+
+body.th-global-shell-v3 .home-hero-section.th-global-hero--v3 .th-home-hero__title {
+
+  color: #fff !important;
+
+  text-shadow: 0 4px 28px rgba(0, 0, 0, 0.45) !important;
+
+  font-size: clamp(1.9rem, 4.5vw, 3.15rem) !important;
+
+}
+
+
+
+body.th-global-shell-v3 .home-hero-section.th-global-hero--v3 .th-home-hero__steps {
+
+  color: rgba(255, 255, 255, 0.88) !important;
+
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.4) !important;
+
+  margin: 0 auto !important;
+
+}
+
+
+
+body.th-global-shell-v3 .home-hero-section.th-global-hero--v3 .th-home-hero__dot {
+
+  color: var(--th-shell-coral);
+
+}
+
+
+
+/* ── Поиск: стеклянная карточка + удобный бар на десктопе ── */
+
+body.th-global-shell-v3 #tour-search-section.th-wizard,
+
+body.th-global-shell-v3 #tour-search-section.th-coral-wizard {
+
+  width: 100% !important;
+
+  max-width: min(1080px, 100%) !important;
+
+  margin: 0 auto !important;
+
+  padding: 0.85rem 0.95rem 1rem !important;
+
+  background: rgba(255, 255, 255, 0.94) !important;
+
+  border: 1px solid rgba(255, 255, 255, 0.75) !important;
+
+  border-radius: var(--th-shell-radius-lg) !important;
+
+  box-shadow: var(--th-shell-shadow), 0 0 0 1px rgba(93, 169, 164, 0.15) !important;
+
+  backdrop-filter: blur(14px);
+
+}
+
+
+
+body.th-global-shell-v3 #tour-search-section .th-search-mode {
+
+  display: inline-flex !important;
+
+  padding: 3px !important;
+
+  background: rgba(18, 18, 46, 0.06) !important;
+
+  border-radius: 999px !important;
+
+  border: none !important;
+
+  margin-bottom: 0.75rem !important;
+
+}
+
+
+
+body.th-global-shell-v3 #tour-search-section .th-search-mode__btn {
+
+  border-radius: 999px !important;
+
+  padding: 0.4rem 1rem !important;
+
+  font-weight: 600 !important;
+
+  color: var(--th-shell-muted) !important;
+
+}
+
+
+
+body.th-global-shell-v3 #tour-search-section .th-search-mode__btn.is-active {
+
+  background: var(--th-shell-navy) !important;
+
+  color: #fff !important;
+
+  box-shadow: 0 4px 14px rgba(18, 18, 46, 0.2) !important;
+
+}
+
+
+
+/* Десктоп: одна строка параметров + «Найти» справа */
+
+@media (min-width: 900px) {
+
+  body.th-global-shell-v3 #tour-search-section.th-wizard--compact-panels:not(.th-search-tv) {
+
+    display: grid;
+
+    grid-template-columns: 1fr auto;
+
+    grid-template-areas:
+
+      "mode mode"
+
+      "rail find"
+
+      "step step";
+
+    column-gap: 0.5rem;
+
+    row-gap: 0.65rem;
+
+    align-items: stretch;
+
+  }
+
+
+
+  body.th-global-shell-v3 #tour-search-section .th-search-mode {
+
+    grid-area: mode;
+
+  }
+
+
+
+  body.th-global-shell-v3 #tour-search-section .th-coral-wizard__rail {
+
+    grid-area: rail;
+
+    display: flex !important;
+
+    flex-wrap: nowrap;
+
+    margin: 0 !important;
+
+    border: 2px solid rgba(18, 18, 46, 0.1);
+
+    border-radius: 14px;
+
+    overflow: hidden;
+
+    background: #fff;
+
+  }
+
+
+
+  body.th-global-shell-v3 #tour-search-section .th-coral-wizard__rail-item {
+
+    flex: 1 1 0;
+
+    min-width: 0;
+
+    border: none !important;
+
+    border-radius: 0 !important;
+
+    border-right: 1px solid rgba(18, 18, 46, 0.08) !important;
+
+    background: transparent !important;
+
+    min-height: 68px !important;
+
+    padding: 0.55rem 0.75rem !important;
+
+    transition: background 0.15s;
+
+  }
+
+
+
+  body.th-global-shell-v3 #tour-search-section .th-coral-wizard__rail-item:last-child {
+
+    border-right: none !important;
+
+  }
+
+
+
+  body.th-global-shell-v3 #tour-search-section .th-coral-wizard__rail-item:hover {
+
+    background: rgba(93, 169, 164, 0.08) !important;
+
+  }
+
+
+
+  body.th-global-shell-v3 #tour-search-section .th-coral-wizard__rail-item.is-active {
+
+    background: rgba(93, 169, 164, 0.14) !important;
+
+    box-shadow: inset 0 0 0 2px rgba(93, 169, 164, 0.45) !important;
+
+  }
+
+
+
+  body.th-global-shell-v3 #tour-search-section .th-wizard__compact-head {
+    display: contents !important;
+  }
+
+  body.th-global-shell-v3 #tour-search-section .th-wizard__stepbar {
+    grid-area: step;
+    grid-column: 1 / -1;
+    margin: 0 !important;
+  }
+
+  body.th-global-shell-v3 #tour-search-section .th-wizard__compact-find {
+    grid-area: find;
+    align-self: stretch;
+    min-height: 68px !important;
+    min-width: 140px;
+    border-radius: 14px !important;
+    font-size: 1rem !important;
+    background: linear-gradient(135deg, var(--th-shell-coral) 0%, #ff8585 100%) !important;
+    box-shadow: 0 8px 22px rgba(255, 107, 107, 0.35) !important;
+  }
+
+
+
+  body.th-global-shell-v3 #tour-search-section .th-wizard__stepbar-track {
+
+    height: 4px;
+
+    background: rgba(18, 18, 46, 0.08);
+
+    border-radius: 999px;
+
+  }
+
+}
+
+
+
+/* Мобилка: плитки 2 колонки + широкая «Найти» */
+
+@media (max-width: 899.98px) {
+
+  body.th-global-shell-v3 .th-coral-wizard__rail {
+
+    display: grid !important;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.45rem !important;
+
+  }
+
+
+
+  body.th-global-shell-v3 .th-coral-wizard__rail-item {
+
+    border-radius: 12px !important;
+
+    border: 1px solid rgba(18, 18, 46, 0.1) !important;
+
+    background: linear-gradient(180deg, #fff 0%, #f5faf9 100%) !important;
+
+    min-height: 62px !important;
+
+  }
+
+
+
+  body.th-global-shell-v3 .th-coral-wizard__rail-item.is-active {
+
+    border-color: var(--th-shell-teal) !important;
+
+    background: #fff !important;
+
+    box-shadow: 0 0 0 2px rgba(93, 169, 164, 0.3) !important;
+
+  }
+
+
+
+  body.th-global-shell-v3 .th-wizard__compact-find {
+
+    width: 100%;
+
+    min-height: 50px !important;
+
+    border-radius: 14px !important;
+
+    background: var(--th-shell-coral) !important;
+
+  }
+
+}
+
+
+
+body.th-global-shell-v3 .th-coral-wizard__rail-value,
+
+body.th-global-shell-v3 .th-coral-search__value {
+
+  font-weight: 700 !important;
+
+  color: var(--th-shell-navy) !important;
+
+  font-size: 0.9rem !important;
+
+}
+
+
+
+body.th-global-shell-v3 .th-coral-search__label,
+
+body.th-global-shell-v3 .th-wizard__stepbar-label {
+
+  color: var(--th-shell-teal-deep) !important;
+
+  font-size: 0.68rem !important;
+
+  font-weight: 700;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.05em;
+
+}
+
+
+
+body.th-global-shell-v3 .th-wizard__stepbar-fill {
+
+  background: linear-gradient(90deg, var(--th-shell-teal), var(--th-shell-coral)) !important;
+
+}
+
+
+
+body.th-global-shell-v3 .th-wizard__next,
+
+body.th-global-shell-v3 .button.button-primary,
+
+body.th-global-shell-v3 .button-primary {
+
+  border-radius: 12px !important;
+
+  background: var(--th-shell-coral) !important;
+
+}
+
+
+
+body.th-global-shell-v3 .th-wizard__back {
+
+  border-radius: 12px !important;
+
+  border: 1px solid var(--th-shell-border) !important;
+
+  color: var(--th-shell-navy) !important;
+
+}
+
+
+
+body.th-global-shell-v3 .th-coral-wizard__filters-btn {
+
+  border-radius: 999px !important;
+
+  border: 1px dashed rgba(93, 169, 164, 0.55) !important;
+
+  color: var(--th-shell-teal-deep) !important;
+
+  background: rgba(93, 169, 164, 0.08) !important;
+
+}
+
+
+
+/* ── Витрина: цветной фон ── */
+
+body.th-global-shell-v3 .th-home-showcase {
+
+  background: var(--th-shell-bg-soft) !important;
+
+  padding-top: 2.75rem !important;
+
+  padding-bottom: 2.75rem !important;
+
+  position: relative;
+
+}
+
+
+
+body.th-global-shell-v3 .th-home-showcase::before {
+
+  content: "";
+
+  position: absolute;
+
+  inset: 0;
+
+  background: radial-gradient(ellipse 80% 50% at 10% 0%, rgba(255, 107, 107, 0.08), transparent 55%),
+
+    radial-gradient(ellipse 70% 45% at 90% 100%, rgba(93, 169, 164, 0.12), transparent 50%);
+
+  pointer-events: none;
+
+}
+
+
+
+body.th-global-shell-v3 .th-showcase-head h2 {
+
+  color: var(--th-shell-navy) !important;
+
+}
+
+
+
+body.th-global-shell-v3 .th-showcase-hot__all {
+
+  background: var(--th-shell-navy);
+
+  color: #fff;
+
+  border: none;
+
+  border-radius: 999px;
+
+  padding: 0.55rem 1.1rem;
+
+  font-weight: 600;
+
+}
+
+
+
+body.th-global-shell-v3 .th-tour-card {
+
+  border-radius: var(--th-shell-radius-lg) !important;
+
+  border: none !important;
+
+  box-shadow: 0 6px 24px rgba(18, 18, 46, 0.1) !important;
+
+  background: #fff !important;
+
+  overflow: hidden;
+
+}
+
+
+
+body.th-global-shell-v3 .th-tour-card::before {
+
+  content: "";
+
+  display: block;
+
+  height: 4px;
+
+  background: linear-gradient(90deg, var(--th-shell-teal), var(--th-shell-coral));
+
+}
+
+
+
+body.th-global-shell-v3 .th-tour-card:hover {
+
+  transform: translateY(-3px) !important;
+
+  box-shadow: 0 16px 40px rgba(18, 18, 46, 0.14) !important;
+
+}
+
+
+
+body.th-global-shell-v3 .th-tour-card__geo {
+
+  color: var(--th-shell-teal-deep) !important;
+
+  font-weight: 600;
+
+}
+
+
+
+body.th-global-shell-v3 .th-tour-card__btn {
+
+  background: var(--th-shell-navy) !important;
+
+  border-radius: 10px !important;
+
+}
+
+
+
+body.th-global-shell-v3 .th-tour-card__btn:hover {
+
+  background: var(--th-shell-teal-deep) !important;
+
+}
+
+
+
+/* Trust — navy полоса */
+
+body.th-global-shell-v3 .th-home-trust {
+
+  background: linear-gradient(135deg, #12122e 0%, #1e3d4a 55%, #2a5c55 100%) !important;
+
+  color: #fff;
+
+}
+
+
+
+body.th-global-shell-v3 .th-home-trust__list {
+
+  display: grid !important;
+
+  gap: 1rem !important;
+
+}
+
+
+
+@media (min-width: 768px) {
+
+  body.th-global-shell-v3 .th-home-trust__list {
+
+    grid-template-columns: repeat(3, 1fr) !important;
+
+  }
+
+}
+
+
+
+body.th-global-shell-v3 .th-home-trust__item {
+
+  background: rgba(255, 255, 255, 0.96) !important;
+
+  border: none !important;
+
+  border-radius: var(--th-shell-radius) !important;
+
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15) !important;
+
+}
+
+
+
+body.th-global-shell-v3 .th-home-trust__item strong {
+
+  color: var(--th-shell-navy);
+
+}
+
+
+
+body.th-global-shell-v3 .th-home-trust__icon {
+
+  background: linear-gradient(135deg, rgba(93, 169, 164, 0.2), rgba(255, 107, 107, 0.15)) !important;
+
+  color: var(--th-shell-teal-deep) !important;
+
+}
+
+
+
+/* Карточки на внутренних */
+
+body.th-global-shell-v3 .surface-card,
+
+body.th-global-shell-v3 .hotel-card,
+
+body.th-global-shell-v3 .ph-card,
+
+body.th-global-shell-v3 .th-off-card {
+
+  border-radius: var(--th-shell-radius-lg) !important;
+
+  border: 1px solid rgba(93, 169, 164, 0.2) !important;
+
+  box-shadow: 0 4px 20px rgba(18, 18, 46, 0.06) !important;
+
+  background: #fff !important;
+
+}
+
+
+
+body.th-global-shell-v3 main,
+
+body.th-global-shell-v3 .th-page-content {
+
+  background: transparent;
+
+}
+
+
+
+/* Lead bar */
+
+body.th-global-shell-v3 .th-site-lead-bar {
+
+  background: linear-gradient(180deg, #12122e, #1a2744) !important;
+
+  border: none !important;
+
+  border-radius: 16px 16px 0 0 !important;
+
+}
+
+
+
+body.th-global-shell-v3 .th-site-lead-bar__btn {
+
+  color: #fff !important;
+
+  border-right-color: rgba(255, 255, 255, 0.2) !important;
+
+}
+
+
+
+/* Footer — navy */
+
+body.th-global-shell-v3 .site-footer {
+
+  background: #0f0f24 !important;
+
+  border-top: 4px solid var(--th-shell-teal) !important;
+
+  color: #e2e8f0 !important;
+
+}
+
+
+
+body.th-global-shell-v3 .site-footer .heading-font,
+
+body.th-global-shell-v3 .site-footer h3 {
+
+  color: #fff !important;
+
+}
+
+
+
+body.th-global-shell-v3 .site-footer a {
+
+  color: #9ee8e3 !important;
+
+}
+
+
+
+body.th-global-shell-v3 .site-footer .text-slate-400,
+
+body.th-global-shell-v3 .site-footer .text-slate-500 {
+
+  color: #94a3b8 !important;
+
+}
+
+
+
+body.th-global-shell-v3 .th-ui-preview-bar {
+
+  background: linear-gradient(90deg, var(--th-shell-navy), #2a5c55);
+
+}
+
+
+
+body.th-global-shell-v3.th-promo-page {
+
+  background: var(--th-shell-bg) !important;
+
+}
+
+
+
+body.th-global-shell-v3 .tv-pf-chip.is-active {
+
+  border-color: var(--th-shell-teal) !important;
+
+  background: rgba(93, 169, 164, 0.15) !important;
+
+  color: var(--th-shell-navy) !important;
+
+}
+
+
+
+body.th-global-shell-v3.th-search-ui-wizard .th-search-tv__form {
+
+  display: none !important;
+
+}

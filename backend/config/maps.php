@@ -48,3 +48,42 @@ if (!function_exists('th_map_widget_url_for_geo')) {
         return 'https://yandex.ru/map-widget/v1/?text=' . rawurlencode($geo) . '&z=16&lang=ru_RU';
     }
 }
+
+if (!function_exists('th_map_widget_url_for_office')) {
+    /**
+     * Iframe-виджет карты для записи offices_catalog: map_url → yandex_org_id → текстовый geo.
+     *
+     * @param array<string, mixed> $office
+     */
+    function th_map_widget_url_for_office(array $office): string
+    {
+        if (!empty($office['map_url']) && is_string($office['map_url'])) {
+            $url = trim($office['map_url']);
+            if ($url !== '') {
+                return $url;
+            }
+        }
+        $orgId = preg_replace('/[^0-9]/', '', (string) ($office['yandex_org_id'] ?? ''));
+        $geo = trim((string) ($office['geo'] ?? $office['address'] ?? ''));
+        if ($orgId !== '' && $geo !== '') {
+            return 'https://yandex.ru/map-widget/v1/?oid=' . $orgId . '&text=' . rawurlencode($geo) . '&z=16&lang=ru_RU';
+        }
+        if ($orgId !== '') {
+            return 'https://yandex.ru/map-widget/v1/?oid=' . $orgId . '&z=16&lang=ru_RU';
+        }
+        return th_map_widget_url_for_geo($geo);
+    }
+}
+
+if (!function_exists('th_yandex_maps_page_url_for_office')) {
+    /**
+     * Ссылка «Открыть на Яндекс.Картах» — всегда по текстовому адресу (geo), без org URL.
+     *
+     * @param array<string, mixed> $office
+     */
+    function th_yandex_maps_page_url_for_office(array $office): string
+    {
+        $geo = trim((string) ($office['geo'] ?? $office['address'] ?? ''));
+        return 'https://yandex.ru/maps/?text=' . rawurlencode($geo);
+    }
+}

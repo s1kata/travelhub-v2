@@ -76,7 +76,7 @@ $countrySlug = $countryData['slug'];
 applyCountryContentFromDB($pdo, $countrySlug, $countryData);
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru"<?php echo th_ui_html_class_attr() !== '' ? ' class="' . trim(th_ui_html_class_attr()) . '"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -111,8 +111,11 @@ applyCountryContentFromDB($pdo, $countrySlug, $countryData);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <?php include __DIR__ . '/../../../backend/components/design_system_head.php'; ?>
 
+<?php th_ui_shell_stylesheets_fini(); ?>
+
+
 </head>
-<body class="ds-page text-slate-900 antialiased">
+<body class="ds-page text-slate-900 antialiased<?php echo th_ui_body_class_attr(); ?>">
     <?php 
     $current_page = 'countries';
     include __DIR__ . '/../../../backend/components/header.php'; 

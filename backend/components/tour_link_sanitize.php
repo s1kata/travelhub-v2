@@ -41,8 +41,8 @@ function tour_link_is_self_referential(string $url): bool
     if ($url === '') {
         return false;
     }
-    if (preg_match('/travelhub63\.ru/i', $url)) {
-        return true;
+    if (tour_link_is_internal_tour_detail_page($url)) {
+        return false;
     }
     $envHost = getenv('APP_PUBLIC_HOST');
     $hosts = array_filter(array_map('strtolower', array_filter([

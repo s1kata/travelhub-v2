@@ -99,7 +99,7 @@ if (!$office) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru"<?php echo th_ui_html_class_attr() !== '' ? ' class="' . trim(th_ui_html_class_attr()) . '"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
@@ -109,8 +109,10 @@ if (!$office) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         <link rel="stylesheet" href="/frontend/css/pages/offices-samara.css?v=1">
     <?php include __DIR__ . '/../../../backend/components/design_system_head.php'; ?>
+    <?php th_ui_shell_stylesheets_fini(); ?>
+
     </head>
-<body class="text-slate-900">
+<body class="text-slate-900<?php echo th_ui_body_class_attr(); ?>">
     <?php 
     $current_page = 'offices';
     include __DIR__ . '/../../../backend/components/header.php'; 

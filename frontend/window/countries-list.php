@@ -190,7 +190,7 @@ usort($allCountries, function($a, $b) {
 });
 ?>
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru"<?php echo th_ui_html_class_attr() !== '' ? ' class="' . trim(th_ui_html_class_attr()) . '"' : ''; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
@@ -227,8 +227,10 @@ usort($allCountries, function($a, $b) {
         <link rel="stylesheet" href="/frontend/css/pages/countries-list.css?v=5">
     <?php include __DIR__ . '/../../backend/components/design_system_head.php'; ?>
     <script src="/backend/api/country-images-debug.js.php" defer></script>
+<?php th_ui_shell_stylesheets_fini(); ?>
+
 </head>
-<body class="text-slate-900 countries-list-page-wrap">
+<body class="text-slate-900 countries-list-page-wrap<?php echo th_ui_body_class_attr(); ?>">
     <script>
     (function(){
         var d = <?php echo json_encode($debugCountryImages); ?>;
